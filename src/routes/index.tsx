@@ -14,7 +14,6 @@ import {
   X,
 } from "lucide-react";
 
-import teamImage from "@/assets/total-gaming-team.jpg";
 import mvpImage from "@/assets/total-gaming-mvp.jpg";
 
 type Mode = "official" | "scrims";
@@ -292,6 +291,13 @@ function Dashboard() {
     };
   }, []);
 
+  const averagePoints =
+    matches.length > 0
+      ? Math.round(
+          (stats.total / matches.length) * 10,
+        ) / 10
+      : 0;
+
   function changeMode(nextMode: Mode) {
     setMode(nextMode);
 
@@ -304,7 +310,11 @@ function Dashboard() {
 
   return (
     <div className="tg-dashboard">
-      {/* SINGLE BACKGROUND LOGO */}
+
+      {/* =====================================================
+          SINGLE BACKGROUND WATERMARK
+          No team image / no second logo overlay
+      ===================================================== */}
 
       <div
         className="tg-background-logo"
@@ -316,9 +326,14 @@ function Dashboard() {
         />
       </div>
 
-      <div className="tg-background-grid" />
+      <div
+        className="tg-background-grid"
+        aria-hidden="true"
+      />
 
-      {/* HEADER */}
+      {/* =====================================================
+          HEADER
+      ===================================================== */}
 
       <header className="tg-header">
         <div className="tg-header-inner">
@@ -350,7 +365,8 @@ function Dashboard() {
 
             <div>
               <div className="tg-brand-name">
-                TOTAL GAMING <span>HUB</span>
+                TOTAL GAMING{" "}
+                <span>HUB</span>
               </div>
 
               <div className="tg-brand-sub">
@@ -360,10 +376,21 @@ function Dashboard() {
           </a>
 
           <nav className="tg-navigation">
-            <a href="#top">Dashboard</a>
-            <a href="#tournaments">Events</a>
-            <a href="#matches">Matches</a>
-            <a href="#mvp">MVP</a>
+            <a href="#top">
+              Dashboard
+            </a>
+
+            <a href="#tournaments">
+              Events
+            </a>
+
+            <a href="#matches">
+              Matches
+            </a>
+
+            <a href="#mvp">
+              MVP
+            </a>
           </nav>
 
           <div className="tg-header-actions">
@@ -382,6 +409,7 @@ function Dashboard() {
 
         {mobileMenu && (
           <div className="tg-mobile-navigation">
+
             <a
               href="#top"
               onClick={() =>
@@ -417,13 +445,16 @@ function Dashboard() {
             >
               MVP
             </a>
+
           </div>
         )}
       </header>
 
       <main id="top">
 
-        {/* HERO */}
+        {/* =====================================================
+            HERO / INTRO
+        ===================================================== */}
 
         <section className="tg-hero tg-container">
 
@@ -451,6 +482,7 @@ function Dashboard() {
             </p>
 
             <div className="tg-hero-meta">
+
               <div>
                 <span>STAGE</span>
                 <strong>
@@ -471,131 +503,47 @@ function Dashboard() {
                   {liveTournament.teams}
                 </strong>
               </div>
-            </div>
 
-            {/* UNIQUE MODE SWITCH */}
-
-            <div className="tg-circuit-switch">
-              <button
-                className={
-                  mode === "official"
-                    ? "active"
-                    : ""
-                }
-                onClick={() =>
-                  changeMode("official")
-                }
-              >
-                <Trophy size={18} />
-                OFFICIAL
-              </button>
-
-              <button
-                className={
-                  mode === "scrims"
-                    ? "active"
-                    : ""
-                }
-                onClick={() =>
-                  changeMode("scrims")
-                }
-              >
-                <Gamepad2 size={18} />
-                SCRIMS
-              </button>
-
-              <div className="tg-switch-line" />
-            </div>
-
-          </div>
-
-          {/* HERO VISUAL */}
-
-          <div className="tg-hero-visual">
-
-            <img
-              src={teamImage}
-              alt="Total Gaming team"
-            />
-
-            <div className="tg-hero-shade" />
-
-            <div className="tg-visual-label">
-              <span>LIVE</span>
-              <strong>FFMC 2026</strong>
-            </div>
-
-            <div className="tg-visual-index">
-              01
             </div>
 
           </div>
 
         </section>
 
-        {/* STAGE NAVIGATION */}
-
-        <section className="tg-container tg-stage-section">
-
-          <div className="tg-section-label">
-            <span />
-            EVENT TIMELINE
-          </div>
-
-          <div className="tg-stage-list">
-            {folders.map(
-              (folder, index) => (
-                <button
-                  key={folder.id}
-                  className={
-                    selectedFolder ===
-                    folder.id
-                      ? "tg-stage active"
-                      : "tg-stage"
-                  }
-                  onClick={() =>
-                    setSelectedFolder(
-                      folder.id,
-                    )
-                  }
-                >
-                  <span className="tg-stage-number">
-                    0{index + 1}
-                  </span>
-
-                  <span className="tg-stage-name">
-                    {folder.label}
-                  </span>
-
-                  <span className="tg-stage-arrow">
-                    <ChevronRight size={17} />
-                  </span>
-                </button>
-              ),
-            )}
-          </div>
-
-        </section>
-
-        {/* PERFORMANCE STRIP */}
+        {/* =====================================================
+            CURRENT TOURNAMENT
+            MOVED ABOVE OFFICIAL / SCRIMS
+        ===================================================== */}
 
         <section className="tg-container tg-performance">
 
           <div className="tg-performance-head">
+
             <div>
               <span className="tg-section-label">
                 <span />
-                PERFORMANCE SNAPSHOT
+                CURRENT TOURNAMENT
               </span>
 
               <h2>
                 {selectedTournament.name}
               </h2>
+
+              <p className="tg-performance-subtitle">
+                {selectedTournament.phase}
+                {" · "}
+                {selectedTournament.matches}
+                {" MATCHES · "}
+                {selectedTournament.teams}
+                {" TEAMS"}
+              </p>
             </div>
 
             <div className="tg-selected-tag">
-              {selectedTournament.phase}
+              <span className="tg-live-marker" />
+              {selectedTournament.status}
             </div>
+
           </div>
 
           <div className="tg-stat-grid">
@@ -615,7 +563,7 @@ function Dashboard() {
 
             <Stat
               icon={<Shield />}
-              title="PLACEMENT"
+              title="PLACEMENT PTS"
               value={stats.placement}
             />
 
@@ -627,9 +575,154 @@ function Dashboard() {
 
           </div>
 
+          <div className="tg-performance-footer">
+
+            <div>
+              <span>AVERAGE / MATCH</span>
+              <strong>
+                {averagePoints}
+              </strong>
+            </div>
+
+            <div>
+              <span>PLAYED</span>
+              <strong>
+                {matches.length}/{selectedTournament.matches}
+              </strong>
+            </div>
+
+            <div>
+              <span>STATUS</span>
+              <strong>
+                {selectedTournament.status}
+              </strong>
+            </div>
+
+          </div>
+
         </section>
 
-        {/* TOURNAMENTS */}
+        {/* =====================================================
+            OFFICIAL / SCRIMS CIRCUIT SWITCH
+            NOW BELOW CURRENT TOURNAMENT
+        ===================================================== */}
+
+        <section className="tg-container tg-circuit-section">
+
+          <div className="tg-circuit-heading">
+
+            <div>
+              <span className="tg-section-label">
+                <span />
+                COMPETITION MODE
+              </span>
+
+              <h2>
+                SELECT CIRCUIT
+              </h2>
+            </div>
+
+            <div className="tg-circuit-count">
+              {tournaments.length} EVENTS
+            </div>
+
+          </div>
+
+          <div className="tg-circuit-switch">
+
+            <button
+              className={
+                mode === "official"
+                  ? "active"
+                  : ""
+              }
+              onClick={() =>
+                changeMode("official")
+              }
+            >
+              <Trophy size={18} />
+              <span>OFFICIAL</span>
+            </button>
+
+            <button
+              className={
+                mode === "scrims"
+                  ? "active"
+                  : ""
+              }
+              onClick={() =>
+                changeMode("scrims")
+              }
+            >
+              <Gamepad2 size={18} />
+              <span>SCRIMS</span>
+            </button>
+
+            <div className="tg-switch-line" />
+
+          </div>
+
+        </section>
+
+        {/* =====================================================
+            EVENT TIMELINE
+        ===================================================== */}
+
+        <section className="tg-container tg-stage-section">
+
+          <div className="tg-section-label">
+            <span />
+            EVENT TIMELINE
+          </div>
+
+          <div className="tg-stage-list">
+
+            {folders.map(
+              (folder, index) => (
+                <button
+                  key={folder.id}
+                  className={
+                    selectedFolder === folder.id
+                      ? "tg-stage active"
+                      : "tg-stage"
+                  }
+                  onClick={() =>
+                    setSelectedFolder(
+                      folder.id,
+                    )
+                  }
+                >
+
+                  <span className="tg-stage-number">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+
+                  <span className="tg-stage-name">
+                    {folder.label}
+                  </span>
+
+                  <span className="tg-stage-status">
+                    {folder.tournamentId ===
+                    liveTournament?.id
+                      ? "LIVE"
+                      : "VIEW"}
+                  </span>
+
+                  <span className="tg-stage-arrow">
+                    <ChevronRight size={17} />
+                  </span>
+
+                </button>
+              ),
+            )}
+
+          </div>
+
+        </section>
+
+        {/* =====================================================
+            TOURNAMENT CALENDAR
+        ===================================================== */}
 
         <section
           id="tournaments"
@@ -651,14 +744,14 @@ function Dashboard() {
               </h2>
             </div>
 
-            <button className="tg-view-all">
-              ALL EVENTS
-              <ChevronRight size={17} />
-            </button>
+            <div className="tg-heading-icon">
+              <CalendarDays size={24} />
+            </div>
 
           </div>
 
-          <div className="tg-tournament-list">
+          <div className="tg-tournament-grid">
+
             {tournaments.map(
               (tournament, index) => (
                 <TournamentCard
@@ -666,10 +759,10 @@ function Dashboard() {
                   tournament={tournament}
                   index={index}
                   selected={
-                    selectedTournament.id ===
-                    tournament.id
+                    tournament.id ===
+                    selectedTournament.id
                   }
-                  onSelect={() => {
+                  onClick={() => {
                     const folder =
                       folders.find(
                         (item) =>
@@ -686,11 +779,14 @@ function Dashboard() {
                 />
               ),
             )}
+
           </div>
 
         </section>
 
-        {/* MATCH HISTORY */}
+        {/* =====================================================
+            MATCH HISTORY
+        ===================================================== */}
 
         <section
           id="matches"
@@ -700,17 +796,14 @@ function Dashboard() {
           <div className="tg-section-heading">
 
             <div>
-              <span className="tg-section-label blue">
+              <span className="tg-section-label">
                 <span />
-                MATCH TELEMETRY
+                PERFORMANCE LOG
               </span>
 
-              <h2>MATCH HISTORY</h2>
-
-              <p>
-                {selectedTournament.name} ·{" "}
-                {selectedTournament.phase}
-              </p>
+              <h2>
+                MATCH HISTORY
+              </h2>
             </div>
 
             <div className="tg-match-count">
@@ -721,37 +814,30 @@ function Dashboard() {
 
           <div className="tg-match-table">
 
-            <div className="tg-table-header">
+            <div className="tg-match-header">
               <span>MATCH</span>
-              <span>MAP</span>
               <span>KILLS</span>
               <span>POSITION</span>
-              <span>SCORE</span>
-              <span>MVP</span>
+              <span>POINTS</span>
             </div>
 
             {[...matches]
               .reverse()
               .map((match) => (
                 <div
+                  className="tg-match-row"
                   key={match.id}
-                  className="tg-table-row"
                 >
-                  <div className="tg-match-id">
-                    <span>
-                      #{String(
-                        match.number,
-                      ).padStart(2, "0")}
-                    </span>
 
+                  <div>
                     <strong>
                       MATCH {match.number}
                     </strong>
-                  </div>
 
-                  <span className="tg-map">
-                    {match.map}
-                  </span>
+                    <span>
+                      {match.map}
+                    </span>
+                  </div>
 
                   <strong>
                     {match.kills}
@@ -761,13 +847,10 @@ function Dashboard() {
                     #{match.position}
                   </strong>
 
-                  <strong className="points">
+                  <strong className="tg-match-points">
                     {getMatchPoints(match)}
                   </strong>
 
-                  <span className="tg-mvp-name">
-                    {match.mvp}
-                  </span>
                 </div>
               ))}
 
@@ -775,116 +858,76 @@ function Dashboard() {
 
         </section>
 
-        {/* BOTTOM DATA */}
+        {/* =====================================================
+            MVP
+        ===================================================== */}
 
-        <section className="tg-container tg-bottom-grid">
+        <section
+          id="mvp"
+          className="tg-container tg-mvp-section"
+        >
 
-          <div className="tg-score-card">
+          <div className="tg-section-heading">
 
-            <div className="tg-card-accent" />
-
-            <div className="tg-card-header">
-
-              <div>
-                <span>
-                  CURRENT TOURNAMENT
-                </span>
-
-                <h2>
-                  {liveTournament.name}
-                </h2>
-              </div>
-
-              <div className="tg-live-pill">
+            <div>
+              <span className="tg-section-label">
                 <span />
-                LIVE
-              </div>
-
-            </div>
-
-            <div className="tg-three-metrics">
-
-              <Metric
-                label="TOTAL KILLS"
-                value={stats.kills}
-              />
-
-              <Metric
-                label="PLACEMENT PTS"
-                value={stats.placement}
-              />
-
-              <Metric
-                label="TOTAL SCORE"
-                value={stats.total}
-                highlight
-              />
-
-            </div>
-
-            <div className="tg-progress">
-              <div />
-            </div>
-
-            <div className="tg-progress-text">
-              <span>
-                {liveTournament.matches} MATCHES
+                PLAYER PERFORMANCE
               </span>
 
-              <span>
-                LIVE DATA
-              </span>
+              <h2>
+                DAILY MVP
+              </h2>
             </div>
+
+            <span className="tg-mvp-day">
+              DAY 01
+            </span>
 
           </div>
 
-          {/* MVP */}
+          <div className="tg-mvp-card">
 
-          <div
-            id="mvp"
-            className="tg-mvp-card"
-          >
-
-            <div className="tg-mvp-top">
-              <span>
-                DAILY MVP
-              </span>
-
-              <span>
-                DAY 01
-              </span>
+            <div className="tg-mvp-image">
+              <img
+                src={mvpImage}
+                alt="Daily MVP"
+              />
             </div>
 
-            <div className="tg-mvp-player">
+            <div className="tg-mvp-info">
 
-              <div className="tg-mvp-image">
-                <img
-                  src={mvpImage}
-                  alt="Daily MVP"
-                />
-              </div>
+              <span className="tg-mvp-role">
+                RUSHER · TOP PERFORMER
+              </span>
 
-              <div>
-                <h3>PLAYER 1</h3>
+              <h3>
+                PLAYER 1
+              </h3>
 
-                <p>
-                  Rusher · Top Performer
-                </p>
-              </div>
+              <p>
+                Leading the current
+                tournament performance.
+              </p>
 
             </div>
 
             <div className="tg-mvp-stats">
 
-              <Metric
-                label="KILLS"
-                value={9}
-              />
+              <div>
+                <span>KILLS</span>
+                <strong>9</strong>
+              </div>
 
-              <Metric
-                label="MATCHES"
-                value={3}
-              />
+              <div>
+                <span>MATCHES</span>
+                <strong>3</strong>
+              </div>
+
+              <div>
+                <span>K/D</span>
+                <strong>3.0</strong>
+              </div>
 
             </div>
 
@@ -892,34 +935,32 @@ function Dashboard() {
 
         </section>
 
-      </main>
+        {/* =====================================================
+            FOOTER
+        ===================================================== */}
 
-      <footer className="tg-footer">
-
-        <div className="tg-container tg-footer-inner">
+        <footer className="tg-footer tg-container">
 
           <div className="tg-footer-brand">
-            <img
-              src="/iqoo-tg-logo.png"
-              alt=""
-            />
-
-            <span>
-              TOTAL GAMING HUB · 2026
-            </span>
+            TOTAL GAMING HUB
           </div>
 
-          <span>
+          <div className="tg-footer-line" />
+
+          <div className="tg-footer-meta">
             PLAY · COMPETE · BELONG
-          </span>
+          </div>
 
-        </div>
+        </footer>
 
-      </footer>
-
+      </main>
     </div>
   );
 }
+
+/* =========================================================
+   STAT COMPONENT
+========================================================= */
 
 function Stat({
   icon,
@@ -940,104 +981,91 @@ function Stat({
           : "tg-stat"
       }
     >
+
       <div className="tg-stat-icon">
         {icon}
       </div>
 
-      <small>{title}</small>
+      <span className="tg-stat-title">
+        {title}
+      </span>
 
-      <strong>{value}</strong>
-    </div>
-  );
-}
-
-function Metric({
-  label,
-  value,
-  highlight = false,
-}: {
-  label: string;
-  value: string | number;
-  highlight?: boolean;
-}) {
-  return (
-    <div className="tg-metric">
-           <small>{label}</small>
-
-      <strong
-        className={
-          highlight ? "highlight" : ""
-        }
-      >
+      <strong className="tg-stat-value">
         {value}
       </strong>
+
     </div>
   );
 }
+
+/* =========================================================
+   TOURNAMENT CARD
+========================================================= */
 
 function TournamentCard({
   tournament,
   index,
   selected,
-  onSelect,
+  onClick,
 }: {
   tournament: Tournament;
   index: number;
   selected: boolean;
-  onSelect: () => void;
+  onClick: () => void;
 }) {
   const statusClass =
-    tournament.status === "LIVE"
-      ? "live"
-      : tournament.status ===
-          "UPCOMING"
-        ? "upcoming"
-        : "archived";
+    tournament.status.toLowerCase();
 
   return (
     <button
-      className={`tg-tournament-card ${
-        selected ? "selected" : ""
-      }`}
-      onClick={onSelect}
+      className={
+        selected
+          ? "tg-tournament-card selected"
+          : "tg-tournament-card"
+      }
+      onClick={onClick}
     >
 
-      <div className="tg-event-number">
-        {String(index + 1).padStart(2, "0")}
-      </div>
+      <div className="tg-card-top">
 
-      <div className="tg-event-main">
+        <span
+          className={`tg-tournament-status ${statusClass}`}
+        >
+          {tournament.status}
+        </span>
 
-        <div className="tg-event-top">
-          <span
-            className={`tg-status ${statusClass}`}
-          >
-            {tournament.status}
-          </span>
-
-          <span className="tg-event-phase">
-            {tournament.phase}
-          </span>
-        </div>
-
-        <h3>{tournament.name}</h3>
-
-        <div className="tg-event-meta">
-          <span>
-            <CalendarDays size={14} />
-            {tournament.matches} MATCHES
-          </span>
-
-          <span>
-            <Users size={14} />
-            {tournament.teams} TEAMS
-          </span>
-        </div>
+        <span className="tg-card-index">
+          {String(index + 1).padStart(2, "0")}
+        </span>
 
       </div>
 
-      <div className="tg-event-action">
-        <ChevronRight size={20} />
+      <div className="tg-card-content">
+
+        <span className="tg-card-phase">
+          {tournament.phase}
+        </span>
+
+        <h3>
+          {tournament.name}
+        </h3>
+
+      </div>
+
+      <div className="tg-card-footer">
+
+        <span>
+          <CalendarDays size={15} />
+          {tournament.matches} MATCHES
+        </span>
+
+        <span>
+          <Users size={15} />
+          {tournament.teams} TEAMS
+        </span>
+
+        <ChevronRight size={18} />
+
       </div>
 
     </button>
