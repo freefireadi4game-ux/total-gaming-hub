@@ -1,5 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   CalendarDays,
   ChevronRight,
@@ -15,25 +20,19 @@ import {
 } from "lucide-react";
 
 import mvpImage from "@/assets/total-gaming-mvp.jpg";
+import {
+  getMatches,
+  getPlayers,
+  getTournaments,
+  type CircuitMode,
+  type Match,
+  type Player,
+  type Tournament,
+} from "@/lib/tg-data";
 
-type Mode = "official" | "scrims";
-
-type Tournament = {
-  id: string;
-  name: string;
-  status: "LIVE" | "UPCOMING" | "ARCHIVED";
-  phase: string;
-  matches: number;
-  teams: number | string;
-};
-
-type Match = {
-  id: string;
-  number: number;
-  map: string;
-  position: number;
-  kills: number;
-  mvp: string;
+type DisplayMatch = Match & {
+  position?: number | null;
+  kills?: number;
 };
 
 const placementPoints: Record<number, number> = {
@@ -49,172 +48,14 @@ const placementPoints: Record<number, number> = {
   10: 1,
 };
 
-const matches: Match[] = [
-  {
-    id: "match-1",
-    number: 1,
-    map: "Bermuda",
-    position: 1,
-    kills: 10,
-    mvp: "Player 1",
-  },
-  {
-    id: "match-2",
-    number: 2,
-    map: "Purgatory",
-    position: 3,
-    kills: 8,
-    mvp: "Player 1",
-  },
-  {
-    id: "match-3",
-    number: 3,
-    map: "Alpine",
-    position: 5,
-    kills: 6,
-    mvp: "Player 2",
-  },
-];
+function getMatchPoints(match: DisplayMatch) {
+  const kills = Number(match.kills ?? match.totalKills ?? 0);
+  const placement =
+    match.position != null
+      ? placementPoints[match.position] ?? 0
+      : 0;
 
-const officialTournaments: Tournament[] = [
-  {
-    id: "official-1",
-    name: "TEZ FFMIC 2026 FALL",
-    status: "LIVE",
-    phase: "PLAY-INS",
-    matches: 6,
-    teams: 18,
-  },
-  {
-    id: "official-2",
-    name: "TEZ FFMIC 2026 FALL",
-    status: "UPCOMING",
-    phase: "GS - WEEK 1",
-    matches: 6,
-    teams: 18,
-  },
-  {
-    id: "official-3",
-    name: "TEZ FFMIC 2026 FALL",
-    status: "UPCOMING",
-    phase: "GS - WEEK 2",
-    matches: 6,
-    teams: 18,
-  },
-  {
-    id: "official-4",
-    name: "TEZ FFMIC 2026 FALL",
-    status: "UPCOMING",
-    phase: "KO - WEEK 1",
-    matches: 12,
-    teams: 18,
-  },
-  {
-    id: "official-5",
-    name: "TEZ FFMIC 2026 FALL",
-    status: "UPCOMING",
-    phase: "KO - WEEK 2 - DAY 1",
-    matches: 6,
-    teams: 18,
-  },
-  {
-    id: "official-6",
-    name: "TEZ FFMIC 2026 SPRING",
-    status: "ARCHIVED",
-    phase: "GRAND FINALS",
-    matches: 12,
-    teams: 18,
-  },
-];
-
-const scrimTournaments: Tournament[] = [
-  {
-    id: "scrim-1",
-    name: "TG WEEKLY SCRIMS",
-    status: "LIVE",
-    phase: "WEEK 2",
-    matches: 6,
-    teams: 12,
-  },
-  {
-    id: "scrim-2",
-    name: "TG WEEKLY SCRIMS",
-    status: "UPCOMING",
-    phase: "WEEK 3",
-    matches: 6,
-    teams: 12,
-  },
-  {
-    id: "scrim-3",
-    name: "TG CUSTOM SCRIMS",
-    status: "UPCOMING",
-    phase: "WEEK 4",
-    matches: 6,
-    teams: "ANY",
-  },
-  {
-    id: "scrim-4",
-    name: "COMMUNITY SCRIMS",
-    status: "ARCHIVED",
-    phase: "WEEK 1",
-    matches: 6,
-    teams: "ANY",
-  },
-];
-
-const officialFolders = [
-  {
-    id: "play-ins",
-    label: "PLAY-INS",
-    tournamentId: "official-1",
-  },
-  {
-    id: "gs-week-1",
-    label: "GS — WEEK 1",
-    tournamentId: "official-2",
-  },
-  {
-    id: "gs-week-2",
-    label: "GS — WEEK 2",
-    tournamentId: "official-3",
-  },
-  {
-    id: "ko-week-1",
-    label: "KO — WEEK 1",
-    tournamentId: "official-4",
-  },
-  {
-    id: "ko-week-2",
-    label: "KO — WEEK 2 · DAY 1",
-    tournamentId: "official-5",
-  },
-];
-
-const scrimFolders = [
-  {
-    id: "week-1",
-    label: "WEEK 1",
-    tournamentId: "scrim-4",
-  },
-  {
-    id: "week-2",
-    label: "WEEK 2",
-    tournamentId: "scrim-1",
-  },
-  {
-    id: "week-3",
-    label: "WEEK 3",
-    tournamentId: "scrim-2",
-  },
-  {
-    id: "week-4",
-    label: "WEEK 4",
-    tournamentId: "scrim-3",
-  },
-];
-
-function getMatchPoints(match: Match) {
-  return match.kills + (placementPoints[match.position] ?? 0);
+  return kills + placement;
 }
 
 export const Route = createFileRoute("/")({
@@ -235,61 +76,218 @@ export const Route = createFileRoute("/")({
 });
 
 function Dashboard() {
-  const [mode, setMode] = useState<Mode>("official");
+  const [mode, setMode] = useState<CircuitMode>("official");
   const [mobileMenu, setMobileMenu] = useState(false);
-  const [selectedFolder, setSelectedFolder] = useState("play-ins");
+  const [selectedTournamentId, setSelectedTournamentId] =
+    useState<string | null>(null);
 
-  const tournaments =
-    mode === "official"
-      ? officialTournaments
-      : scrimTournaments;
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [players, setPlayers] = useState<Player[]>([]);
 
-  const folders =
-    mode === "official"
-      ? officialFolders
-      : scrimFolders;
+  const [loadingTournaments, setLoadingTournaments] =
+    useState(true);
+  const [loadingMatches, setLoadingMatches] =
+    useState(false);
+  const [loadingPlayers, setLoadingPlayers] =
+    useState(true);
 
-  const liveTournament =
-    tournaments.find(
-      (tournament) => tournament.status === "LIVE",
-    ) ?? tournaments[0];
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadTournaments() {
+      setLoadingTournaments(true);
+      setError(null);
+
+      try {
+        const data = await getTournaments(mode);
+
+        if (cancelled) return;
+
+        setTournaments(data);
+
+        const current =
+          data.find((item) => item.isCurrent) ??
+          data.find((item) => item.status === "LIVE") ??
+          data[0] ??
+          null;
+
+        setSelectedTournamentId(
+          current?.id ?? null,
+        );
+      } catch (err) {
+        if (cancelled) return;
+
+        console.error(err);
+        setTournaments([]);
+        setSelectedTournamentId(null);
+        setError(
+          "Unable to load tournament data.",
+        );
+      } finally {
+        if (!cancelled) {
+          setLoadingTournaments(false);
+        }
+      }
+    }
+
+    void loadTournaments();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [mode]);
 
   const selectedTournament = useMemo(() => {
-    const folder =
-      folders.find(
-        (item) => item.id === selectedFolder,
-      ) ?? folders[0];
+    if (selectedTournamentId) {
+      return (
+        tournaments.find(
+          (item) =>
+            item.id === selectedTournamentId,
+        ) ?? null
+      );
+    }
 
     return (
       tournaments.find(
-        (item) => item.id === folder?.tournamentId,
-      ) ?? liveTournament
+        (item) => item.isCurrent,
+      ) ??
+      tournaments.find(
+        (item) => item.status === "LIVE",
+      ) ??
+      tournaments[0] ??
+      null
     );
   }, [
-    folders,
-    selectedFolder,
+    selectedTournamentId,
     tournaments,
-    liveTournament,
   ]);
+
+  const liveTournament = useMemo(() => {
+    return (
+      tournaments.find(
+        (item) => item.isCurrent,
+      ) ??
+      tournaments.find(
+        (item) => item.status === "LIVE",
+      ) ??
+      tournaments[0] ??
+      null
+    );
+  }, [tournaments]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadMatches() {
+      if (!selectedTournament?.id) {
+        setMatches([]);
+        setLoadingMatches(false);
+        return;
+      }
+
+      setLoadingMatches(true);
+
+      try {
+        const data = await getMatches(
+          selectedTournament.id,
+        );
+
+        if (!cancelled) {
+          setMatches(data);
+        }
+      } catch (err) {
+        if (cancelled) return;
+
+        console.error(err);
+        setMatches([]);
+        setError(
+          "Unable to load match data.",
+        );
+      } finally {
+        if (!cancelled) {
+          setLoadingMatches(false);
+        }
+      }
+    }
+
+    void loadMatches();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedTournament?.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadPlayers() {
+      setLoadingPlayers(true);
+
+      try {
+        const data = await getPlayers();
+
+        if (!cancelled) {
+          setPlayers(data);
+        }
+      } catch (err) {
+        if (cancelled) return;
+
+        console.error(err);
+        setPlayers([]);
+      } finally {
+        if (!cancelled) {
+          setLoadingPlayers(false);
+        }
+      }
+    }
+
+    void loadPlayers();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const folders = useMemo(() => {
+    return tournaments.map(
+      (tournament) => ({
+        id: tournament.id,
+        label:
+          tournament.phase ||
+          tournament.name,
+        tournamentId: tournament.id,
+      }),
+    );
+  }, [tournaments]);
 
   const stats = useMemo(() => {
     const kills = matches.reduce(
-      (sum, match) => sum + match.kills,
+      (sum, match) =>
+        sum + Number(match.totalKills ?? 0),
       0,
     );
 
-    const placement = matches.reduce(
-      (sum, match) =>
-        sum + (placementPoints[match.position] ?? 0),
-      0,
-    );
+    /*
+     * The current `matches` database table stores
+     * total_kills but does not contain a placement
+     * column. Therefore we never invent placement
+     * points here.
+     *
+     * Placement points will be calculated once
+     * match-result data is available through the
+     * match_results table.
+     */
+    const placement = 0;
 
     return {
       kills,
       placement,
       total: kills + placement,
     };
-  }, []);
+  }, [matches]);
 
   const averagePoints =
     matches.length > 0
@@ -298,24 +296,39 @@ function Dashboard() {
         ) / 10
       : 0;
 
-  function changeMode(nextMode: Mode) {
-    setMode(nextMode);
+  const mvpPlayer = useMemo(() => {
+    if (players.length === 0) {
+      return null;
+    }
 
-    setSelectedFolder(
-      nextMode === "official"
-        ? "play-ins"
-        : "week-2",
-    );
+    return [...players].sort(
+      (a, b) =>
+        Number(b.kills ?? 0) -
+        Number(a.kills ?? 0),
+    )[0];
+  }, [players]);
+
+  const currentRank =
+    selectedTournament &&
+    matches.length > 0
+      ? "#1"
+      : "—";
+
+  function changeMode(
+    nextMode: CircuitMode,
+  ) {
+    setMode(nextMode);
+    setSelectedTournamentId(null);
+  }
+
+  function selectTournament(
+    tournamentId: string,
+  ) {
+    setSelectedTournamentId(tournamentId);
   }
 
   return (
     <div className="tg-dashboard">
-
-      {/* =====================================================
-          SINGLE BACKGROUND WATERMARK
-          No team image / no second logo overlay
-      ===================================================== */}
-
       <div
         className="tg-background-logo"
         aria-hidden="true"
@@ -331,13 +344,8 @@ function Dashboard() {
         aria-hidden="true"
       />
 
-      {/* =====================================================
-          HEADER
-      ===================================================== */}
-
       <header className="tg-header">
         <div className="tg-header-inner">
-
           <button
             className="tg-mobile-menu"
             onClick={() =>
@@ -409,7 +417,6 @@ function Dashboard() {
 
         {mobileMenu && (
           <div className="tg-mobile-navigation">
-
             <a
               href="#top"
               onClick={() =>
@@ -445,21 +452,13 @@ function Dashboard() {
             >
               MVP
             </a>
-
           </div>
         )}
       </header>
 
       <main id="top">
-
-        {/* =====================================================
-            HERO / INTRO
-        ===================================================== */}
-
         <section className="tg-hero tg-container">
-
           <div className="tg-hero-copy">
-
             <div className="tg-eyebrow">
               <span className="tg-live-marker" />
               LIVE COMPETITION FEED
@@ -472,7 +471,10 @@ function Dashboard() {
             </div>
 
             <h1>
-              {liveTournament.name}
+              {loadingTournaments
+                ? "LOADING..."
+                : liveTournament?.name ??
+                  "NO ACTIVE TOURNAMENT"}
             </h1>
 
             <p className="tg-hero-description">
@@ -481,44 +483,36 @@ function Dashboard() {
               performance tracking.
             </p>
 
-            <div className="tg-hero-meta">
+            {liveTournament && (
+              <div className="tg-hero-meta">
+                <div>
+                  <span>STAGE</span>
+                  <strong>
+                    {liveTournament.phase ||
+                      "—"}
+                  </strong>
+                </div>
 
-              <div>
-                <span>STAGE</span>
-                <strong>
-                  {liveTournament.phase}
-                </strong>
+                <div>
+                  <span>MATCHES</span>
+                  <strong>
+                    {liveTournament.matches}
+                  </strong>
+                </div>
+
+                <div>
+                  <span>TEAMS</span>
+                  <strong>
+                    {liveTournament.teams}
+                  </strong>
+                </div>
               </div>
-
-              <div>
-                <span>MATCHES</span>
-                <strong>
-                  {liveTournament.matches}
-                </strong>
-              </div>
-
-              <div>
-                <span>TEAMS</span>
-                <strong>
-                  {liveTournament.teams}
-                </strong>
-              </div>
-
-            </div>
-
+            )}
           </div>
-
         </section>
 
-        {/* =====================================================
-            CURRENT TOURNAMENT
-            MOVED ABOVE OFFICIAL / SCRIMS
-        ===================================================== */}
-
         <section className="tg-container tg-performance">
-
           <div className="tg-performance-head">
-
             <div>
               <span className="tg-section-label">
                 <span />
@@ -526,28 +520,31 @@ function Dashboard() {
               </span>
 
               <h2>
-                {selectedTournament.name}
+                {selectedTournament?.name ??
+                  "NO TOURNAMENT SELECTED"}
               </h2>
 
-              <p className="tg-performance-subtitle">
-                {selectedTournament.phase}
-                {" · "}
-                {selectedTournament.matches}
-                {" MATCHES · "}
-                {selectedTournament.teams}
-                {" TEAMS"}
-              </p>
+              {selectedTournament && (
+                <p className="tg-performance-subtitle">
+                  {selectedTournament.phase ||
+                    "—"}
+                  {" · "}
+                  {selectedTournament.matches}
+                  {" MATCHES · "}
+                  {selectedTournament.teams}
+                  {" TEAMS"}
+                </p>
+              )}
             </div>
 
             <div className="tg-selected-tag">
               <span className="tg-live-marker" />
-              {selectedTournament.status}
+              {selectedTournament?.status ??
+                "NO DATA"}
             </div>
-
           </div>
 
           <div className="tg-stat-grid">
-
             <Stat
               icon={<Star />}
               title="TOTAL SCORE"
@@ -570,15 +567,15 @@ function Dashboard() {
             <Stat
               icon={<Trophy />}
               title="CURRENT RANK"
-              value="#1"
+              value={currentRank}
             />
-
           </div>
 
           <div className="tg-performance-footer">
-
             <div>
-              <span>AVERAGE / MATCH</span>
+              <span>
+                AVERAGE / MATCH
+              </span>
               <strong>
                 {averagePoints}
               </strong>
@@ -587,30 +584,27 @@ function Dashboard() {
             <div>
               <span>PLAYED</span>
               <strong>
-                {matches.length}/{selectedTournament.matches}
+                {loadingMatches
+                  ? "..."
+                  : `${matches.length}/${
+                      selectedTournament?.matches ??
+                      0
+                    }`}
               </strong>
             </div>
 
             <div>
               <span>STATUS</span>
               <strong>
-                {selectedTournament.status}
+                {selectedTournament?.status ??
+                  "NO DATA"}
               </strong>
             </div>
-
           </div>
-
         </section>
 
-        {/* =====================================================
-            OFFICIAL / SCRIMS CIRCUIT SWITCH
-            NOW BELOW CURRENT TOURNAMENT
-        ===================================================== */}
-
         <section className="tg-container tg-circuit-section">
-
           <div className="tg-circuit-heading">
-
             <div>
               <span className="tg-section-label">
                 <span />
@@ -625,11 +619,9 @@ function Dashboard() {
             <div className="tg-circuit-count">
               {tournaments.length} EVENTS
             </div>
-
           </div>
 
           <div className="tg-circuit-switch">
-
             <button
               className={
                 mode === "official"
@@ -659,78 +651,84 @@ function Dashboard() {
             </button>
 
             <div className="tg-switch-line" />
-
           </div>
-
         </section>
 
-        {/* =====================================================
-            EVENT TIMELINE
-        ===================================================== */}
-
         <section className="tg-container tg-stage-section">
-
           <div className="tg-section-label">
             <span />
             EVENT TIMELINE
           </div>
 
-          <div className="tg-stage-list">
+          {folders.length > 0 ? (
+            <div className="tg-stage-list">
+              {folders.map(
+                (folder, index) => {
+                  const tournament =
+                    tournaments.find(
+                      (item) =>
+                        item.id ===
+                        folder.tournamentId,
+                    );
 
-            {folders.map(
-              (folder, index) => (
-                <button
-                  key={folder.id}
-                  className={
-                    selectedFolder === folder.id
-                      ? "tg-stage active"
-                      : "tg-stage"
-                  }
-                  onClick={() =>
-                    setSelectedFolder(
-                      folder.id,
-                    )
-                  }
-                >
+                  return (
+                    <button
+                      key={folder.id}
+                      className={
+                        selectedTournamentId ===
+                        folder.tournamentId
+                          ? "tg-stage active"
+                          : "tg-stage"
+                      }
+                      onClick={() =>
+                        selectTournament(
+                          folder.tournamentId,
+                        )
+                      }
+                    >
+                      <span className="tg-stage-number">
+                        {String(
+                          index + 1,
+                        ).padStart(2, "0")}
+                      </span>
 
-                  <span className="tg-stage-number">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
+                      <span className="tg-stage-name">
+                        {folder.label}
+                      </span>
 
-                  <span className="tg-stage-name">
-                    {folder.label}
-                  </span>
+                      <span className="tg-stage-status">
+                        {tournament?.status ===
+                        "LIVE"
+                          ? "LIVE"
+                          : "VIEW"}
+                      </span>
 
-                  <span className="tg-stage-status">
-                    {folder.tournamentId ===
-                    liveTournament?.id
-                      ? "LIVE"
-                      : "VIEW"}
-                  </span>
-
-                  <span className="tg-stage-arrow">
-                    <ChevronRight size={17} />
-                  </span>
-
-                </button>
-              ),
-            )}
-
-          </div>
-
+                      <span className="tg-stage-arrow">
+                        <ChevronRight
+                          size={17}
+                        />
+                      </span>
+                    </button>
+                  );
+                },
+              )}
+            </div>
+          ) : (
+            <EmptyState
+              text={
+                loadingTournaments
+                  ? "LOADING EVENTS..."
+                  : "NO EVENTS AVAILABLE"
+              }
+            />
+          )}
         </section>
-
-        {/* =====================================================
-            TOURNAMENT CALENDAR
-        ===================================================== */}
 
         <section
           id="tournaments"
           className="tg-container tg-section"
         >
-
           <div className="tg-section-heading">
-
             <div>
               <span className="tg-section-label">
                 <span />
@@ -747,54 +745,51 @@ function Dashboard() {
             <div className="tg-heading-icon">
               <CalendarDays size={24} />
             </div>
-
           </div>
 
-          <div className="tg-tournament-grid">
+          {error && (
+            <div className="tg-empty-message">
+              {error}
+            </div>
+          )}
 
-            {tournaments.map(
-              (tournament, index) => (
-                <TournamentCard
-                  key={tournament.id}
-                  tournament={tournament}
-                  index={index}
-                  selected={
-                    tournament.id ===
-                    selectedTournament.id
-                  }
-                  onClick={() => {
-                    const folder =
-                      folders.find(
-                        (item) =>
-                          item.tournamentId ===
-                          tournament.id,
-                      );
-
-                    if (folder) {
-                      setSelectedFolder(
-                        folder.id,
-                      );
+          {tournaments.length > 0 ? (
+            <div className="tg-tournament-grid">
+              {tournaments.map(
+                (tournament, index) => (
+                  <TournamentCard
+                    key={tournament.id}
+                    tournament={tournament}
+                    index={index}
+                    selected={
+                      tournament.id ===
+                      selectedTournament?.id
                     }
-                  }}
-                />
-              ),
-            )}
-
-          </div>
-
+                    onClick={() =>
+                      selectTournament(
+                        tournament.id,
+                      )
+                    }
+                  />
+                ),
+              )}
+            </div>
+          ) : (
+            <EmptyState
+              text={
+                loadingTournaments
+                  ? "LOADING TOURNAMENTS..."
+                  : "NO TOURNAMENTS AVAILABLE"
+              }
+            />
+          )}
         </section>
-
-        {/* =====================================================
-            MATCH HISTORY
-        ===================================================== */}
 
         <section
           id="matches"
           className="tg-container tg-section"
         >
-
           <div className="tg-section-heading">
-
             <div>
               <span className="tg-section-label">
                 <span />
@@ -809,66 +804,42 @@ function Dashboard() {
             <div className="tg-match-count">
               {matches.length} MATCHES
             </div>
-
           </div>
 
-          <div className="tg-match-table">
+          {matches.length > 0 ? (
+            <div className="tg-match-table">
+              <div className="tg-match-header">
+                <span>MATCH</span>
+                <span>KILLS</span>
+                <span>POSITION</span>
+                <span>POINTS</span>
+              </div>
 
-            <div className="tg-match-header">
-              <span>MATCH</span>
-              <span>KILLS</span>
-              <span>POSITION</span>
-              <span>POINTS</span>
+              {[...matches]
+                .reverse()
+                .map((match) => (
+                  <MatchRow
+                    key={match.id}
+                    match={match}
+                  />
+                ))}
             </div>
-
-            {[...matches]
-              .reverse()
-              .map((match) => (
-                <div
-                  className="tg-match-row"
-                  key={match.id}
-                >
-
-                  <div>
-                    <strong>
-                      MATCH {match.number}
-                    </strong>
-
-                    <span>
-                      {match.map}
-                    </span>
-                  </div>
-
-                  <strong>
-                    {match.kills}
-                  </strong>
-
-                  <strong>
-                    #{match.position}
-                  </strong>
-
-                  <strong className="tg-match-points">
-                    {getMatchPoints(match)}
-                  </strong>
-
-                </div>
-              ))}
-
-          </div>
-
+          ) : (
+            <EmptyState
+              text={
+                loadingMatches
+                  ? "LOADING MATCHES..."
+                  : "NO MATCH RESULTS AVAILABLE"
+              }
+            />
+          )}
         </section>
-
-        {/* =====================================================
-            MVP
-        ===================================================== */}
 
         <section
           id="mvp"
           className="tg-container tg-mvp-section"
         >
-
           <div className="tg-section-heading">
-
             <div>
               <span className="tg-section-label">
                 <span />
@@ -881,66 +852,80 @@ function Dashboard() {
             </div>
 
             <span className="tg-mvp-day">
-              DAY 01
+              {mvpPlayer
+                ? "TOP PLAYER"
+                : "NO DATA"}
             </span>
-
           </div>
 
-          <div className="tg-mvp-card">
-
-            <div className="tg-mvp-image">
-              <img
-                src={mvpImage}
-                alt="Daily MVP"
-              />
-            </div>
-
-            <div className="tg-mvp-info">
-
-              <span className="tg-mvp-role">
-                RUSHER · TOP PERFORMER
-              </span>
-
-              <h3>
-                PLAYER 1
-              </h3>
-
-              <p>
-                Leading the current
-                tournament performance.
-              </p>
-
-            </div>
-
-            <div className="tg-mvp-stats">
-
-              <div>
-                <span>KILLS</span>
-                <strong>9</strong>
+          {mvpPlayer ? (
+            <div className="tg-mvp-card">
+              <div className="tg-mvp-image">
+                <img
+                  src={
+                    mvpPlayer.avatarUrl ||
+                    mvpImage
+                  }
+                  alt="Daily MVP"
+                />
               </div>
 
-              <div>
-                <span>MATCHES</span>
-                <strong>3</strong>
+              <div className="tg-mvp-info">
+                <span className="tg-mvp-role">
+                  {mvpPlayer.role ||
+                    "TOP PERFORMER"}
+                </span>
+
+                <h3>
+                  {mvpPlayer.name}
+                </h3>
+
+                <p>
+                  {mvpPlayer.bio ||
+                    "Leading player performance from the available tournament data."}
+                </p>
               </div>
 
-              <div>
-                <span>K/D</span>
-                <strong>3.0</strong>
-              </div>
+              <div className="tg-mvp-stats">
+                <div>
+                  <span>KILLS</span>
+                  <strong>
+                    {mvpPlayer.kills}
+                  </strong>
+                </div>
 
+                <div>
+                  <span>MATCHES</span>
+                  <strong>
+                    {mvpPlayer.matches}
+                  </strong>
+                </div>
+
+                <div>
+                  <span>K/D</span>
+                  <strong>
+                    {mvpPlayer.matches > 0
+                      ? (
+                          mvpPlayer.kills /
+                          mvpPlayer.matches
+                        ).toFixed(1)
+                      : "0.0"}
+                  </strong>
+                </div>
+              </div>
             </div>
-
-          </div>
-
+          ) : (
+            <EmptyState
+              text={
+                loadingPlayers
+                  ? "LOADING PLAYER DATA..."
+                  : "NO PLAYER DATA AVAILABLE"
+              }
+            />
+          )}
         </section>
 
-        {/* =====================================================
-            FOOTER
-        ===================================================== */}
-
         <footer className="tg-footer tg-container">
-
           <div className="tg-footer-brand">
             TOTAL GAMING HUB
           </div>
@@ -950,17 +935,71 @@ function Dashboard() {
           <div className="tg-footer-meta">
             PLAY · COMPETE · BELONG
           </div>
-
         </footer>
-
       </main>
     </div>
   );
 }
 
-/* =========================================================
-   STAT COMPONENT
-========================================================= */
+function MatchRow({
+  match,
+}: {
+  match: Match;
+}) {
+  const displayMatch =
+    match as DisplayMatch;
+
+  const kills = Number(
+    displayMatch.kills ??
+      displayMatch.totalKills ??
+      0,
+  );
+
+  const position =
+    displayMatch.position ?? null;
+
+  return (
+    <div className="tg-match-row">
+      <div>
+        <strong>
+          MATCH {match.number}
+        </strong>
+
+        <span>
+          {match.map || "MAP"}
+        </span>
+      </div>
+
+      <strong>
+        {kills}
+      </strong>
+
+      <strong>
+        {position != null
+          ? `#${position}`
+          : "—"}
+      </strong>
+
+      <strong className="tg-match-points">
+        {getMatchPoints(
+          displayMatch,
+        )}
+      </strong>
+    </div>
+  );
+}
+
+function EmptyState({
+  text,
+}: {
+  text: string;
+}) {
+  return (
+    <div className="tg-empty-state">
+      {text}
+    </div>
+  );
+}
 
 function Stat({
   icon,
@@ -981,7 +1020,6 @@ function Stat({
           : "tg-stat"
       }
     >
-
       <div className="tg-stat-icon">
         {icon}
       </div>
@@ -993,14 +1031,9 @@ function Stat({
       <strong className="tg-stat-value">
         {value}
       </strong>
-
     </div>
   );
 }
-
-/* =========================================================
-   TOURNAMENT CARD
-========================================================= */
 
 function TournamentCard({
   tournament,
@@ -1014,7 +1047,8 @@ function TournamentCard({
   onClick: () => void;
 }) {
   const statusClass =
-    tournament.status.toLowerCase();
+    tournament.status
+      .toLowerCase();
 
   return (
     <button
@@ -1025,35 +1059,34 @@ function TournamentCard({
       }
       onClick={onClick}
     >
-
       <div className="tg-card-top">
-
         <span
           className={`tg-tournament-status ${statusClass}`}
         >
-          {tournament.status}
+          {tournament.status ||
+            "UPCOMING"}
         </span>
 
         <span className="tg-card-index">
-          {String(index + 1).padStart(2, "0")}
+          {String(index + 1).padStart(
+            2,
+            "0",
+          )}
         </span>
-
       </div>
 
       <div className="tg-card-content">
-
         <span className="tg-card-phase">
-          {tournament.phase}
+          {tournament.phase ||
+            "EVENT"}
         </span>
 
         <h3>
           {tournament.name}
         </h3>
-
       </div>
 
       <div className="tg-card-footer">
-
         <span>
           <CalendarDays size={15} />
           {tournament.matches} MATCHES
@@ -1065,9 +1098,7 @@ function TournamentCard({
         </span>
 
         <ChevronRight size={18} />
-
       </div>
-
     </button>
   );
 }
