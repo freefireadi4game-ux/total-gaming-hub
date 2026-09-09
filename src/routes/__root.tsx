@@ -78,10 +78,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Total Gaming Fan Desk" },
-      { name: "description", content: "Total Gaming match results, tournament points and MVP stats." },
+      {
+        name: "description",
+        content: "Total Gaming match results, tournament points and MVP stats.",
+      },
       { name: "author", content: "Total Gaming Fan Desk" },
       { property: "og:title", content: "Total Gaming Fan Desk" },
-      { property: "og:description", content: "Total Gaming match results, tournament points and MVP stats." },
+      {
+        property: "og:description",
+        content: "Total Gaming match results, tournament points and MVP stats.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],

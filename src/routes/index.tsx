@@ -38,9 +38,17 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Total Gaming Fan Desk — Free Fire Stats" },
-      { name: "description", content: "Follow Total Gaming's Free Fire matches, tournament points and daily MVP performances." },
+      {
+        name: "description",
+        content:
+          "Follow Total Gaming's Free Fire matches, tournament points and daily MVP performances.",
+      },
       { property: "og:title", content: "Total Gaming Fan Desk — Free Fire Stats" },
-      { property: "og:description", content: "Follow Total Gaming's Free Fire matches, tournament points and daily MVP performances." },
+      {
+        property: "og:description",
+        content:
+          "Follow Total Gaming's Free Fire matches, tournament points and daily MVP performances.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -50,7 +58,10 @@ export const Route = createFileRoute("/")({
 
 function Dashboard() {
   const totalKills = matches.reduce((total, match) => total + match.kills, 0);
-  const positionPoints = matches.reduce((total, match) => total + (placementPoints[match.position] ?? 0), 0);
+  const positionPoints = matches.reduce(
+    (total, match) => total + (placementPoints[match.position] ?? 0),
+    0,
+  );
   const totalPoints = totalKills + positionPoints;
   const averagePoints = (totalPoints / matches.length).toFixed(1);
 
@@ -61,17 +72,32 @@ function Dashboard() {
 
       <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
         <a href="#top" className="flex items-center gap-3" aria-label="Total Gaming home">
-          <span className="grid size-9 place-items-center rounded-lg bg-gradient-to-br from-accent to-lime font-display text-lg text-ink">T</span>
+          <span className="grid size-9 place-items-center rounded-lg bg-gradient-to-br from-accent to-lime font-display text-lg text-ink">
+            T
+          </span>
           <span className="leading-none">
             <span className="block font-display text-lg tracking-wide">TOTAL GAMING</span>
-            <span className="block text-[10px] uppercase tracking-[0.3em] text-frost">India · Free Fire</span>
+            <span className="block text-[10px] uppercase tracking-[0.3em] text-frost">
+              India · Free Fire
+            </span>
           </span>
         </a>
-        <nav className="hidden items-center gap-7 text-sm text-frost md:flex" aria-label="Dashboard sections">
-          <a href="#top" className="text-snow transition-colors hover:text-accent">Dashboard</a>
-          <a href="#matches" className="transition-colors hover:text-snow">Matches</a>
-          <a href="#mvp" className="transition-colors hover:text-snow">MVPs</a>
-          <a href="#tournament" className="transition-colors hover:text-snow">Tournament</a>
+        <nav
+          className="hidden items-center gap-7 text-sm text-frost md:flex"
+          aria-label="Dashboard sections"
+        >
+          <a href="#top" className="text-snow transition-colors hover:text-accent">
+            Dashboard
+          </a>
+          <a href="#matches" className="transition-colors hover:text-snow">
+            Matches
+          </a>
+          <a href="#mvp" className="transition-colors hover:text-snow">
+            MVPs
+          </a>
+          <a href="#tournament" className="transition-colors hover:text-snow">
+            Tournament
+          </a>
         </nav>
         <span className="rounded-full border border-accent/40 bg-accent/10 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-accent">
           Live
@@ -85,9 +111,12 @@ function Dashboard() {
               <span className="size-1.5 rounded-full bg-lime shadow-[0_0_10px_2px] shadow-lime/60" />
               Live tournament data · Day 1
             </span>
-            <h1 className="mt-5 font-display text-[64px] leading-[0.92] tracking-tight sm:text-[84px]">TOTAL GAMING</h1>
+            <h1 className="mt-5 font-display text-[64px] leading-[0.92] tracking-tight sm:text-[84px]">
+              TOTAL GAMING
+            </h1>
             <p className="mt-3 max-w-md text-frost">
-              India&apos;s Free Fire squad, tracked match by match — kills, placement points and MVP performances in one place.
+              India&apos;s Free Fire squad, tracked match by match — kills, placement points and MVP
+              performances in one place.
             </p>
 
             <div className="mt-8 grid grid-cols-3 gap-3">
@@ -98,7 +127,13 @@ function Dashboard() {
           </div>
 
           <div className="relative">
-            <img src={teamImage} alt="Total Gaming players competing together" width={1080} height={1280} className="aspect-[4/5] w-full rounded-2xl object-cover object-center ring-1 ring-line" />
+            <img
+              src={teamImage}
+              alt="Total Gaming players competing together"
+              width={1080}
+              height={1280}
+              className="aspect-[4/5] w-full rounded-2xl object-cover object-center ring-1 ring-line"
+            />
             <div className="absolute -bottom-5 -left-5 rounded-xl border border-accent/30 bg-accent/10 px-4 py-3 backdrop-blur-md">
               <p className="text-[10px] uppercase tracking-[0.2em] text-frost">Season rank</p>
               <p className="font-display text-2xl text-accent">#1</p>
@@ -106,21 +141,33 @@ function Dashboard() {
           </div>
         </section>
 
-        <section id="matches" className="reveal-up mx-auto max-w-6xl scroll-mt-8 px-6 pt-16 [animation-delay:120ms]">
+        <section
+          id="matches"
+          className="reveal-up mx-auto max-w-6xl scroll-mt-8 px-6 pt-16 [animation-delay:120ms]"
+        >
           <div className="mb-5 flex items-end justify-between">
             <div>
               <h2 className="font-display text-3xl tracking-wide">DAILY MATCH FEED</h2>
               <p className="text-sm text-frost">Every match, every kill, auto-tallied.</p>
             </div>
-            <span className="text-xs uppercase tracking-[0.2em] text-frost">{matches.length} matches</span>
+            <span className="text-xs uppercase tracking-[0.2em] text-frost">
+              {matches.length} matches
+            </span>
           </div>
 
           <div className="overflow-hidden rounded-2xl border border-line bg-snow/[0.03]">
             <div className="grid grid-cols-[1.4fr_1fr_1fr_1fr_1.2fr] gap-2 border-b border-line bg-snow/[0.04] px-5 py-3 text-[10px] uppercase tracking-[0.2em] text-frost max-[640px]:grid-cols-[1.5fr_0.7fr_0.7fr_0.8fr]">
-              <span>Match</span><span>Kills</span><span>Position</span><span>Points</span><span className="max-[640px]:hidden">Match MVP</span>
+              <span>Match</span>
+              <span>Kills</span>
+              <span>Position</span>
+              <span>Points</span>
+              <span className="max-[640px]:hidden">Match MVP</span>
             </div>
             {[...matches].reverse().map((match) => (
-              <div key={match.id} className="grid grid-cols-[1.4fr_1fr_1fr_1fr_1.2fr] gap-2 border-b border-line/70 px-5 py-4 transition-colors last:border-b-0 hover:bg-snow/[0.04] max-[640px]:grid-cols-[1.5fr_0.7fr_0.7fr_0.8fr]">
+              <div
+                key={match.id}
+                className="grid grid-cols-[1.4fr_1fr_1fr_1fr_1.2fr] gap-2 border-b border-line/70 px-5 py-4 transition-colors last:border-b-0 hover:bg-snow/[0.04] max-[640px]:grid-cols-[1.5fr_0.7fr_0.7fr_0.8fr]"
+              >
                 <div>
                   <p className="font-semibold">Match {match.number}</p>
                   <p className="text-xs text-frost">{match.map}</p>
@@ -132,17 +179,26 @@ function Dashboard() {
               </div>
             ))}
           </div>
-          <p className="mt-3 text-xs text-frost">Points = kills + placement points · Sample match data from the uploaded team structure</p>
+          <p className="mt-3 text-xs text-frost">
+            Points = kills + placement points · Sample match data from the uploaded team structure
+          </p>
         </section>
 
-        <section id="tournament" className="reveal-up mx-auto grid max-w-6xl scroll-mt-8 gap-5 px-6 py-14 lg:grid-cols-[1.5fr_1fr] [animation-delay:220ms]">
+        <section
+          id="tournament"
+          className="reveal-up mx-auto grid max-w-6xl scroll-mt-8 gap-5 px-6 py-14 lg:grid-cols-[1.5fr_1fr] [animation-delay:220ms]"
+        >
           <div className="rounded-2xl border border-line bg-snow/[0.03] p-6">
             <div className="mb-5 flex items-center justify-between gap-4">
               <div>
-                <p className="text-[10px] uppercase tracking-[0.25em] text-frost">Ongoing tournament</p>
+                <p className="text-[10px] uppercase tracking-[0.25em] text-frost">
+                  Ongoing tournament
+                </p>
                 <h2 className="mt-1 font-display text-3xl tracking-wide">FFMIC FALL 2026</h2>
               </div>
-              <span className="rounded-full bg-lime/15 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-lime">Live</span>
+              <span className="rounded-full bg-lime/15 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-lime">
+                Live
+              </span>
             </div>
             <div className="grid grid-cols-3 gap-4">
               <Metric label="Total kills" value={totalKills.toString()} />
@@ -159,10 +215,20 @@ function Dashboard() {
             </div>
           </div>
 
-          <div id="mvp" className="relative scroll-mt-8 overflow-hidden rounded-2xl border border-accent/30 bg-accent/10 p-6">
+          <div
+            id="mvp"
+            className="relative scroll-mt-8 overflow-hidden rounded-2xl border border-accent/30 bg-accent/10 p-6"
+          >
             <p className="text-[10px] uppercase tracking-[0.3em] text-accent">Tournament MVP</p>
             <div className="mt-4 flex items-center gap-4">
-              <img src={mvpImage} alt="Total Gaming player portrait" width={512} height={512} loading="lazy" className="size-20 shrink-0 rounded-xl object-cover ring-1 ring-line" />
+              <img
+                src={mvpImage}
+                alt="Total Gaming player portrait"
+                width={512}
+                height={512}
+                loading="lazy"
+                className="size-20 shrink-0 rounded-xl object-cover ring-1 ring-line"
+              />
               <div>
                 <p className="font-display text-3xl tracking-wide">PLAYER 1</p>
                 <p className="text-sm text-frost">Rusher · 9 tournament kills</p>
@@ -200,11 +266,27 @@ function Dashboard() {
   );
 }
 
-function Stat({ label, value, highlight = false }: { label: string; value: string; highlight?: boolean }) {
+function Stat({
+  label,
+  value,
+  highlight = false,
+}: {
+  label: string;
+  value: string;
+  highlight?: boolean;
+}) {
   return (
-    <div className={`rounded-xl border p-4 backdrop-blur-sm ${highlight ? "border-lime/30 bg-lime/10" : "border-line bg-snow/[0.04]"}`}>
-      <p className={`text-[10px] uppercase tracking-[0.2em] ${highlight ? "text-lime" : "text-frost"}`}>{label}</p>
-      <p className={`mt-1 font-mono text-4xl font-bold ${highlight ? "text-lime" : "text-snow"}`}>{value}</p>
+    <div
+      className={`rounded-xl border p-4 backdrop-blur-sm ${highlight ? "border-lime/30 bg-lime/10" : "border-line bg-snow/[0.04]"}`}
+    >
+      <p
+        className={`text-[10px] uppercase tracking-[0.2em] ${highlight ? "text-lime" : "text-frost"}`}
+      >
+        {label}
+      </p>
+      <p className={`mt-1 font-mono text-4xl font-bold ${highlight ? "text-lime" : "text-snow"}`}>
+        {value}
+      </p>
     </div>
   );
 }
