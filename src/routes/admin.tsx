@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
 import {
   Activity,
   ArrowLeft,
@@ -5837,3 +5838,6 @@ function AdminStyles() {
     `}</style>
   );
 }
+export const Route = createFileRoute("/admin")({
+  component: Admin,
+});
