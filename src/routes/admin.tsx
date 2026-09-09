@@ -1,25 +1,32 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Activity,
+  ArrowLeft,
   BarChart3,
+  Bell,
   CalendarDays,
   Check,
   ChevronDown,
   ChevronRight,
+  CircleUserRound,
+  ClipboardList,
   Copy,
   Crown,
+  Database,
   Edit3,
   Eye,
-  EyeOff,
+  FileText,
   Gamepad2,
   Globe,
-  Image,
+  Home,
   KeyRound,
   LayoutDashboard,
   Link2,
   Lock,
+  LogIn,
   LogOut,
   Menu,
+  MessageSquare,
   MoreHorizontal,
   Palette,
   Plus,
@@ -28,3121 +35,2946 @@ import {
   Search,
   Settings,
   Shield,
+  ShieldCheck,
   Trash2,
   Trophy,
-  Upload,
   UserPlus,
   Users,
   X,
   Zap,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
 
-export const Route = createFileRoute("/admin")({
-  component: AdminPanel,
-  head: () => ({
-    meta: [
-      { title: "TG Hub Admin" },
-      {
-        name: "description",
-        content: "Total Gaming Hub administration panel",
-      },
-    ],
-  }),
-});
+/* =========================================================
+   TOTAL GAMING HUB
+   ADMIN MASTER PANEL
+   =========================================================
+
+   Single-file admin system.
+
+   Includes:
+   - First-time admin setup
+   - Admin login
+   - Admin invite creation
+   - Admin management
+   - Dashboard
+   - Tournament management
+   - Team management
+   - Player management
+   - Match management
+   - Score management
+   - Scrim / Official control
+   - Content control
+   - Site settings
+   - Permissions
+   - Activity log
+   - Search
+   - Mobile responsive layout
+   - Dark TG-style admin interface
+
+   NOTE:
+   This frontend implementation stores demo state locally.
+   For production authentication and authorization, connect
+   the same actions to your backend/Supabase.
+   ========================================================= */
 
 /* =========================================================
    TYPES
-========================================================= */
+   ========================================================= */
 
-type AdminRole = "owner" | "admin" | "editor" | "viewer";
+type AdminRole = "owner" | "admin" | "editor" | "scorekeeper";
 
-type AdminUser = {
+type Section =
+  | "dashboard"
+  | "tournaments"
+  | "matches"
+  | "teams"
+  | "players"
+  | "scrims"
+  | "official"
+  | "content"
+  | "admins"
+  | "activity"
+  | "settings";
+
+type TournamentStatus = "LIVE" | "UPCOMING" | "COMPLETED" | "ARCHIVED";
+
+type MatchStatus = "LIVE" | "UPCOMING" | "COMPLETED";
+
+interface AdminUser {
   id: string;
   name: string;
   email: string;
   role: AdminRole;
   active: boolean;
   createdAt: string;
-};
+  lastLogin: string;
+}
 
-type TournamentStatus = "LIVE" | "UPCOMING" | "ARCHIVED";
+interface Invite {
+  id: string;
+  token: string;
+  email: string;
+  role: AdminRole;
+  createdAt: string;
+  expiresAt: string;
+  used: boolean;
+}
 
-type Tournament = {
+interface Tournament {
   id: string;
   name: string;
+  type: "OFFICIAL" | "SCRIM";
   status: TournamentStatus;
-  phase: string;
+  stage: string;
   matches: number;
-  teams: number | string;
-  visible: boolean;
-};
+  teams: number;
+  startDate: string;
+  endDate: string;
+  description: string;
+}
 
-type Team = {
+interface Match {
+  id: string;
+  tournamentId: string;
+  matchNumber: number;
+  map: string;
+  status: MatchStatus;
+  date: string;
+  time: string;
+  teams: number;
+  totalKills: number;
+}
+
+interface Team {
   id: string;
   name: string;
   shortName: string;
   logo: string;
+  manager: string;
   players: number;
-  points: number;
-  kills: number;
-  position: number;
-  visible: boolean;
-};
+  status: "ACTIVE" | "INACTIVE";
+}
 
-type Match = {
-  id: string;
-  number: number;
-  map: string;
-  status: "UPCOMING" | "LIVE" | "COMPLETED";
-  teams: number;
-  kills: number;
-  points: number;
-  date: string;
-  visible: boolean;
-};
-
-type Player = {
+interface Player {
   id: string;
   name: string;
   team: string;
   role: string;
   kills: number;
   matches: number;
-  image: string;
-  visible: boolean;
-};
+  status: "ACTIVE" | "BENCHED";
+}
 
-type SiteSettings = {
-  siteName: string;
-  tagline: string;
-  logo: string;
-  backgroundLogo: string;
-  backgroundOpacity: number;
-  showBackgroundLogo: boolean;
+interface SiteContent {
+  heroTitle: string;
+  heroSubtitle: string;
+  heroDescription: string;
+  officialTitle: string;
+  scrimTitle: string;
+  footerText: string;
+}
+
+interface SiteSettings {
+  maintenance: boolean;
   showAdminSetup: boolean;
-  maintenanceMode: boolean;
-  primaryColor: string;
-  accentColor: string;
-};
+  publicResults: boolean;
+  publicStandings: boolean;
+  allowRegistration: boolean;
+  liveFeed: boolean;
+}
 
-type AdminState = {
-  initialized: boolean;
-  admins: AdminUser[];
-  tournaments: Tournament[];
-  teams: Team[];
-  matches: Match[];
-  players: Player[];
-  settings: SiteSettings;
-};
+interface ActivityItem {
+  id: string;
+  action: string;
+  description: string;
+  admin: string;
+  createdAt: string;
+}
 
 /* =========================================================
    STORAGE
-========================================================= */
+   ========================================================= */
 
-const STORAGE_KEY = "tg_hub_admin_state";
-const SESSION_KEY = "tg_hub_admin_session";
-const INVITE_KEY = "tg_hub_admin_invites";
+const STORAGE = {
+  initialized: "tgh_admin_initialized",
+  session: "tgh_admin_session",
+  admins: "tgh_admin_users",
+  invites: "tgh_admin_invites",
+  tournaments: "tgh_admin_tournaments",
+  matches: "tgh_admin_matches",
+  teams: "tgh_admin_teams",
+  players: "tgh_admin_players",
+  content: "tgh_admin_content",
+  settings: "tgh_admin_settings",
+  activity: "tgh_admin_activity",
+};
 
-function makeId(prefix: string) {
-  return `${prefix}-${Date.now()}-${Math.random()
-    .toString(36)
-    .slice(2, 8)}`;
-}
-
-function getInitialState(): AdminState {
-  return {
-    initialized: false,
-
-    admins: [],
-
-    tournaments: [
-      {
-        id: "official-1",
-        name: "TEZ FFMIC 2026 FALL",
-        status: "LIVE",
-        phase: "PLAY-INS",
-        matches: 6,
-        teams: 18,
-        visible: true,
-      },
-      {
-        id: "official-2",
-        name: "TEZ FFMIC 2026 FALL",
-        status: "UPCOMING",
-        phase: "GS - WEEK 1",
-        matches: 6,
-        teams: 18,
-        visible: true,
-      },
-      {
-        id: "official-3",
-        name: "TEZ FFMIC 2026 FALL",
-        status: "UPCOMING",
-        phase: "GS - WEEK 2",
-        matches: 6,
-        teams: 18,
-        visible: true,
-      },
-      {
-        id: "official-4",
-        name: "TEZ FFMIC 2026 FALL",
-        status: "UPCOMING",
-        phase: "KO - WEEK 1",
-        matches: 12,
-        teams: 18,
-        visible: true,
-      },
-      {
-        id: "official-5",
-        name: "TEZ FFMIC 2026 FALL",
-        status: "UPCOMING",
-        phase: "KO - WEEK 2 - DAY 1",
-        matches: 6,
-        teams: 18,
-        visible: true,
-      },
-      {
-        id: "official-6",
-        name: "TEZ FFMIC 2026 SPRING",
-        status: "ARCHIVED",
-        phase: "GRAND FINALS",
-        matches: 12,
-        teams: 18,
-        visible: true,
-      },
-    ],
-
-    teams: [
-      {
-        id: "team-1",
-        name: "Total Gaming",
-        shortName: "TG",
-        logo: "/iqoo-tg-logo.png",
-        players: 4,
-        points: 50,
-        kills: 24,
-        position: 1,
-        visible: true,
-      },
-      {
-        id: "team-2",
-        name: "Team Alpha",
-        shortName: "ALP",
-        logo: "",
-        players: 4,
-        points: 42,
-        kills: 21,
-        position: 2,
-        visible: true,
-      },
-      {
-        id: "team-3",
-        name: "Team Nova",
-        shortName: "NVA",
-        logo: "",
-        players: 4,
-        points: 38,
-        kills: 18,
-        position: 3,
-        visible: true,
-      },
-    ],
-
-    matches: [
-      {
-        id: "match-1",
-        number: 1,
-        map: "Bermuda",
-        status: "COMPLETED",
-        teams: 18,
-        kills: 10,
-        points: 22,
-        date: "2026-09-08",
-        visible: true,
-      },
-      {
-        id: "match-2",
-        number: 2,
-        map: "Purgatory",
-        status: "COMPLETED",
-        teams: 18,
-        kills: 8,
-        points: 16,
-        date: "2026-09-08",
-        visible: true,
-      },
-      {
-        id: "match-3",
-        number: 3,
-        map: "Alpine",
-        status: "COMPLETED",
-        teams: 18,
-        kills: 6,
-        points: 12,
-        date: "2026-09-08",
-        visible: true,
-      },
-    ],
-
-    players: [
-      {
-        id: "player-1",
-        name: "Player 1",
-        team: "Total Gaming",
-        role: "Rusher",
-        kills: 9,
-        matches: 3,
-        image: "/total-gaming-mvp.jpg",
-        visible: true,
-      },
-      {
-        id: "player-2",
-        name: "Player 2",
-        team: "Total Gaming",
-        role: "IGL",
-        kills: 7,
-        matches: 3,
-        image: "",
-        visible: true,
-      },
-    ],
-
-    settings: {
-      siteName: "TOTAL GAMING HUB",
-      tagline: "PLAY · COMPETE · BELONG",
-      logo: "/iqoo-tg-logo.png",
-      backgroundLogo: "/iqoo-tg-logo.png",
-      backgroundOpacity: 0.16,
-      showBackgroundLogo: true,
-      showAdminSetup: true,
-      maintenanceMode: false,
-      primaryColor: "#8b2cff",
-      accentColor: "#18c8ff",
-    },
-  };
-}
-
-function loadState(): AdminState {
-  if (typeof window === "undefined") {
-    return getInitialState();
-  }
-
+function readStorage<T>(key: string, fallback: T): T {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-
-    if (!raw) {
-      return getInitialState();
-    }
-
-    const parsed = JSON.parse(raw) as AdminState;
-
-    return {
-      ...getInitialState(),
-      ...parsed,
-      settings: {
-        ...getInitialState().settings,
-        ...(parsed.settings || {}),
-      },
-    };
+    const value = localStorage.getItem(key);
+    if (!value) return fallback;
+    return JSON.parse(value) as T;
   } catch {
-    return getInitialState();
+    return fallback;
   }
 }
 
-function saveState(state: AdminState) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+function writeStorage<T>(key: string, value: T) {
+  localStorage.setItem(key, JSON.stringify(value));
 }
 
-function getSession() {
-  if (typeof window === "undefined") return null;
+function makeId(prefix = "id") {
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+}
 
-  try {
-    const raw = localStorage.getItem(SESSION_KEY);
+function now() {
+  return new Date().toISOString();
+}
 
-    if (!raw) return null;
+function formatDate(value: string) {
+  if (!value) return "-";
 
-    return JSON.parse(raw) as {
-      adminId: string;
-      email: string;
-    };
-  } catch {
-    return null;
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function roleLabel(role: AdminRole) {
+  switch (role) {
+    case "owner":
+      return "OWNER";
+    case "admin":
+      return "ADMIN";
+    case "editor":
+      return "EDITOR";
+    case "scorekeeper":
+      return "SCOREKEEPER";
+    default:
+      return role;
   }
 }
 
 /* =========================================================
-   ROUTE
-========================================================= */
+   DEFAULT DATA
+   ========================================================= */
 
-function AdminPanel() {
-  const navigate = useNavigate();
+const DEFAULT_ADMINS: AdminUser[] = [];
 
-  const [state, setState] = useState<AdminState>(() =>
-    loadState(),
+const DEFAULT_TOURNAMENTS: Tournament[] = [
+  {
+    id: "t1",
+    name: "TEZ FFMIC 2026 FALL",
+    type: "OFFICIAL",
+    status: "LIVE",
+    stage: "PLAY-INS",
+    matches: 6,
+    teams: 18,
+    startDate: "2026-09-01",
+    endDate: "2026-09-30",
+    description: "Official competitive Free Fire tournament.",
+  },
+  {
+    id: "t2",
+    name: "TEZ FFMIC 2026 FALL",
+    type: "OFFICIAL",
+    status: "UPCOMING",
+    stage: "GS - WEEK 1",
+    matches: 6,
+    teams: 18,
+    startDate: "2026-09-15",
+    endDate: "2026-09-20",
+    description: "Group stage week one.",
+  },
+  {
+    id: "t3",
+    name: "TEZ FFMIC 2026 FALL",
+    type: "OFFICIAL",
+    status: "UPCOMING",
+    stage: "GS - WEEK 2",
+    matches: 6,
+    teams: 18,
+    startDate: "2026-09-22",
+    endDate: "2026-09-27",
+    description: "Group stage week two.",
+  },
+];
+
+const DEFAULT_MATCHES: Match[] = [
+  {
+    id: "m1",
+    tournamentId: "t1",
+    matchNumber: 1,
+    map: "Bermuda",
+    status: "COMPLETED",
+    date: "2026-09-08",
+    time: "18:00",
+    teams: 18,
+    totalKills: 0,
+  },
+  {
+    id: "m2",
+    tournamentId: "t1",
+    matchNumber: 2,
+    map: "Purgatory",
+    status: "COMPLETED",
+    date: "2026-09-08",
+    time: "18:30",
+    teams: 18,
+    totalKills: 0,
+  },
+  {
+    id: "m3",
+    tournamentId: "t1",
+    matchNumber: 3,
+    map: "Alpine",
+    status: "LIVE",
+    date: "2026-09-08",
+    time: "19:00",
+    teams: 18,
+    totalKills: 0,
+  },
+];
+
+const DEFAULT_TEAMS: Team[] = [
+  {
+    id: "team1",
+    name: "TOTAL GAMING",
+    shortName: "TG",
+    logo: "/iqoo-tg-logo.png",
+    manager: "Team Manager",
+    players: 4,
+    status: "ACTIVE",
+  },
+];
+
+const DEFAULT_PLAYERS: Player[] = [
+  {
+    id: "p1",
+    name: "PLAYER 1",
+    team: "TOTAL GAMING",
+    role: "RUSHER",
+    kills: 24,
+    matches: 3,
+    status: "ACTIVE",
+  },
+];
+
+const DEFAULT_CONTENT: SiteContent = {
+  heroTitle: "TEZ FFMIC 2026 FALL",
+  heroSubtitle: "OFFICIAL CIRCUIT",
+  heroDescription:
+    "Real-time tournament intelligence, match results and competitive performance tracking.",
+  officialTitle: "OFFICIAL EVENTS",
+  scrimTitle: "SCRIM EVENTS",
+  footerText: "TOTAL GAMING HUB • PLAY • COMPETE • BELONG",
+};
+
+const DEFAULT_SETTINGS: SiteSettings = {
+  maintenance: false,
+  showAdminSetup: true,
+  publicResults: true,
+  publicStandings: true,
+  allowRegistration: false,
+  liveFeed: true,
+};
+
+/* =========================================================
+   PERMISSIONS
+   ========================================================= */
+
+const PERMISSIONS: Record<AdminRole, Record<Section, boolean>> = {
+  owner: {
+    dashboard: true,
+    tournaments: true,
+    matches: true,
+    teams: true,
+    players: true,
+    scrims: true,
+    official: true,
+    content: true,
+    admins: true,
+    activity: true,
+    settings: true,
+  },
+
+  admin: {
+    dashboard: true,
+    tournaments: true,
+    matches: true,
+    teams: true,
+    players: true,
+    scrims: true,
+    official: true,
+    content: true,
+    admins: false,
+    activity: true,
+    settings: true,
+  },
+
+  editor: {
+    dashboard: true,
+    tournaments: false,
+    matches: false,
+    teams: false,
+    players: false,
+    scrims: false,
+    official: false,
+    content: true,
+    admins: false,
+    activity: true,
+    settings: false,
+  },
+
+  scorekeeper: {
+    dashboard: true,
+    tournaments: false,
+    matches: true,
+    teams: true,
+    players: true,
+    scrims: false,
+    official: true,
+    content: false,
+    admins: false,
+    activity: true,
+    settings: false,
+  },
+};
+
+/* =========================================================
+   SMALL COMPONENTS
+   ========================================================= */
+
+function Badge({
+  children,
+  type = "default",
+}: {
+  children: React.ReactNode;
+  type?: "default" | "live" | "warning" | "success" | "danger" | "blue";
+}) {
+  return (
+    <span className={`tg-badge tg-badge-${type}`}>
+      {children}
+    </span>
   );
+}
 
-  const [session, setSession] = useState(getSession());
+function IconButton({
+  children,
+  title,
+  onClick,
+}: {
+  children: React.ReactNode;
+  title: string;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      className="tg-icon-button"
+      title={title}
+      onClick={onClick}
+      type="button"
+    >
+      {children}
+    </button>
+  );
+}
 
-  const [setupMode, setSetupMode] = useState(false);
-  const [loginMode, setLoginMode] = useState(false);
+function Panel({
+  title,
+  icon,
+  children,
+  action,
+}: {
+  title: string;
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+  action?: React.ReactNode;
+}) {
+  return (
+    <section className="tg-panel">
+      <div className="tg-panel-header">
+        <div className="tg-panel-title">
+          {icon}
+          <span>{title}</span>
+        </div>
 
+        {action}
+      </div>
+
+      <div className="tg-panel-body">{children}</div>
+    </section>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  icon,
+  accent,
+}: {
+  label: string;
+  value: string | number;
+  icon: React.ReactNode;
+  accent?: boolean;
+}) {
+  return (
+    <div className={`tg-stat-card ${accent ? "tg-stat-accent" : ""}`}>
+      <div className="tg-stat-icon">{icon}</div>
+      <div className="tg-stat-label">{label}</div>
+      <div className="tg-stat-value">{value}</div>
+    </div>
+  );
+}
+
+function EmptyState({
+  title,
+  description,
+  onAdd,
+}: {
+  title: string;
+  description: string;
+  onAdd?: () => void;
+}) {
+  return (
+    <div className="tg-empty">
+      <Database size={38} />
+      <h3>{title}</h3>
+      <p>{description}</p>
+
+      {onAdd && (
+        <button className="tg-primary-button" onClick={onAdd}>
+          <Plus size={17} />
+          Add New
+        </button>
+      )}
+    </div>
+  );
+}
+
+/* =========================================================
+   MODAL
+   ========================================================= */
+
+function Modal({
+  title,
+  children,
+  onClose,
+  footer,
+}: {
+  title: string;
+  children: React.ReactNode;
+  onClose: () => void;
+  footer?: React.ReactNode;
+}) {
+  return (
+    <div className="tg-modal-backdrop" onMouseDown={onClose}>
+      <div
+        className="tg-modal"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <div className="tg-modal-header">
+          <h2>{title}</h2>
+
+          <IconButton title="Close" onClick={onClose}>
+            <X size={20} />
+          </IconButton>
+        </div>
+
+        <div className="tg-modal-body">{children}</div>
+
+        {footer && <div className="tg-modal-footer">{footer}</div>}
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   INPUT
+   ========================================================= */
+
+function Field({
+  label,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  type?: string;
+}) {
+  return (
+    <label className="tg-field">
+      <span>{label}</span>
+      <input
+        type={type}
+        value={value}
+        placeholder={placeholder}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    </label>
+  );
+}
+
+function SelectField({
+  label,
+  value,
+  onChange,
+  children,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="tg-field">
+      <span>{label}</span>
+
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      >
+        {children}
+      </select>
+    </label>
+  );
+}
+
+/* =========================================================
+   LOGIN
+   ========================================================= */
+
+function LoginScreen({
+  onLogin,
+}: {
+  onLogin: (email: string, password: string) => void;
+}) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  function submit(event: React.FormEvent) {
+    event.preventDefault();
+
+    if (!email.trim() || !password.trim()) {
+      setError("Email and password are required.");
+      return;
+    }
+
+    onLogin(email.trim(), password);
+  }
+
+  return (
+    <div className="tg-auth-page">
+      <div className="tg-auth-grid" />
+
+      <div className="tg-auth-card">
+        <div className="tg-auth-brand">
+          <div className="tg-auth-logo">
+            <ShieldCheck size={34} />
+          </div>
+
+          <div>
+            <strong>TOTAL GAMING</strong>
+            <span>HUB ADMIN</span>
+          </div>
+        </div>
+
+        <div className="tg-auth-heading">
+          <Badge type="live">SECURE ACCESS</Badge>
+
+          <h1>ADMIN CONTROL</h1>
+
+          <p>
+            Sign in to manage tournaments, matches, teams, players and
+            platform content.
+          </p>
+        </div>
+
+        <form onSubmit={submit}>
+          <Field
+            label="EMAIL"
+            value={email}
+            onChange={setEmail}
+            placeholder="admin@example.com"
+            type="email"
+          />
+
+          <Field
+            label="PASSWORD"
+            value={password}
+            onChange={setPassword}
+            placeholder="Enter password"
+            type="password"
+          />
+
+          {error && <div className="tg-form-error">{error}</div>}
+
+          <button className="tg-primary-button tg-full-button" type="submit">
+            <LogIn size={18} />
+            ENTER ADMIN
+          </button>
+        </form>
+
+        <div className="tg-auth-note">
+          <Lock size={15} />
+          Admin area is hidden from the public website.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   FIRST ADMIN SETUP
+   ========================================================= */
+
+function SetupScreen({
+  onComplete,
+}: {
+  onComplete: (
+    name: string,
+    email: string,
+    password: string
+  ) => void;
+}) {
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [error, setError] = useState("");
 
-  const [activePage, setActivePage] =
-    useState("overview");
+  function submit(event: React.FormEvent) {
+    event.preventDefault();
 
-  const [sidebarOpen, setSidebarOpen] =
-    useState(false);
-
-  const [search, setSearch] = useState("");
-
-  const [editingId, setEditingId] =
-    useState<string | null>(null);
-
-  const [notice, setNotice] = useState("");
-
-  const [inviteEmail, setInviteEmail] =
-    useState("");
-
-  const [inviteRole, setInviteRole] =
-    useState<AdminRole>("admin");
-
-  const [generatedInvite, setGeneratedInvite] =
-    useState("");
-
-  useEffect(() => {
-    saveState(state);
-  }, [state]);
-
-  useEffect(() => {
-    const current = getSession();
-
-    if (current) {
-      setSession(current);
-      setLoginMode(false);
-      setSetupMode(false);
-    } else if (!state.initialized) {
-      setSetupMode(true);
-    } else {
-      setLoginMode(true);
-    }
-  }, [state.initialized]);
-
-  function showNotice(message: string) {
-    setNotice(message);
-
-    window.setTimeout(() => {
-      setNotice("");
-    }, 2500);
-  }
-
-  function createFirstAdmin() {
-    if (!name.trim()) {
-      showNotice("Enter admin name.");
-      return;
-    }
-
-    if (!email.trim()) {
-      showNotice("Enter email.");
+    if (!name.trim() || !email.trim() || !password) {
+      setError("All fields are required.");
       return;
     }
 
     if (password.length < 6) {
-      showNotice(
-        "Password must contain at least 6 characters.",
-      );
+      setError("Password must contain at least 6 characters.");
       return;
     }
 
-    const admin: AdminUser = {
-      id: makeId("admin"),
-      name: name.trim(),
-      email: email.trim().toLowerCase(),
-      role: "owner",
-      active: true,
-      createdAt: new Date().toISOString(),
-    };
-
-    const nextState = {
-      ...state,
-      initialized: true,
-      admins: [admin],
-    };
-
-    setState(nextState);
-
-    localStorage.setItem(
-      SESSION_KEY,
-      JSON.stringify({
-        adminId: admin.id,
-        email: admin.email,
-      }),
-    );
-
-    setSession({
-      adminId: admin.id,
-      email: admin.email,
-    });
-
-    showNotice("Owner account created.");
-  }
-
-  function login() {
-    const admin = state.admins.find(
-      (item) =>
-        item.email.toLowerCase() ===
-          email.trim().toLowerCase() &&
-        item.active,
-    );
-
-    if (!admin) {
-      showNotice("Admin account not found.");
+    if (password !== confirm) {
+      setError("Passwords do not match.");
       return;
     }
 
-    if (password.length < 6) {
-      showNotice("Enter your password.");
-      return;
-    }
-
-    /*
-      IMPORTANT:
-      This is a frontend-only session.
-      For real password authentication across devices,
-      connect this layer to Supabase/Auth or another backend.
-    */
-
-    localStorage.setItem(
-      SESSION_KEY,
-      JSON.stringify({
-        adminId: admin.id,
-        email: admin.email,
-      }),
-    );
-
-    setSession({
-      adminId: admin.id,
-      email: admin.email,
-    });
-
-    showNotice("Welcome back.");
+    onComplete(name.trim(), email.trim(), password);
   }
 
-  function logout() {
-    localStorage.removeItem(SESSION_KEY);
-    setSession(null);
-    setLoginMode(true);
-  }
-
-  function updateState<K extends keyof AdminState>(
-    key: K,
-    value: AdminState[K],
-  ) {
-    setState((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-  }
-
-  function updateSettings(
-    patch: Partial<SiteSettings>,
-  ) {
-    setState((prev) => ({
-      ...prev,
-      settings: {
-        ...prev.settings,
-        ...patch,
-      },
-    }));
-  }
-
-  function deleteTournament(id: string) {
-    if (!confirm("Delete this tournament?")) return;
-
-    updateState(
-      "tournaments",
-      state.tournaments.filter(
-        (item) => item.id !== id,
-      ),
-    );
-
-    showNotice("Tournament deleted.");
-  }
-
-  function deleteTeam(id: string) {
-    if (!confirm("Delete this team?")) return;
-
-    updateState(
-      "teams",
-      state.teams.filter(
-        (item) => item.id !== id,
-      ),
-    );
-
-    showNotice("Team deleted.");
-  }
-
-  function deleteMatch(id: string) {
-    if (!confirm("Delete this match?")) return;
-
-    updateState(
-      "matches",
-      state.matches.filter(
-        (item) => item.id !== id,
-      ),
-    );
-
-    showNotice("Match deleted.");
-  }
-
-  function deletePlayer(id: string) {
-    if (!confirm("Delete this player?")) return;
-
-    updateState(
-      "players",
-      state.players.filter(
-        (item) => item.id !== id,
-      ),
-    );
-
-    showNotice("Player deleted.");
-  }
-
-  function addTournament() {
-    const tournament: Tournament = {
-      id: makeId("tournament"),
-      name: "NEW TOURNAMENT",
-      status: "UPCOMING",
-      phase: "NEW PHASE",
-      matches: 6,
-      teams: 18,
-      visible: true,
-    };
-
-    updateState("tournaments", [
-      ...state.tournaments,
-      tournament,
-    ]);
-
-    setEditingId(tournament.id);
-    showNotice("Tournament added.");
-  }
-
-  function addTeam() {
-    const team: Team = {
-      id: makeId("team"),
-      name: "NEW TEAM",
-      shortName: "NEW",
-      logo: "",
-      players: 4,
-      points: 0,
-      kills: 0,
-      position: state.teams.length + 1,
-      visible: true,
-    };
-
-    updateState("teams", [
-      ...state.teams,
-      team,
-    ]);
-
-    setEditingId(team.id);
-    showNotice("Team added.");
-  }
-
-  function addMatch() {
-    const match: Match = {
-      id: makeId("match"),
-      number: state.matches.length + 1,
-      map: "Bermuda",
-      status: "UPCOMING",
-      teams: 18,
-      kills: 0,
-      points: 0,
-      date: new Date()
-        .toISOString()
-        .slice(0, 10),
-      visible: true,
-    };
-
-    updateState("matches", [
-      ...state.matches,
-      match,
-    ]);
-
-    setEditingId(match.id);
-    showNotice("Match added.");
-  }
-
-  function addPlayer() {
-    const player: Player = {
-      id: makeId("player"),
-      name: "NEW PLAYER",
-      team:
-        state.teams[0]?.name || "Unassigned",
-      role: "Player",
-      kills: 0,
-      matches: 0,
-      image: "",
-      visible: true,
-    };
-
-    updateState("players", [
-      ...state.players,
-      player,
-    ]);
-
-    setEditingId(player.id);
-    showNotice("Player added.");
-  }
-
-  function updateTournament(
-    id: string,
-    patch: Partial<Tournament>,
-  ) {
-    updateState(
-      "tournaments",
-      state.tournaments.map((item) =>
-        item.id === id
-          ? { ...item, ...patch }
-          : item,
-      ),
-    );
-  }
-
-  function updateTeam(
-    id: string,
-    patch: Partial<Team>,
-  ) {
-    updateState(
-      "teams",
-      state.teams.map((item) =>
-        item.id === id
-          ? { ...item, ...patch }
-          : item,
-      ),
-    );
-  }
-
-  function updateMatch(
-    id: string,
-    patch: Partial<Match>,
-  ) {
-    updateState(
-      "matches",
-      state.matches.map((item) =>
-        item.id === id
-          ? { ...item, ...patch }
-          : item,
-      ),
-    );
-  }
-
-  function updatePlayer(
-    id: string,
-    patch: Partial<Player>,
-  ) {
-    updateState(
-      "players",
-      state.players.map((item) =>
-        item.id === id
-          ? { ...item, ...patch }
-          : item,
-      ),
-    );
-  }
-
-  function createInvite() {
-    if (!inviteEmail.trim()) {
-      showNotice("Enter email for invitation.");
-      return;
-    }
-
-    const token = `${crypto.randomUUID()}-${Date.now()}`;
-
-    const invite = {
-      token,
-      email: inviteEmail
-        .trim()
-        .toLowerCase(),
-      role: inviteRole,
-      createdAt: new Date().toISOString(),
-    };
-
-    const existing = JSON.parse(
-      localStorage.getItem(INVITE_KEY) || "[]",
-    );
-
-    localStorage.setItem(
-      INVITE_KEY,
-      JSON.stringify([
-        ...existing,
-        invite,
-      ]),
-    );
-
-    /*
-      The actual production invitation should be generated
-      by the backend so the token works on another device.
-      This creates the URL structure now.
-    */
-
-    const url =
-      `${window.location.origin}/admin?invite=${encodeURIComponent(token)}`;
-
-    setGeneratedInvite(url);
-
-    showNotice("Invitation link created.");
-  }
-
-  async function copyInvite() {
-    if (!generatedInvite) return;
-
-    await navigator.clipboard.writeText(
-      generatedInvite,
-    );
-
-    showNotice("Invite link copied.");
-  }
-
-  function resetLocalAdmin() {
-    if (
-      !confirm(
-        "This will remove the local admin session and admin data. Continue?",
-      )
-    ) {
-      return;
-    }
-
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(SESSION_KEY);
-    localStorage.removeItem(INVITE_KEY);
-
-    window.location.reload();
-  }
-
-  const currentAdmin = state.admins.find(
-    (item) =>
-      item.id === session?.adminId,
-  );
-
-  const filteredTournaments =
-    state.tournaments.filter((item) =>
-      `${item.name} ${item.phase}`
-        .toLowerCase()
-        .includes(search.toLowerCase()),
-    );
-
-  const filteredTeams =
-    state.teams.filter((item) =>
-      `${item.name} ${item.shortName}`
-        .toLowerCase()
-        .includes(search.toLowerCase()),
-    );
-
-  const filteredMatches =
-    state.matches.filter((item) =>
-      `${item.map} ${item.status} ${item.number}`
-        .toLowerCase()
-        .includes(search.toLowerCase()),
-    );
-
-  const filteredPlayers =
-    state.players.filter((item) =>
-      `${item.name} ${item.team} ${item.role}`
-        .toLowerCase()
-        .includes(search.toLowerCase()),
-    );
-
-  const totalPoints = useMemo(
-    () =>
-      state.teams.reduce(
-        (sum, team) =>
-          sum + Number(team.points || 0),
-        0,
-      ),
-    [state.teams],
-  );
-
-  /* =========================================================
-     FIRST TIME SETUP
-  ========================================================= */
-
-  if (!session && !state.initialized) {
-    return (
-      <>
-        <AdminStyles />
-
-        <div className="tg-admin-auth">
-          <div className="tg-auth-grid" />
-
-          <div className="tg-auth-card">
-            <div className="tg-auth-brand">
-              <div className="tg-auth-logo">
-                <img
-                  src={
-                    state.settings.logo ||
-                    "/iqoo-tg-logo.png"
-                  }
-                  alt=""
-                />
-              </div>
-
-              <div>
-                <strong>
-                  TOTAL GAMING HUB
-                </strong>
-                <span>ADMIN CONTROL</span>
-              </div>
-            </div>
-
-            <div className="tg-auth-line" />
-
-            <div className="tg-auth-label">
-              INITIAL ADMIN SETUP
-            </div>
-
-            <h1>
-              Create
-              <br />
-              <span>Owner Access.</span>
-            </h1>
-
-            <p>
-              This screen appears only before
-              the first admin account is created.
-            </p>
-
-            <label>OWNER NAME</label>
-
-            <input
-              value={name}
-              onChange={(e) =>
-                setName(e.target.value)
-              }
-              placeholder="Your name"
-            />
-
-            <label>EMAIL</label>
-
-            <input
-              type="email"
-              value={email}
-              onChange={(e) =>
-                setEmail(e.target.value)
-              }
-              placeholder="owner@email.com"
-            />
-
-            <label>PASSWORD</label>
-
-            <input
-              type="password"
-              value={password}
-              onChange={(e) =>
-                setPassword(e.target.value)
-              }
-              placeholder="Minimum 6 characters"
-            />
-
-            <button
-              className="tg-auth-submit"
-              onClick={createFirstAdmin}
-            >
-              <Crown size={18} />
-              CREATE OWNER
-            </button>
-
-            <div className="tg-auth-warning">
-              <Shield size={15} />
-              <span>
-                After setup, the admin entry will
-                no longer be shown on the public
-                website.
-              </span>
-            </div>
+  return (
+    <div className="tg-auth-page">
+      <div className="tg-auth-grid" />
+
+      <div className="tg-auth-card tg-setup-card">
+        <div className="tg-auth-brand">
+          <div className="tg-auth-logo">
+            <Crown size={34} />
+          </div>
+
+          <div>
+            <strong>TOTAL GAMING</strong>
+            <span>FIRST ADMIN SETUP</span>
           </div>
         </div>
-      </>
-    );
-  }
 
-  /* =========================================================
-     LOGIN
-  ========================================================= */
+        <div className="tg-auth-heading">
+          <Badge type="warning">INITIAL SETUP</Badge>
 
-  if (!session && state.initialized) {
-    return (
-      <>
-        <AdminStyles />
+          <h1>CREATE OWNER</h1>
 
-        <div className="tg-admin-auth">
-          <div className="tg-auth-grid" />
-
-          <div className="tg-auth-card">
-            <div className="tg-auth-brand">
-              <div className="tg-auth-logo">
-                <img
-                  src={
-                    state.settings.logo ||
-                    "/iqoo-tg-logo.png"
-                  }
-                  alt=""
-              />
-              </div>
-
-              <div>
-                <strong>
-                  TOTAL GAMING HUB
-                </strong>
-                <span>ADMIN CONTROL</span>
-              </div>
-            </div>
-
-            <div className="tg-auth-line" />
-
-            <div className="tg-auth-label">
-              SECURE ACCESS
-            </div>
-
-            <h1>
-              Welcome
-              <br />
-              <span>Back.</span>
-            </h1>
-
-            <p>
-              Sign in with an authorized admin
-              account.
-            </p>
-
-            <label>EMAIL</label>
-
-            <input
-              type="email"
-              value={email}
-              onChange={(e) =>
-                setEmail(e.target.value)
-              }
-              placeholder="admin@email.com"
-            />
-
-            <label>PASSWORD</label>
-
-            <input
-              type="password"
-              value={password}
-              onChange={(e) =>
-                setPassword(e.target.value)
-              }
-              placeholder="Your password"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  login();
-                }
-              }}
-            />
-
-            <button
-              className="tg-auth-submit"
-              onClick={login}
-            >
-              <Lock size={18} />
-              ENTER ADMIN
-            </button>
-
-            <button
-              className="tg-back-public"
-              onClick={() =>
-                navigate({
-                  to: "/",
-                })
-              }
-            >
-              ← BACK TO WEBSITE
-            </button>
-          </div>
+          <p>
+            This screen is shown only before the first admin account is
+            created.
+          </p>
         </div>
-      </>
-    );
-  }
 
-  /* =========================================================
-     ADMIN DASHBOARD
-  ========================================================= */
+        <form onSubmit={submit}>
+          <Field
+            label="YOUR NAME"
+            value={name}
+            onChange={setName}
+            placeholder="Owner name"
+          />
+
+          <Field
+            label="EMAIL"
+            value={email}
+            onChange={setEmail}
+            placeholder="owner@example.com"
+            type="email"
+          />
+
+          <Field
+            label="PASSWORD"
+            value={password}
+            onChange={setPassword}
+            placeholder="Create password"
+            type="password"
+          />
+
+          <Field
+            label="CONFIRM PASSWORD"
+            value={confirm}
+            onChange={setConfirm}
+            placeholder="Repeat password"
+            type="password"
+          />
+
+          {error && <div className="tg-form-error">{error}</div>}
+
+          <button className="tg-primary-button tg-full-button" type="submit">
+            <Crown size={18} />
+            CREATE OWNER
+          </button>
+        </form>
+
+        <div className="tg-auth-note">
+          <Shield size={15} />
+          After setup, this public setup entry disappears.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   SIDEBAR
+   ========================================================= */
+
+function Sidebar({
+  section,
+  setSection,
+  currentAdmin,
+  mobileOpen,
+  onClose,
+  onLogout,
+}: {
+  section: Section;
+  setSection: (section: Section) => void;
+  currentAdmin: AdminUser;
+  mobileOpen: boolean;
+  onClose: () => void;
+  onLogout: () => void;
+}) {
+  const items: {
+    id: Section;
+    label: string;
+    icon: React.ReactNode;
+  }[] = [
+    {
+      id: "dashboard",
+      label: "Dashboard",
+      icon: <LayoutDashboard size={19} />,
+    },
+    {
+      id: "tournaments",
+      label: "Tournaments",
+      icon: <Trophy size={19} />,
+    },
+    {
+      id: "matches",
+      label: "Matches & Scores",
+      icon: <Gamepad2 size={19} />,
+    },
+    {
+      id: "teams",
+      label: "Teams",
+      icon: <Users size={19} />,
+    },
+    {
+      id: "players",
+      label: "Players",
+      icon: <CircleUserRound size={19} />,
+    },
+    {
+      id: "official",
+      label: "Official",
+      icon: <Trophy size={19} />,
+    },
+    {
+      id: "scrims",
+      label: "Scrims",
+      icon: <Zap size={19} />,
+    },
+    {
+      id: "content",
+      label: "Website Content",
+      icon: <FileText size={19} />,
+    },
+    {
+      id: "admins",
+      label: "Admins",
+      icon: <Shield size={19} />,
+    },
+    {
+      id: "activity",
+      label: "Activity Log",
+      icon: <Activity size={19} />,
+    },
+    {
+      id: "settings",
+      label: "Settings",
+      icon: <Settings size={19} />,
+    },
+  ];
 
   return (
     <>
-      <AdminStyles />
+      {mobileOpen && (
+        <div className="tg-sidebar-overlay" onClick={onClose} />
+      )}
 
-      <div className="tg-admin-app">
-        {/* BACKGROUND */}
-        <div className="tg-admin-bg-grid" />
-
-        {/* MOBILE OVERLAY */}
-        {sidebarOpen && (
-          <div
-            className="tg-sidebar-overlay"
-            onClick={() =>
-              setSidebarOpen(false)
-            }
-          />
-        )}
-
-        {/* SIDEBAR */}
-        <aside
-          className={`tg-sidebar ${
-            sidebarOpen
-              ? "open"
-              : ""
-          }`}
-        >
-          <div className="tg-sidebar-top">
-            <div className="tg-admin-logo">
-              <img
-                src={
-                  state.settings.logo ||
-                  "/iqoo-tg-logo.png"
-                }
-                alt=""
-              />
-            </div>
-
-            <div>
-              <strong>
-                TG HUB
-              </strong>
-              <span>CONTROL CENTER</span>
-            </div>
-
-            <button
-              className="tg-sidebar-close"
-              onClick={() =>
-                setSidebarOpen(false)
-              }
-            >
-              <X size={20} />
-            </button>
+      <aside className={`tg-sidebar ${mobileOpen ? "open" : ""}`}>
+        <div className="tg-sidebar-brand">
+          <div className="tg-mini-logo">
+            <ShieldCheck size={25} />
           </div>
 
-          <div className="tg-owner-box">
-            <div className="tg-owner-avatar">
-              {currentAdmin?.name
-                ?.slice(0, 1)
-                .toUpperCase() || "A"}
-            </div>
-
-            <div>
-              <strong>
-                {currentAdmin?.name ||
-                  "Administrator"}
-              </strong>
-
-              <span>
-                {currentAdmin?.role?.toUpperCase() ||
-                  "ADMIN"}
-              </span>
-            </div>
+          <div>
+            <strong>TOTAL GAMING</strong>
+            <span>HUB CONTROL</span>
           </div>
 
-          <div className="tg-nav-title">
-            CONTROL
-          </div>
-
-          <AdminNavButton
-            icon={<LayoutDashboard />}
-            label="Overview"
-            active={
-              activePage === "overview"
-            }
-            onClick={() => {
-              setActivePage("overview");
-              setSidebarOpen(false);
-            }}
-          />
-
-          <AdminNavButton
-            icon={<Trophy />}
-            label="Tournaments"
-            active={
-              activePage === "tournaments"
-            }
-            onClick={() => {
-              setActivePage("tournaments");
-              setSidebarOpen(false);
-            }}
-          />
-
-          <AdminNavButton
-            icon={<Users />}
-            label="Teams"
-            active={activePage === "teams"}
-            onClick={() => {
-              setActivePage("teams");
-              setSidebarOpen(false);
-            }}
-          />
-
-          <AdminNavButton
-            icon={<Gamepad2 />}
-            label="Matches"
-            active={
-              activePage === "matches"
-            }
-            onClick={() => {
-              setActivePage("matches");
-              setSidebarOpen(false);
-            }}
-          />
-
-          <AdminNavButton
-            icon={<Crown />}
-            label="Players / MVP"
-            active={
-              activePage === "players"
-            }
-            onClick={() => {
-              setActivePage("players");
-              setSidebarOpen(false);
-            }}
-          />
-
-          <AdminNavButton
-            icon={<BarChart3 />}
-            label="Analytics"
-            active={
-              activePage === "analytics"
-            }
-            onClick={() => {
-              setActivePage("analytics");
-              setSidebarOpen(false);
-            }}
-          />
-
-          <div className="tg-nav-title">
-            MANAGEMENT
-          </div>
-
-          <AdminNavButton
-            icon={<UserPlus />}
-            label="Admins"
-            active={
-              activePage === "admins"
-            }
-            onClick={() => {
-              setActivePage("admins");
-              setSidebarOpen(false);
-            }}
-          />
-
-          <AdminNavButton
-            icon={<Link2 />}
-            label="Admin Invites"
-            active={
-              activePage === "invites"
-            }
-            onClick={() => {
-              setActivePage("invites");
-              setSidebarOpen(false);
-            }}
-          />
-
-          <AdminNavButton
-            icon={<Palette />}
-            label="Site Control"
-            active={
-              activePage === "settings"
-            }
-            onClick={() => {
-              setActivePage("settings");
-              setSidebarOpen(false);
-            }}
-          />
-
-          <div className="tg-sidebar-bottom">
-            <button
-              className="tg-public-button"
-              onClick={() =>
-                navigate({
-                  to: "/",
-                })
-              }
-            >
-              <Globe size={17} />
-              VIEW WEBSITE
-            </button>
-
-            <button
-              className="tg-logout"
-              onClick={logout}
-            >
-              <LogOut size={17} />
-              LOG OUT
-            </button>
-          </div>
-        </aside>
-
-        {/* MAIN */}
-        <div className="tg-admin-main">
-          <header className="tg-admin-header">
-            <button
-              className="tg-mobile-menu-button"
-              onClick={() =>
-                setSidebarOpen(true)
-              }
-            >
-              <Menu size={22} />
-            </button>
-
-            <div>
-              <div className="tg-admin-header-kicker">
-                TOTAL GAMING HUB
-              </div>
-
-              <h1>
-                {getPageTitle(activePage)}
-              </h1>
-            </div>
-
-            <div className="tg-header-right">
-              <div className="tg-live-system">
-                <span />
-                SYSTEM ONLINE
-              </div>
-
-              <button
-                className="tg-refresh"
-                onClick={() => {
-                  setState(loadState());
-                  showNotice(
-                    "Data refreshed.",
-                  );
-                }}
-              >
-                <RefreshCw size={17} />
-              </button>
-
-              <div className="tg-mini-avatar">
-                {currentAdmin?.name
-                  ?.slice(0, 1)
-                  .toUpperCase() || "A"}
-              </div>
-            </div>
-          </header>
-
-          <main className="tg-admin-content">
-            {/* SEARCH */}
-            {[
-              "tournaments",
-              "teams",
-              "matches",
-              "players",
-            ].includes(activePage) && (
-              <div className="tg-toolbar">
-                <div className="tg-search">
-                  <Search size={17} />
-
-                  <input
-                    value={search}
-                    onChange={(e) =>
-                      setSearch(
-                        e.target.value,
-                      )
-                    }
-                    placeholder={`Search ${activePage}...`}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* =================================================
-                OVERVIEW
-            ================================================= */}
-
-            {activePage === "overview" && (
-              <Overview
-                state={state}
-                totalPoints={totalPoints}
-                onNavigate={setActivePage}
-              />
-            )}
-
-            {/* =================================================
-                TOURNAMENTS
-            ================================================= */}
-
-            {activePage ===
-              "tournaments" && (
-              <section>
-                <SectionHeader
-                  eyebrow="EVENT CONTROL"
-                  title="TOURNAMENTS"
-                  description="Create, edit, publish or archive every tournament."
-                  action={
-                    <button
-                      className="tg-primary-button"
-                      onClick={
-                        addTournament
-                      }
-                    >
-                      <Plus size={17} />
-                      NEW TOURNAMENT
-                    </button>
-                  }
-                />
-
-                <div className="tg-admin-list">
-                  {filteredTournaments.map(
-                    (tournament) => (
-                      <TournamentEditor
-                        key={
-                          tournament.id
-                        }
-                        tournament={
-                          tournament
-                        }
-                        editing={
-                          editingId ===
-                          tournament.id
-                        }
-                        onEdit={() =>
-                          setEditingId(
-                            tournament.id,
-                          )
-                        }
-                        onClose={() =>
-                          setEditingId(null)
-                        }
-                        onUpdate={(
-                          patch,
-                        ) =>
-                          updateTournament(
-                            tournament.id,
-                            patch,
-                          )
-                        }
-                        onDelete={() =>
-                          deleteTournament(
-                            tournament.id,
-                          )
-                        }
-                      />
-                    ),
-                  )}
-                </div>
-              </section>
-            )}
-
-            {/* =================================================
-                TEAMS
-            ================================================= */}
-
-            {activePage === "teams" && (
-              <section>
-                <SectionHeader
-                  eyebrow="ROSTER CONTROL"
-                  title="TEAMS"
-                  description="Manage team names, logos, players and live points."
-                  action={
-                    <button
-                      className="tg-primary-button"
-                      onClick={addTeam}
-                    >
-                      <Plus size={17} />
-                      ADD TEAM
-                    </button>
-                  }
-                />
-
-                <div className="tg-admin-list">
-                  {filteredTeams.map(
-                    (team) => (
-                      <TeamEditor
-                        key={team.id}
-                        team={team}
-                        editing={
-                          editingId ===
-                          team.id
-                        }
-                        onEdit={() =>
-                          setEditingId(
-                            team.id,
-                          )
-                        }
-                        onClose={() =>
-                          setEditingId(null)
-                        }
-                        onUpdate={(
-                          patch,
-                        ) =>
-                          updateTeam(
-                            team.id,
-                            patch,
-                          )
-                        }
-                        onDelete={() =>
-                          deleteTeam(
-                            team.id,
-                          )
-                        }
-                      />
-                    ),
-                  )}
-                </div>
-              </section>
-            )}
-
-            {/*
-              =================================================
-                MATCHES
-            ================================================= */}
-
-            {activePage ===
-              "matches" && (
-              <section>
-                <SectionHeader
-                  eyebrow="LIVE DATA CONTROL"
-                  title="MATCHES"
-                  description="Control match schedule, map, status, kills and points."
-                  action={
-                    <button
-                      className="tg-primary-button"
-                      onClick={addMatch}
-                    >
-                      <Plus size={17} />
-                      ADD MATCH
-                    </button>
-                  }
-                />
-
-                <div className="tg-admin-list">
-                  {filteredMatches.map(
-                    (match) => (
-                      <MatchEditor
-                        key={match.id}
-                        match={match}
-                        editing={
-                          editingId ===
-                          match.id
-                        }
-                        onEdit={() =>
-                          setEditingId(
-                            match.id,
-                          )
-                        }
-                        onClose={() =>
-                          setEditingId(null)
-                        }
-                        onUpdate={(
-                          patch,
-                        ) =>
-                          updateMatch(
-                            match.id,
-                            patch,
-                          )
-                        }
-                        onDelete={() =>
-                          deleteMatch(
-                            match.id,
-                          )
-                        }
-                      />
-                    ),
-                  )}
-                </div>
-              </section>
-            )}
-
-            {/* =================================================
-                PLAYERS
-            ================================================= */}
-
-            {activePage ===
-              "players" && (
-              <section>
-                <SectionHeader
-                  eyebrow="PLAYER CONTROL"
-                  title="PLAYERS / MVP"
-                  description="Manage player profiles, roles, kills and MVP data."
-                  action={
-                    <button
-                      className="tg-primary-button"
-                      onClick={addPlayer}
-                    >
-                      <Plus size={17} />
-                      ADD PLAYER
-                    </button>
-                  }
-                />
-
-                <div className="tg-admin-list">
-                  {filteredPlayers.map(
-                    (player) => (
-                      <PlayerEditor
-                        key={
-                          player.id
-                        }
-                        player={
-                          player
-                        }
-                        teams={
-                          state.teams
-                        }
-                        editing={
-                          editingId ===
-                          player.id
-                        }
-                        onEdit={() =>
-                          setEditingId(
-                            player.id,
-                          )
-                        }
-                        onClose={() =>
-                          setEditingId(null)
-                        }
-                        onUpdate={(
-                          patch,
-                        ) =>
-                          updatePlayer(
-                            player.id,
-                            patch,
-                          )
-                        }
-                        onDelete={() =>
-                          deletePlayer(
-                            player.id,
-                          )
-                        }
-                      />
-                    ),
-                  )}
-                </div>
-              </section>
-            )}
-
-            {/* =================================================
-                ANALYTICS
-            ================================================= */}
-
-            {activePage ===
-              "analytics" && (
-              <Analytics state={state} />
-            )}
-
-            {/* =================================================
-                ADMINS
-            ================================================= */}
-
-            {activePage === "admins" && (
-              <Admins
-                state={state}
-                currentAdmin={
-                  currentAdmin
-                }
-                setState={setState}
-                showNotice={
-                  showNotice
-                }
-              />
-            )}
-
-            {/* =================================================
-                INVITES
-            ================================================= */}
-
-            {activePage ===
-              "invites" && (
-              <section>
-                <SectionHeader
-                  eyebrow="ACCESS MANAGEMENT"
-                  title="ADMIN INVITES"
-                  description="Generate a private admin invitation link."
-                />
-
-                <div className="tg-two-column">
-                  <div className="tg-control-card">
-                    <div className="tg-card-icon">
-                      <Link2 />
-                    </div>
-
-                    <h3>
-                      CREATE ADMIN LINK
-                    </h3>
-
-                    <p>
-                      Send this link to the
-                      person you want to give
-                      admin access to.
-                    </p>
-
-                    <label>
-                      INVITED EMAIL
-                    </label>
-
-                    <input
-                      value={
-                        inviteEmail
-                      }
-                      onChange={(e) =>
-                        setInviteEmail(
-                          e.target.value,
-                        )
-                      }
-                      placeholder="admin@example.com"
-                    />
-
-                    <label>
-                      ACCESS LEVEL
-                    </label>
-
-                    <select
-                      value={
-                        inviteRole
-                      }
-                      onChange={(e) =>
-                        setInviteRole(
-                          e.target
-                            .value as AdminRole,
-                        )
-                      }
-                    >
-                      <option value="admin">
-                        ADMIN
-                      </option>
-
-                      <option value="editor">
-                        EDITOR
-                      </option>
-
-                      <option value="viewer">
-                        VIEWER
-                      </option>
-                    </select>
-
-                    <button
-                      className="tg-primary-button full"
-                      onClick={
-                        createInvite
-                      }
-                    >
-                      <Link2 size={17} />
-                      GENERATE LINK
-                    </button>
-                  </div>
-
-                  <div className="tg-control-card">
-                    <div className="tg-card-icon">
-                      <Shield />
-                    </div>
-
-                    <h3>
-                      INVITATION
-                    </h3>
-
-                    <p>
-                      The generated link is
-                      intended to open the
-                      admin onboarding flow.
-                    </p>
-
-                    {generatedInvite ? (
-                      <div className="tg-invite-result">
-                        <div>
-                          {generatedInvite}
-                        </div>
-
-                        <button
-                          onClick={
-                            copyInvite
-                          }
-                        >
-                          <Copy size={17} />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="tg-empty-box">
-                        No invitation generated.
-                      </div>
-                    )}
-
-                    <div className="tg-security-note">
-                      <Lock size={15} />
-                      Production version should
-                      validate the invitation
-                      server-side.
-                    </div>
-                  </div>
-                </div>
-              </section>
-            )}
-
-            {/* =================================================
-                SITE CONTROL
-            ================================================= */}
-
-            {activePage ===
-              "settings" && (
-              <section>
-                <SectionHeader
-                  eyebrow="GLOBAL CONTROL"
-                  title="SITE CONTROL"
-                  description="Control the public website from one place."
-                  action={
-                    <button
-                      className="tg-save-button"
-                      onClick={() => {
-                        saveState(
-                          state,
-                        );
-                        showNotice(
-                          "All settings saved.",
-                        );
-                      }}
-                    >
-                      <Save size={17} />
-                      SAVE CHANGES
-                    </button>
-                  }
-                />
-
-                <div className="tg-settings-grid">
-                  <div className="tg-control-card">
-                    <div className="tg-card-heading">
-                      <Palette />
-                      <div>
-                        <h3>
-                          BRANDING
-                        </h3>
-                        <span>
-                          Public identity
-                        </span>
-                      </div>
-                    </div>
-
-                    <label>
-                      SITE NAME
-                    </label>
-
-                    <input
-                      value={
-                        state.settings
-                          .siteName
-                      }
-                      onChange={(e) =>
-                        updateSettings({
-                          siteName:
-                            e.target
-                              .value,
-                        })
-                      }
-                    />
-
-                    <label>
-                      TAGLINE
-                    </label>
-
-                    <input
-                      value={
-                        state.settings
-                          .tagline
-                      }
-                      onChange={(e) =>
-                        updateSettings({
-                          tagline:
-                            e.target
-                              .value,
-                        })
-                      }
-                    />
-
-                    <label>
-                      LOGO PATH
-                    </label>
-
-                    <input
-                      value={
-                        state.settings
-                          .logo
-                      }
-                      onChange={(e) =>
-                        updateSettings({
-                          logo:
-                            e.target
-                              .value,
-                        })
-                      }
-                    />
-
-                    <label>
-                      BACKGROUND LOGO PATH
-                    </label>
-
-                    <input
-                      value={
-                        state.settings
-                          .backgroundLogo
-                      }
-                      onChange={(e) =>
-                        updateSettings({
-                          backgroundLogo:
-                            e.target
-                              .value,
-                        })
-                      }
-                    />
-                  </div>
-
-                  <div className="tg-control-card">
-                    <div className="tg-card-heading">
-                      <Image />
-                      <div>
-                        <h3>
-                          BACKGROUND
-                        </h3>
-                        <span>
-                          Watermark control
-                        </span>
-                      </div>
-                    </div>
-
-                    <ToggleRow
-                      label="SHOW BACKGROUND LOGO"
-                      value={
-                        state.settings
-                          .showBackgroundLogo
-                      }
-                      onChange={(
-                        value,
-                      ) =>
-                        updateSettings({
-                          showBackgroundLogo:
-                            value,
-                        })
-                      }
-                    />
-
-                    <div className="tg-range">
-                      <div>
-                        <label>
-                          LOGO OPACITY
-                        </label>
-
-                        <strong>
-                          {Math.round(
-                            state.settings
-                              .backgroundOpacity *
-                              100,
-                          )}
-                          %
-                        </strong>
-                      </div>
-
-                      <input
-                        type="range"
-                        min="0"
-                        max="0.5"
-                        step="0.01"
-                        value={
-                          state.settings
-                            .backgroundOpacity
-                        }
-                        onChange={(e) =>
-                          updateSettings({
-                            backgroundOpacity:
-                              Number(
-                                e
-                                  .target
-                                  .value,
-                              ),
-                          })
-                        }
-                      />
-                    </div>
-
-                    <div className="tg-preview-watermark">
-                      <img
-                        src={
-                          state.settings
-                            .backgroundLogo
-                        }
-                        alt=""
-                        style={{
-                          opacity:
-                            state.settings
-                              .backgroundOpacity,
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="tg-control-card">
-                    <div className="tg-card-heading">
-                      <Settings />
-                      <div>
-                        <h3>
-                          SYSTEM
-                        </h3>
-                        <span>
-                          Website behaviour
-                        </span>
-                      </div>
-                    </div>
-
-                    <ToggleRow
-                      label="SHOW FIRST-TIME ADMIN SETUP"
-                      value={
-                        state.settings
-                          .showAdminSetup
-                      }
-                      onChange={(
-                        value,
-                      ) =>
-                        updateSettings({
-                          showAdminSetup:
-                            value,
-                        })
-                      }
-                    />
-
-                    <ToggleRow
-                      label="MAINTENANCE MODE"
-                      value={
-                        state.settings
-                          .maintenanceMode
-                      }
-                      onChange={(
-                        value,
-                      ) =>
-                        updateSettings({
-                          maintenanceMode:
-                            value,
-                        })
-                      }
-                    />
-                  </div>
-
-                  <div className="tg-control-card danger-card">
-                    <div className="tg-card-heading">
-                      <KeyRound />
-                      <div>
-                        <h3>
-                          LOCAL RESET
-                        </h3>
-                        <span>
-                          Development only
-                        </span>
-                      </div>
-                    </div>
-
-                    <p>
-                      Remove local admin data
-                      and return the site to
-                      first-time setup.
-                    </p>
-
-                    <button
-                      className="tg-danger-button"
-                      onClick={
-                        resetLocalAdmin
-                      }
-                    >
-                      <Trash2 size={16} />
-                      RESET ADMIN DATA
-                    </button>
-                  </div>
-                </div>
-              </section>
-            )}
-          </main>
+          <button
+            className="tg-mobile-close"
+            onClick={onClose}
+            type="button"
+          >
+            <X size={20} />
+          </button>
         </div>
 
-        {/* NOTICE */}
-        {notice && (
-          <div className="tg-notice">
-            <Check size={17} />
-            {notice}
+        <div className="tg-sidebar-section-label">CONTROL CENTER</div>
+
+        <nav className="tg-sidebar-nav">
+          {items.map((item) => {
+            const allowed = PERMISSIONS[currentAdmin.role][item.id];
+
+            if (!allowed) return null;
+
+            return (
+              <button
+                key={item.id}
+                className={`tg-nav-item ${
+                  section === item.id ? "active" : ""
+                }`}
+                onClick={() => {
+                  setSection(item.id);
+                  onClose();
+                }}
+                type="button"
+              >
+                {item.icon}
+                <span>{item.label}</span>
+
+                {section === item.id && (
+                  <ChevronRight size={15} className="tg-nav-arrow" />
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="tg-sidebar-bottom">
+          <div className="tg-admin-mini">
+            <div className="tg-admin-avatar">
+              {currentAdmin.name.charAt(0).toUpperCase()}
+            </div>
+
+            <div className="tg-admin-mini-info">
+              <strong>{currentAdmin.name}</strong>
+              <span>{roleLabel(currentAdmin.role)}</span>
+            </div>
           </div>
-        )}
-      </div>
+
+          <button
+            className="tg-logout-button"
+            onClick={onLogout}
+            type="button"
+          >
+            <LogOut size={17} />
+            Sign out
+          </button>
+        </div>
+      </aside>
     </>
   );
 }
 
 /* =========================================================
-   OVERVIEW
-========================================================= */
+   TOPBAR
+   ========================================================= */
 
-function Overview({
-  state,
-  totalPoints,
+function Topbar({
+  title,
+  subtitle,
+  onMenu,
+  onRefresh,
+}: {
+  title: string;
+  subtitle: string;
+  onMenu: () => void;
+  onRefresh: () => void;
+}) {
+  return (
+    <header className="tg-topbar">
+      <button
+        className="tg-mobile-menu"
+        onClick={onMenu}
+        type="button"
+      >
+        <Menu size={23} />
+      </button>
+
+      <div className="tg-topbar-title">
+        <span>{subtitle}</span>
+        <h1>{title}</h1>
+      </div>
+
+      <div className="tg-topbar-actions">
+        <div className="tg-live-indicator">
+          <span />
+          SYSTEM ONLINE
+        </div>
+
+        <IconButton title="Refresh" onClick={onRefresh}>
+          <RefreshCw size={18} />
+        </IconButton>
+
+        <IconButton title="Notifications">
+          <Bell size={18} />
+        </IconButton>
+      </div>
+    </header>
+  );
+}
+
+/* =========================================================
+   DASHBOARD
+   ========================================================= */
+
+function Dashboard({
+  tournaments,
+  matches,
+  teams,
+  players,
+  admins,
+  activities,
   onNavigate,
 }: {
-  state: AdminState;
-  totalPoints: number;
-  onNavigate: (page: string) => void;
+  tournaments: Tournament[];
+  matches: Match[];
+  teams: Team[];
+  players: Player[];
+  admins: AdminUser[];
+  activities: ActivityItem[];
+  onNavigate: (section: Section) => void;
 }) {
-  const live =
-    state.tournaments.filter(
-      (item) =>
-        item.status === "LIVE",
-    ).length;
+  const liveTournaments = tournaments.filter(
+    (item) => item.status === "LIVE"
+  ).length;
 
-  const upcoming =
-    state.tournaments.filter(
-      (item) =>
-        item.status === "UPCOMING",
-    ).length;
+  const liveMatches = matches.filter(
+    (item) => item.status === "LIVE"
+  ).length;
 
-  const completed =
-    state.matches.filter(
-      (item) =>
-        item.status === "COMPLETED",
-    ).length;
+  const upcomingMatches = matches.filter(
+    (item) => item.status === "UPCOMING"
+  ).length;
 
   return (
-    <section>
-      <div className="tg-overview-hero">
+    <div className="tg-page">
+      <div className="tg-page-intro">
         <div>
-          <div className="tg-overline">
-            <span />
-            COMMAND CENTER
-          </div>
-
-          <h2>
-            CONTROL
-            <br />
-            <em>EVERYTHING.</em>
-          </h2>
-
+          <Badge type="live">LIVE CONTROL</Badge>
+          <h2>Command Center</h2>
           <p>
-            Tournament operations,
-            standings, players, matches and
-            website settings — all from one
-            place.
+            Manage the entire Total Gaming Hub from one place.
           </p>
         </div>
 
-        <div className="tg-command-mark">
-          <Zap size={52} />
-        </div>
+        <button
+          className="tg-secondary-button"
+          onClick={() => onNavigate("matches")}
+        >
+          <Gamepad2 size={17} />
+          Open Live Scores
+        </button>
       </div>
 
-      <div className="tg-dashboard-stats">
-        <DashboardStat
-          icon={<Trophy />}
-          label="TOURNAMENTS"
-          value={state.tournaments.length}
-          sub={`${live} live · ${upcoming} upcoming`}
-          onClick={() =>
-            onNavigate(
-              "tournaments",
-            )
-          }
+      <div className="tg-stat-grid">
+        <StatCard
+          label="LIVE TOURNAMENTS"
+          value={liveTournaments}
+          icon={<Trophy size={24} />}
+          accent
         />
 
-        <DashboardStat
-          icon={<Users />}
-          label="TEAMS"
-          value={state.teams.length}
-          sub="Registered teams"
-          onClick={() =>
-            onNavigate("teams")
-          }
+        <StatCard
+          label="LIVE MATCHES"
+          value={liveMatches}
+          icon={<Activity size={24} />}
         />
 
-        <DashboardStat
-          icon={<Gamepad2 />}
-          label="MATCHES"
-          value={state.matches.length}
-          sub={`${completed} completed`}
-          onClick={() =>
-            onNavigate(
-              "matches",
-            )
-          }
+        <StatCard
+          label="UPCOMING MATCHES"
+          value={upcomingMatches}
+          icon={<CalendarDays size={24} />}
         />
 
-        <DashboardStat
-          icon={<Crown />}
-          label="PLAYERS"
-          value={state.players.length}
-          sub={`${totalPoints} team points`}
-          onClick={() =>
-           onNavigate(
-              "players",
-            )
-          }
+        <StatCard
+          label="TOTAL TEAMS"
+          value={teams.length}
+          icon={<Users size={24} />}
+        />
+
+        <StatCard
+          label="TOTAL PLAYERS"
+          value={players.length}
+          icon={<CircleUserRound size={24} />}
+        />
+
+        <StatCard
+          label="ADMINS"
+          value={admins.length}
+          icon={<ShieldCheck size={24} />}
         />
       </div>
 
-      <div className="tg-overview-grid">
-        <div className="tg-panel">
-          <PanelTitle
-            title="LIVE EVENTS"
-            icon={<Activity />}
-          />
+      <div className="tg-dashboard-columns">
+        <Panel
+          title="LIVE TOURNAMENTS"
+          icon={<Trophy size={18} />}
+          action={
+            <button
+              className="tg-text-button"
+              onClick={() => onNavigate("tournaments")}
+            >
+              VIEW ALL
+              <ChevronRight size={15} />
+            </button>
+          }
+        >
+          {tournaments
+            .filter((item) => item.status === "LIVE")
+            .map((tournament) => (
+              <div className="tg-list-row" key={tournament.id}>
+                <div className="tg-list-icon purple">
+                  <Trophy size={18} />
+                </div>
 
-          {state.tournaments
-            .filter(
-              (item) =>
-                item.status === "LIVE",
-            )
-            .map((item) => (
-              <div
-                className="tg-live-event"
-                key={item.id}
-              >
-                <div className="tg-live-dot" />
-
-                <div>
-                  <strong>
-                    {item.name}
-                  </strong>
-
+                <div className="tg-list-content">
+                  <strong>{tournament.name}</strong>
                   <span>
-                    {item.phase} ·{" "}
-                    {item.matches} MATCHES
+                    {tournament.stage} · {tournament.teams} TEAMS ·{" "}
+                    {tournament.matches} MATCHES
                   </span>
                 </div>
 
-                <div className="tg-live-pill">
-                  LIVE
-                </div>
+                <Badge type="live">LIVE</Badge>
               </div>
             ))}
 
-          {live === 0 && (
-            <div className="tg-empty-box">
-              No live events.
+          {liveTournaments === 0 && (
+            <EmptyState
+              title="No live tournaments"
+              description="There are currently no live tournaments."
+            />
+          )}
+        </Panel>
+
+        <Panel
+          title="RECENT ACTIVITY"
+          icon={<Activity size={18} />}
+          action={
+            <button
+              className="tg-text-button"
+              onClick={() => onNavigate("activity")}
+            >
+              FULL LOG
+              <ChevronRight size={15} />
+            </button>
+          }
+        >
+          {activities.slice(0, 6).map((activity) => (
+            <div className="tg-activity-row" key={activity.id}>
+              <div className="tg-activity-dot" />
+
+              <div>
+                <strong>{activity.action}</strong>
+                <span>{activity.description}</span>
+                <small>
+                  {activity.admin} · {formatDate(activity.createdAt)}
+                </small>
+              </div>
             </div>
+          ))}
+
+          {activities.length === 0 && (
+            <EmptyState
+              title="No activity"
+              description="Admin actions will appear here."
+            />
           )}
-        </div>
-
-        <div className="tg-panel">
-          <PanelTitle
-            title="QUICK ACTIONS"
-            icon={<Zap />}
-          />
-
-          <QuickAction
-            label="Create tournament"
-            icon={<Trophy />}
-            onClick={() =>
-              onNavigate(
-                "tournaments",
-              )
-            }
-          />
-
-          <QuickAction
-            label="Update match"
-            icon={<Gamepad2 />}
-            onClick={() =>
-              onNavigate(
-                "matches",
-              )
-            }
-          />
-
-          <QuickAction
-            label="Manage teams"
-            icon={<Users />}
-            onClick={() =>
-              onNavigate("teams")
-            }
-          />
-
-          <QuickAction
-            label="Invite admin"
-            icon={<UserPlus />}
-            onClick={() =>
-              onNavigate(
-                "invites",
-              )
-            }
-          />
-        </div>
+        </Panel>
       </div>
-    </section>
-  );
-}
 
-/* =========================================================
-   TOURNAMENT EDITOR
-========================================================= */
-
-function TournamentEditor({
-  tournament,
-  editing,
-  onEdit,
-  onClose,
-  onUpdate,
-  onDelete,
-}: {
-  tournament: Tournament;
-  editing: boolean;
-  onEdit: () => void;
-  onClose: () => void;
-  onUpdate: (
-    patch: Partial<Tournament>,
-  ) => void;
-  onDelete: () => void;
-}) {
-  if (!editing) {
-    return (
-      <div className="tg-data-row">
-        <div className="tg-row-main">
-          <div className="tg-row-icon">
-            <Trophy />
-          </div>
-
-          <div>
-            <strong>
-              {tournament.name}
-            </strong>
-
-            <span>
-              {tournament.phase} ·{" "}
-              {tournament.matches} MATCHES ·{" "}
-              {tournament.teams} TEAMS
-            </span>
-          </div>
-        </div>
-
-        <div className="tg-row-status">
-          <StatusBadge
-            status={
-              tournament.status
-            }
-          />
-
-          <VisibilityButton
-            visible={
-              tournament.visible
-            }
-            onClick={() =>
-              onUpdate({
-                visible:
-                  !tournament.visible,
-              })
-            }
-          />
-
+      <Panel title="QUICK ACTIONS" icon={<Zap size={18} />}>
+        <div className="tg-quick-grid">
           <button
-            className="tg-row-button"
-            onClick={onEdit}
+            className="tg-quick-action"
+            onClick={() => onNavigate("tournaments")}
           >
-            <Edit3 size={16} />
+            <Trophy size={20} />
+            <span>Create Tournament</span>
+            <ChevronRight size={16} />
           </button>
 
           <button
-            className="tg-row-button danger"
-            onClick={onDelete}
+            className="tg-quick-action"
+            onClick={() => onNavigate("matches")}
           >
-            <Trash2 size={16} />
+            <Gamepad2 size={20} />
+            <span>Manage Scores</span>
+            <ChevronRight size={16} />
+          </button>
+
+          <button
+            className="tg-quick-action"
+            onClick={() => onNavigate("teams")}
+          >
+            <Users size={20} />
+            <span>Add Team</span>
+            <ChevronRight size={16} />
+          </button>
+
+          <button
+            className="tg-quick-action"
+            onClick={() => onNavigate("admins")}
+          >
+            <UserPlus size={20} />
+            <span>Invite Admin</span>
+            <ChevronRight size={16} />
           </button>
         </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="tg-edit-card">
-      <div className="tg-edit-head">
-        <div>
-          <span>EDIT TOURNAMENT</span>
-          <strong>
-            {tournament.id}
-          </strong>
-        </div>
-
-        <button
-          onClick={onClose}
-        >
-          <X size={18} />
-        </button>
-      </div>
-
-      <div className="tg-form-grid">
-        <Field
-          label="NAME"
-          value={
-            tournament.name
-          }
-          onChange={(value) =>
-            onUpdate({
-              name: value,
-            })
-          }
-        />
-
-        <Field
-          label="PHASE"
-          value={
-            tournament.phase
-          }
-          onChange={(value) =>
-            onUpdate({
-              phase: value,
-            })
-          }
-        />
-
-        <div>
-          <label>STATUS</label>
-
-          <select
-            value={
-              tournament.status
-            }
-            onChange={(e) =>
-              onUpdate({
-                status:
-                  e.target
-                    .value as TournamentStatus,
-              })
-            }
-          >
-            <option>
-              LIVE
-            </option>
-
-            <option>
-              UPCOMING
-            </option>
-
-            <option>
-              ARCHIVED
-            </option>
-          </select>
-        </div>
-
-        <NumberField
-          label="MATCHES"
-          value={
-            tournament.matches
-          }
-          onChange={(value) =>
-            onUpdate({
-              matches: value,
-            })
-          }
-        />
-
-        <Field
-          label="TEAMS"
-          value={String(
-            tournament.teams,
-          )}
-          onChange={(value) =>
-            onUpdate({
-              teams: value,
-            })
-          }
-        />
-      </div>
-
-      <div className="tg-edit-actions">
-        <ToggleRow
-          label="VISIBLE ON WEBSITE"
-          value={
-            tournament.visible
-          }
-          onChange={(value) =>
-            onUpdate({
-              visible: value,
-            })
-          }
-        />
-
-        <button
-          className="tg-save-button"
-          onClick={onClose}
-        >
-          <Save size={16} />
-          DONE
-        </button>
-      </div>
+      </Panel>
     </div>
   );
 }
 
 /* =========================================================
-   TEAM EDITOR
-========================================================= */
+   TOURNAMENTS
+   ========================================================= */
 
-function TeamEditor({
-  team,
-  editing,
-  onEdit,
-  onClose,
-  onUpdate,
-  onDelete,
+function TournamentsPage({
+  tournaments,
+  setTournaments,
+  log,
 }: {
-  team: Team;
-  editing: boolean;
-  onEdit: () => void;
-  onClose: () => void;
-  onUpdate: (
-    patch: Partial<Team>,
-  ) => void;
-  onDelete: () => void;
+  tournaments: Tournament[];
+  setTournaments: React.Dispatch<React.SetStateAction<Tournament[]>>;
+  log: (action: string, description: string) => void;
 }) {
-  if (!editing) {
-    return (
-      <div className="tg-data-row">
-        <div className="tg-row-main">
-          <div className="tg-team-logo">
-            {team.logo ? (
-              <img
-                src={team.logo}
-                alt=""
+  const [search, setSearch] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [editing, setEditing] = useState<Tournament | null>(null);
+
+  const [name, setName] = useState("");
+  const [type, setType] = useState<"OFFICIAL" | "SCRIM">("OFFICIAL");
+  const [status, setStatus] = useState<TournamentStatus>("UPCOMING");
+  const [stage, setStage] = useState("");
+  const [matches, setMatches] = useState("6");
+  const [teams, setTeams] = useState("18");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [description, setDescription] = useState("");
+
+  const filtered = tournaments.filter((item) =>
+    `${item.name} ${item.stage} ${item.type}`
+      .toLowerCase()
+      .includes(search.toLowerCase())
+  );
+
+  function resetForm() {
+    setName("");
+    setType("OFFICIAL");
+    setStatus("UPCOMING");
+    setStage("");
+    setMatches("6");
+    setTeams("18");
+    setStartDate("");
+    setEndDate("");
+    setDescription("");
+    setEditing(null);
+  }
+
+  function openCreate() {
+    resetForm();
+    setShowModal(true);
+  }
+
+  function openEdit(item: Tournament) {
+    setEditing(item);
+    setName(item.name);
+    setType(item.type);
+    setStatus(item.status);
+    setStage(item.stage);
+    setMatches(String(item.matches));
+    setTeams(String(item.teams));
+    setStartDate(item.startDate);
+    setEndDate(item.endDate);
+    setDescription(item.description);
+    setShowModal(true);
+  }
+
+  function save() {
+    if (!name.trim()) return;
+
+    if (editing) {
+      setTournaments((current) =>
+        current.map((item) =>
+          item.id === editing.id
+            ? {
+                ...item,
+                name,
+                type,
+                status,
+                stage,
+                matches: Number(matches) || 0,
+                teams: Number(teams) || 0,
+                startDate,
+                endDate,
+                description,
+              }
+            : item
+        )
+      );
+
+      log("Tournament updated", `${name} was updated.`);
+    } else {
+      const item: Tournament = {
+        id: makeId("tournament"),
+        name,
+        type,
+        status,
+        stage,
+        matches: Number(matches) || 0,
+        teams: Number(teams) || 0,
+        startDate,
+        endDate,
+        description,
+      };
+
+      setTournaments((current) => [item, ...current]);
+      log("Tournament created", `${name} was created.`);
+    }
+
+    setShowModal(false);
+    resetForm();
+  }
+
+  function remove(id: string) {
+    const item = tournaments.find((x) => x.id === id);
+
+    if (!item) return;
+
+    if (!window.confirm(`Delete ${item.name}?`)) return;
+
+    setTournaments((current) =>
+      current.filter((x) => x.id !== id)
+    );
+
+    log("Tournament deleted", `${item.name} was deleted.`);
+  }
+
+  return (
+    <div className="tg-page">
+      <PageHeading
+        eyebrow="COMPETITION CONTROL"
+        title="TOURNAMENTS"
+        description="Create, edit and control official tournaments and scrim events."
+        button={
+          <button className="tg-primary-button" onClick={openCreate}>
+            <Plus size={18} />
+            NEW TOURNAMENT
+          </button>
+        }
+      />
+
+      <div className="tg-toolbar">
+        <div className="tg-search">
+          <Search size={18} />
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search tournaments..."
+          />
+        </div>
+
+        <div className="tg-toolbar-count">
+          {filtered.length} EVENTS
+        </div>
+      </div>
+
+      <div className="tg-table-wrap">
+        <table className="tg-table">
+          <thead>
+            <tr>
+              <th>TOURNAMENT</th>
+              <th>TYPE</th>
+              <th>STATUS</th>
+              <th>STAGE</th>
+              <th>MATCHES</th>
+              <th>TEAMS</th>
+              <th>DATES</th>
+              <th />
+            </tr>
+          </thead>
+
+          <tbody>
+            {filtered.map((item) => (
+              <tr key={item.id}>
+                <td>
+                  <div className="tg-table-main">
+                    <strong>{item.name}</strong>
+                    <span>{item.description}</span>
+                  </div>
+                </td>
+
+                <td>
+                  <Badge
+                    type={item.type === "OFFICIAL" ? "warning" : "blue"}
+                  >
+                    {item.type}
+                  </Badge>
+                </td>
+
+                <td>
+                  <Badge
+                    type={
+                      item.status === "LIVE"
+                        ? "live"
+                        : item.status === "COMPLETED"
+                        ? "success"
+                        : "default"
+                    }
+                  >
+                    {item.status}
+                  </Badge>
+                </td>
+
+                <td>{item.stage || "-"}</td>
+                <td>{item.matches}</td>
+                <td>{item.teams}</td>
+
+                <td>
+                  {formatDate(item.startDate)}
+                  <br />
+                  <small>{formatDate(item.endDate)}</small>
+                </td>
+
+                <td>
+                  <div className="tg-row-actions">
+                    <IconButton
+                      title="Edit"
+                      onClick={() => openEdit(item)}
+                    >
+                      <Edit3 size={16} />
+                    </IconButton>
+
+                    <IconButton
+                      title="Delete"
+                      onClick={() => remove(item.id)}
+                    >
+                      <Trash2 size={16} />
+                    </IconButton>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {filtered.length === 0 && (
+          <EmptyState
+            title="No tournaments found"
+            description="Create your first tournament or change the search."
+            onAdd={openCreate}
+          />
+        )}
+      </div>
+
+      {showModal && (
+        <Modal
+          title={editing ? "EDIT TOURNAMENT" : "CREATE TOURNAMENT"}
+          onClose={() => {
+            setShowModal(false);
+            resetForm();
+          }}
+          footer={
+            <>
+              <button
+                className="tg-secondary-button"
+                onClick={() => {
+                  setShowModal(false);
+                  resetForm();
+                }}
+              >
+                CANCEL
+              </button>
+
+              <button className="tg-primary-button" onClick={save}>
+                <Save size={17} />
+                SAVE TOURNAMENT
+              </button>
+            </>
+          }
+        >
+          <div className="tg-form-grid">
+            <Field
+              label="TOURNAMENT NAME"
+              value={name}
+              onChange={setName}
+              placeholder="Tournament name"
+            />
+
+            <SelectField
+              label="TYPE"
+              value={type}
+              onChange={(value) =>
+                setType(value as "OFFICIAL" | "SCRIM")
+              }
+            >
+              <option value="OFFICIAL">OFFICIAL</option>
+              <option value="SCRIM">SCRIM</option>
+            </SelectField>
+
+            <SelectField
+              label="STATUS"
+              value={status}
+              onChange={(value) =>
+                setStatus(value as TournamentStatus)
+              }
+            >
+              <option value="LIVE">LIVE</option>
+              <option value="UPCOMING">UPCOMING</option>
+              <option value="COMPLETED">COMPLETED</option>
+              <option value="ARCHIVED">ARCHIVED</option>
+            </SelectField>
+
+            <Field
+              label="STAGE"
+              value={stage}
+              onChange={setStage}
+              placeholder="PLAY-INS"
+            />
+
+            <Field
+              label="MATCHES"
+              value={matches}
+              onChange={setMatches}
+              type="number"
+            />
+
+            <Field
+              label="TEAMS"
+              value={teams}
+              onChange={setTeams}
+              type="number"
+            />
+
+            <Field
+              label="START DATE"
+              value={startDate}
+              onChange={setStartDate}
+              type="date"
+            />
+
+            <Field
+              label="END DATE"
+              value={endDate}
+              onChange={setEndDate}
+              type="date"
+            />
+
+            <label className="tg-field tg-field-full">
+              <span>DESCRIPTION</span>
+              <textarea
+                value={description}
+                onChange={(event) =>
+                  setDescription(event.target.value)
+                }
+                placeholder="Tournament description"
               />
-            ) : (
-              team.shortName
-                .slice(0, 2)
-            )}
+            </label>
           </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
 
-          <div>
-            <strong>
-              {team.name}
-            </strong>
+/* =========================================================
+   PAGE HEADING
+   ========================================================= */
 
-            <span>
-              {team.shortName} ·{" "}
-              {team.players} PLAYERS
-            </span>
-          </div>
-        </div>
-
-        <div className="tg-team-numbers">
-          <div>
-            <small>RANK</small>
-            <strong>
-              #{team.position}
-            </strong>
-          </div>
-
-          <div>
-            <small>KILLS</small>
-            <strong>
-              {team.kills}
-            </strong>
-          </div>
-
-          <div>
-            <small>POINTS</small>
-            <strong>
-              {team.points}
-            </strong>
-          </div>
-
-          <VisibilityButton
-            visible={
-              team.visible
-            }
-            onClick={() =>
-              onUpdate({
-                visible:
-                  !team.visible,
-              })
-            }
-          />
-
-          <button
-            className="tg-row-button"
-            onClick={onEdit}
-          >
-            <Edit3 size={16} />
-          </button>
-
-          <button
-            className="tg-row-button danger"
-            onClick={onDelete}
-          >
-            <Trash2 size={16} />
-          </button>
-        </div>
+function PageHeading({
+  eyebrow,
+  title,
+  description,
+  button,
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+  button?: React.ReactNode;
+}) {
+  return (
+    <div className="tg-page-heading">
+      <div>
+        <div className="tg-eyebrow">{eyebrow}</div>
+        <h2>{title}</h2>
+        <p>{description}</p>
       </div>
+
+      {button}
+    </div>
+  );
+}
+
+/* =========================================================
+   MATCHES
+   ========================================================= */
+
+function MatchesPage({
+  matches,
+  setMatches,
+  tournaments,
+  log,
+}: {
+  matches: Match[];
+  setMatches: React.Dispatch<React.SetStateAction<Match[]>>;
+  tournaments: Tournament[];
+  log: (action: string, description: string) => void;
+}) {
+  const [showModal, setShowModal] = useState(false);
+  const [editing, setEditing] = useState<Match | null>(null);
+
+  const [tournamentId, setTournamentId] = useState(
+    tournaments[0]?.id || ""
+  );
+  const [matchNumber, setMatchNumber] = useState("1");
+  const [map, setMap] = useState("Bermuda");
+  const [status, setStatus] = useState<MatchStatus>("UPCOMING");
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
+  const [teams, setTeams] = useState("18");
+  const [totalKills, setTotalKills] = useState("0");
+
+  function resetForm() {
+    setEditing(null);
+    setTournamentId(tournaments[0]?.id || "");
+    setMatchNumber("1");
+    setMap("Bermuda");
+    setStatus("UPCOMING");
+    setDate("");
+    setTime("");
+    setTeams("18");
+    setTotalKills("0");
+  }
+
+  function edit(item: Match) {
+    setEditing(item);
+    setTournamentId(item.tournamentId);
+    setMatchNumber(String(item.matchNumber));
+    setMap(item.map);
+    setStatus(item.status);
+    setDate(item.date);
+    setTime(item.time);
+    setTeams(String(item.teams));
+    setTotalKills(String(item.totalKills));
+    setShowModal(true);
+  }
+
+  function save() {
+    const tournament = tournaments.find(
+      (x) => x.id === tournamentId
     );
+
+    if (!tournament) return;
+
+    if (editing) {
+      setMatches((current) =>
+        current.map((item) =>
+          item.id === editing.id
+            ? {
+                ...item,
+                tournamentId,
+                matchNumber: Number(matchNumber) || 1,
+                map,
+                status,
+                date,
+                time,
+                teams: Number(teams) || 0,
+                totalKills: Number(totalKills) || 0,
+              }
+            : item
+        )
+      );
+
+      log(
+        "Match updated",
+        `Match ${matchNumber} of ${tournament.name} was updated.`
+      );
+    } else {
+      const item: Match = {
+        id: makeId("match"),
+        tournamentId,
+        matchNumber: Number(matchNumber) || 1,
+        map,
+        status,
+        date,
+        time,
+        teams: Number(teams) || 0,
+        totalKills: Number(totalKills) || 0,
+      };
+
+      setMatches((current) => [item, ...current]);
+
+      log(
+        "Match created",
+        `Match ${matchNumber} of ${tournament.name} was created.`
+      );
+    }
+
+    setShowModal(false);
+    resetForm();
+  }
+
+  function deleteMatch(id: string) {
+    const match = matches.find((x) => x.id === id);
+
+    if (!match) return;
+
+    if (!window.confirm("Delete this match?")) return;
+
+    setMatches((current) => current.filter((x) => x.id !== id));
+
+    log("Match deleted", `Match ${match.matchNumber} was deleted.`);
   }
 
   return (
-    <div className="tg-edit-card">
-      <div className="tg-edit-head">
-        <div>
-          <span>EDIT TEAM</span>
-          <strong>
-            {team.id}
-          </strong>
+    <div className="tg-page">
+      <PageHeading
+        eyebrow="LIVE COMPETITION"
+        title="MATCHES & SCORES"
+        description="Control match schedules, status and live score data."
+        button={
+          <button
+            className="tg-primary-button"
+            onClick={() => {
+              resetForm();
+              setShowModal(true);
+            }}
+          >
+            <Plus size={18} />
+            NEW MATCH
+          </button>
+        }
+      />
+
+      <div className="tg-match-grid">
+        {matches.map((match) => {
+          const tournament = tournaments.find(
+            (x) => x.id === match.tournamentId
+          );
+
+          return (
+            <div className="tg-match-card" key={match.id}>
+              <div className="tg-match-top">
+                <Badge
+                  type={
+                    match.status === "LIVE"
+                      ? "live"
+                      : match.status === "COMPLETED"
+                      ? "success"
+                      : "blue"
+                  }
+                >
+                  {match.status}
+                </Badge>
+
+                <span>#{String(match.matchNumber).padStart(2, "0")}</span>
+              </div>
+
+              <h3>{match.map}</h3>
+
+              <p>{tournament?.name || "Unknown tournament"}</p>
+
+              <div className="tg-match-info">
+                <div>
+                  <span>DATE</span>
+                  <strong>{formatDate(match.date)}</strong>
+                </div>
+
+                <div>
+                  <span>TIME</span>
+                  <strong>{match.time || "-"}</strong>
+                </div>
+
+                <div>
+                  <span>TEAMS</span>
+                  <strong>{match.teams}</strong>
+                </div>
+              </div>
+
+              <div className="tg-match-score">
+                <span>TOTAL KILLS</span>
+                <strong>{match.totalKills}</strong>
+              </div>
+
+              <div className="tg-card-actions">
+                <button
+                  className="tg-secondary-button"
+                  onClick={() => edit(match)}
+                >
+                  <Edit3 size={16} />
+                  EDIT
+                </button>
+
+                <button
+                  className="tg-danger-button"
+                  onClick={() => deleteMatch(match.id)}
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {matches.length === 0 && (
+        <EmptyState
+          title="No matches"
+          description="Create a match to start managing the competition."
+        />
+      )}
+
+      {showModal && (
+        <Modal
+          title={editing ? "EDIT MATCH" : "CREATE MATCH"}
+          onClose={() => {
+            setShowModal(false);
+            resetForm();
+          }}
+          footer={
+            <>
+              <button
+                className="tg-secondary-button"
+                onClick={() => {
+                  setShowModal(false);
+                  resetForm();
+                }}
+              >
+                CANCEL
+              </button>
+
+              <button className="tg-primary-button" onClick={save}>
+                <Save size={17} />
+                SAVE MATCH
+              </button>
+            </>
+          }
+        >
+          <div className="tg-form-grid">
+            <SelectField
+              label="TOURNAMENT"
+              value={tournamentId}
+              onChange={setTournamentId}
+            >
+              {tournaments.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name} — {item.stage}
+                </option>
+              ))}
+            </SelectField>
+
+            <Field
+              label="MATCH NUMBER"
+              value={matchNumber}
+              onChange={setMatchNumber}
+              type="number"
+            />
+
+            <SelectField
+              label="MAP"
+              value={map}
+              onChange={setMap}
+            >
+              <option value="Bermuda">Bermuda</option>
+              <option value="Purgatory">Purgatory</option>
+              <option value="Alpine">Alpine</option>
+              <option value="NexTerra">NexTerra</option>
+              <option value="Kalahari">Kalahari</option>
+            </SelectField>
+
+            <SelectField
+              label="STATUS"
+              value={status}
+              onChange={(value) =>
+                setStatus(value as MatchStatus)
+              }
+            >
+              <option value="LIVE">LIVE</option>
+              <option value="UPCOMING">UPCOMING</option>
+              <option value="COMPLETED">COMPLETED</option>
+            </SelectField>
+
+            <Field
+              label="DATE"
+              value={date}
+              onChange={setDate}
+              type="date"
+            />
+
+            <Field
+              label="TIME"
+              value={time}
+              onChange={setTime}
+              type="time"
+            />
+
+            <Field
+              label="TEAMS"
+              value={teams}
+              onChange={setTeams}
+              type="number"
+            />
+
+            <Field
+              label="TOTAL KILLS"
+              value={totalKills}
+              onChange={setTotalKills}
+              type="number"
+            />
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+/* =========================================================
+   TEAMS
+   ========================================================= */
+
+function TeamsPage({
+  teams,
+  setTeams,
+  log,
+}: {
+  teams: Team[];
+  setTeams: React.Dispatch<React.SetStateAction<Team[]>>;
+  log: (action: string, description: string) => void;
+}) {
+  const [search, setSearch] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [editing, setEditing] = useState<Team | null>(null);
+
+  const [name, setName] = useState("");
+  const [shortName, setShortName] = useState("");
+  const [logo, setLogo] = useState("");
+  const [manager, setManager] = useState("");
+  const [players, setPlayers] = useState("4");
+  const [status, setStatus] = useState<"ACTIVE" | "INACTIVE">(
+    "ACTIVE"
+  );
+
+  const filtered = teams.filter((team) =>
+    `${team.name} ${team.shortName} ${team.manager}`
+      .toLowerCase()
+      .includes(search.toLowerCase())
+  );
+
+  function reset() {
+    setEditing(null);
+    setName("");
+    setShortName("");
+    setLogo("");
+    setManager("");
+    setPlayers("4");
+    setStatus("ACTIVE");
+  }
+
+  function openEdit(team: Team) {
+    setEditing(team);
+    setName(team.name);
+    setShortName(team.shortName);
+    setLogo(team.logo);
+    setManager(team.manager);
+    setPlayers(String(team.players));
+    setStatus(team.status);
+    setShowModal(true);
+  }
+
+  function save() {
+    if (!name.trim()) return;
+
+    if (editing) {
+      setTeams((current) =>
+        current.map((team) =>
+          team.id === editing.id
+            ? {
+                ...team,
+                name,
+                shortName,
+                logo,
+                manager,
+                players: Number(players) || 0,
+                status,
+              }
+            : team
+        )
+      );
+
+      log("Team updated", `${name} was updated.`);
+    } else {
+      const team: Team = {
+        id: makeId("team"),
+        name,
+        shortName,
+        logo,
+        manager,
+        players: Number(players) || 0,
+        status,
+      };
+
+      setTeams((current) => [team, ...current]);
+
+      log("Team created", `${name} was added.`);
+    }
+
+    setShowModal(false);
+    reset();
+  }
+
+  function remove(id: string) {
+    const team = teams.find((x) => x.id === id);
+
+    if (!team) return;
+
+    if (!window.confirm(`Delete ${team.name}?`)) return;
+
+    setTeams((current) => current.filter((x) => x.id !== id));
+
+    log("Team deleted", `${team.name} was deleted.`);
+  }
+
+  return (
+    <div className="tg-page">
+      <PageHeading
+        eyebrow="ROSTER CONTROL"
+        title="TEAMS"
+        description="Manage participating teams, logos, managers and status."
+        button={
+          <button
+            className="tg-primary-button"
+            onClick={() => {
+              reset();
+              setShowModal(true);
+            }}
+          >
+            <Plus size={18} />
+            ADD TEAM
+          </button>
+        }
+      />
+
+      <div className="tg-toolbar">
+        <div className="tg-search">
+          <Search size={18} />
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search teams..."
+          />
         </div>
 
-        <button
-          onClick={onClose}
-        >
-          <X size={18} />
-        </button>
+        <div className="tg-toolbar-count">
+          {filtered.length} TEAMS
+        </div>
       </div>
 
-      <div className="tg-form-grid">
-        <Field
-          label="TEAM NAME"
-          value={team.name}
-          onChange={(value) =>
-            onUpdate({
-              name: value,
-            })
-          }
-        />
+      <div className="tg-team-grid">
+        {filtered.map((team) => (
+          <div className="tg-team-card" key={team.id}>
+            <div className="tg-team-logo">
+              {team.logo ? (
+                <img src={team.logo} alt={team.name} />
+              ) : (
+                <Users size={29} />
+              )}
+            </div>
 
-        <Field
-          label="SHORT NAME"
-          value={
-            team.shortName
-          }
-          onChange={(value) =>
-            onUpdate({
-              shortName: value,
-            })
-          }
-        />
+            <div className="tg-team-main">
+              <Badge type={team.status === "ACTIVE" ? "success" : "default"}>
+                {team.status}
+              </Badge>
 
-        <Field
-          label="LOGO PATH"
-          value={team.logo}
-          onChange={(value) =>
-            onUpdate({
-              logo: value,
-            })
-          }
-        />
+              <h3>{team.name}</h3>
+              <span>{team.shortName}</span>
+            </div>
 
-        <NumberField
-          label="PLAYERS"
-          value={team.players}
-          onChange={(value) =>
-            onUpdate({
-              players: value,
-            })
-          }
-        />
+            <div className="tg-team-meta">
+              <div>
+                <small>MANAGER</small>
+                <strong>{team.manager || "-"}</strong>
+              </div>
 
-        <NumberField
-          label="KILLS"
-          value={team.kills}
-          onChange={(value) =>
-            onUpdate({
-              kills: value,
-            })
-          }
-        />
+              <div>
+                <small>PLAYERS</small>
+                <strong>{team.players}</strong>
+              </div>
+            </div>
 
-        <NumberField
-          label="POINTS"
-          value={team.points}
-          onChange={(value) =>
-            onUpdate({
-              points: value,
-            })
-          }
-        />
+            <div className="tg-card-actions">
+              <button
+                className="tg-secondary-button"
+                onClick={() => openEdit(team)}
+              >
+                <Edit3 size={16} />
+                EDIT
+              </button>
 
-        <NumberField
-          label="CURRENT RANK"
-          value={team.position}
-          onChange={(value) =>
-            onUpdate({
-              position: value,
-            })
-          }
-        />
+              <button
+                className="tg-danger-button"
+                onClick={() => remove(team.id)}
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
 
-      <div className="tg-edit-actions">
-        <ToggleRow
-          label="VISIBLE ON WEBSITE"
-          value={
-            team.visible
-          }
-          onChange={(value) =>
-            onUpdate({
-              visible: value,
-            })
-          }
+      {filtered.length === 0 && (
+        <EmptyState
+          title="No teams found"
+          description="Add a team to begin building your roster."
+          onAdd={() => {
+            reset();
+            setShowModal(true);
+          }}
         />
+      )}
 
-        <button
-          className="tg-save-button"
-          onClick={onClose}
+      {showModal && (
+        <Modal
+          title={editing ? "EDIT TEAM" : "ADD TEAM"}
+          onClose={() => {
+            setShowModal(false);
+            reset();
+          }}
+          footer={
+            <>
+              <button
+                className="tg-secondary-button"
+                onClick={() => {
+                  setShowModal(false);
+                  reset();
+                }}
+              >
+                CANCEL
+              </button>
+
+              <button className="tg-primary-button" onClick={save}>
+                <Save size={17} />
+                SAVE TEAM
+              </button>
+            </>
+          }
         >
-          <Save size={16} />
-          DONE
-        </button>
+          <div className="tg-form-grid">
+            <Field
+              label="TEAM NAME"
+              value={name}
+              onChange={setName}
+              placeholder="TOTAL GAMING"
+            />
+
+            <Field
+              label="SHORT NAME"
+              value={shortName}
+              onChange={setShortName}
+              placeholder="TG"
+            />
+
+            <Field
+              label="LOGO URL"
+              value={logo}
+              onChange={setLogo}
+              placeholder="/team-logo.png"
+            />
+
+            <Field
+              label="MANAGER"
+              value={manager}
+              onChange={setManager}
+              placeholder="Manager name"
+            />
+
+            <Field
+              label="PLAYER COUNT"
+              value={players}
+              onChange={setPlayers}
+              type="number"
+            />
+
+            <SelectField
+              label="STATUS"
+              value={status}
+              onChange={(value) =>
+                setStatus(value as "ACTIVE" | "INACTIVE")
+              }
+            >
+              <option value="ACTIVE">ACTIVE</option>
+              <option value="INACTIVE">INACTIVE</option>
+            </SelectField>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+/* =========================================================
+   PLAYERS
+   ========================================================= */
+
+function PlayersPage({
+  players,
+  setPlayers,
+  teams,
+  log,
+}: {
+  players: Player[];
+  setPlayers: React.Dispatch<React.SetStateAction<Player[]>>;
+  teams: Team[];
+  log: (action: string, description: string) => void;
+}) {
+  const [search, setSearch] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [editing, setEditing] = useState<Player | null>(null);
+
+  const [name, setName] = useState("");
+  const [team, setTeam] = useState("");
+  const [role, setRole] = useState("RUSHER");
+  const [kills, setKills] = useState("0");
+  const [matches, setMatches] = useState("0");
+  const [status, setStatus] = useState<"ACTIVE" | "BENCHED">(
+    "ACTIVE"
+  );
+
+  const filtered = players.filter((player) =>
+    `${player.name} ${player.team} ${player.role}`
+      .toLowerCase()
+      .includes(search.toLowerCase())
+  );
+
+  function reset() {
+    setEditing(null);
+    setName("");
+    setTeam(teams[0]?.name || "");
+    setRole("RUSHER");
+    setKills("0");
+    setMatches("0");
+    setStatus("ACTIVE");
+  }
+
+  function openEdit(player: Player) {
+    setEditing(player);
+    setName(player.name);
+    setTeam(player.team);
+    setRole(player.role);
+    setKills(String(player.kills));
+    setMatches(String(player.matches));
+    setStatus(player.status);
+    setShowModal(true);
+  }
+
+  function save() {
+    if (!name.trim()) return;
+
+    if (editing) {
+      setPlayers((current) =>
+        current.map((player) =>
+          player.id === editing.id
+            ? {
+                ...player,
+                name,
+                team,
+                role,
+                kills: Number(kills) || 0,
+                matches: Number(matches) || 0,
+                status,
+              }
+            : player
+        )
+      );
+
+      log("Player updated", `${name} was updated.`);
+    } else {
+      const player: Player = {
+        id: makeId("player"),
+        name,
+        team,
+        role,
+        kills: Number(kills) || 0,
+        matches: Number(matches) || 0,
+        status,
+      };
+
+      setPlayers((current) => [player, ...current]);
+
+      log("Player created", `${name} was added.`);
+    }
+
+    setShowModal(false);
+    reset();
+  }
+
+  function remove(id: string) {
+    const player = players.find((x) => x.id === id);
+
+    if (!player) return;
+
+    if (!window.confirm(`Delete ${player.name}?`)) return;
+
+    setPlayers((current) =>
+      current.filter((x) => x.id !== id)
+    );
+
+    log("Player deleted", `${player.name} was deleted.`);
+  }
+
+  return (
+    <div className="tg-page">
+      <PageHeading
+        eyebrow="PLAYER CONTROL"
+        title="PLAYERS"
+        description="Manage player profiles and competitive statistics."
+        button={
+          <button
+            className="tg-primary-button"
+            onClick={() => {
+              reset();
+              setShowModal(true);
+            }}
+          >
+            <Plus size={18} />
+            ADD PLAYER
+          </button>
+        }
+      />
+
+      <div className="tg-toolbar">
+        <div className="tg-search">
+          <Search size={18} />
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search players..."
+          />
+        </div>
+
+        <div className="tg-toolbar-count">
+          {filtered.length} PLAYERS
+        </div>
+      </div>
+
+      <div className="tg-table-wrap">
+        <table className="tg-table">
+          <thead>
+            <tr>
+              <th>PLAYER</th>
+              <th>TEAM</th>
+              <th>ROLE</th>
+              <th>KILLS</th>
+              <th>MATCHES</th>
+              <th>STATUS</th>
+              <th />
+            </tr>
+          </thead>
+
+          <tbody>
+            {filtered.map((player) => (
+              <tr key={player.id}>
+                <td>
+                  <div className="tg-player-cell">
+                    <div className="tg-player-avatar">
+                      {player.name.charAt(0).toUpperCase()}
+                    </div>
+
+                    <strong>{player.name}</strong>
+                  </div>
+                </td>
+
+                <td>{player.team || "-"}</td>
+                <td>{player.role}</td>
+                <td className="tg-number-highlight">
+                  {player.kills}
+                </td>
+                <td>{player.matches}</td>
+
+                <td>
+                  <Badge
+                    type={
+                      player.status === "ACTIVE"
+                        ? "success"
+                        : "default"
+                    }
+                  >
+                    {player.status}
+                  </Badge>
+                </td>
+
+                <td>
+                  <div className="tg-row-actions">
+                    <IconButton
+                      title="Edit"
+                      onClick={() => openEdit(player)}
+                    >
+                      <Edit3 size={16} />
+                    </IconButton>
+
+                    <IconButton
+                      title="Delete"
+                      onClick={() => remove(player.id)}
+                    >
+                      <Trash2 size={16} />
+                    </IconButton>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {filtered.length === 0 && (
+          <EmptyState
+            title="No players found"
+            description="Add your first player."
+          />
+        )}
+      </div>
+
+      {showModal && (
+        <Modal
+          title={editing ? "EDIT PLAYER" : "ADD PLAYER"}
+          onClose={() => {
+            setShowModal(false);
+            reset();
+          }}
+          footer={
+            <>
+              <button
+                className="tg-secondary-button"
+                onClick={() => {
+                  setShowModal(false);
+                  reset();
+                }}
+              >
+                CANCEL
+              </button>
+
+              <button className="tg-primary-button" onClick={save}>
+                <Save size={17} />
+                SAVE PLAYER
+              </button>
+            </>
+          }
+        >
+          <div className="tg-form-grid">
+            <Field
+              label="PLAYER NAME"
+              value={name}
+              onChange={setName}
+              placeholder="Player name"
+            />
+
+            <SelectField
+              label="TEAM"
+              value={team}
+              onChange={setTeam}
+            >
+              <option value="">No team</option>
+              {teams.map((item) => (
+                <option key={item.id} value={item.name}>
+                  {item.name}
+                </option>
+              ))}
+            </SelectField>
+
+            <SelectField
+              label="ROLE"
+              value={role}
+              onChange={setRole}
+            >
+              <option value="RUSHER">RUSHER</option>
+              <option value="IGL">IGL</option>
+              <option value="SUPPORT">SUPPORT</option>
+              <option value="SNIPER">SNIPER</option>
+              <option value="FRAGGER">FRAGGER</option>
+              <option value="COACH">COACH</option>
+            </SelectField>
+
+            <SelectField
+              label="STATUS"
+              value={status}
+              onChange={(value) =>
+                setStatus(value as "ACTIVE" | "BENCHED")
+              }
+            >
+              <option value="ACTIVE">ACTIVE</option>
+              <option value="BENCHED">BENCHED</option>
+            </SelectField>
+
+            <Field
+              label="TOTAL KILLS"
+              value={kills}
+              onChange={setKills}
+              type="number"
+            />
+
+            <Field
+              label="MATCHES PLAYED"
+              value={matches}
+              onChange={setMatches}
+              type="number"
+            />
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+/* =========================================================
+   OFFICIAL
+   ========================================================= */
+
+function OfficialPage({
+  tournaments,
+  setTournaments,
+  log,
+}: {
+  tournaments: Tournament[];
+  setTournaments: React.Dispatch<React.SetStateAction<Tournament[]>>;
+  log: (action: string, description: string) => void;
+}) {
+  const official = tournaments.filter(
+    (item) => item.type === "OFFICIAL"
+  );
+
+  function changeStatus(
+    id: string,
+    status: TournamentStatus
+  ) {
+    setTournaments((current) =>
+      current.map((item) =>
+        item.id === id ? { ...item, status } : item
+      )
+    );
+
+    const item = tournaments.find((x) => x.id === id);
+
+    if (item) {
+      log(
+        "Official status changed",
+        `${item.name} changed to ${status}.`
+      );
+    }
+  }
+
+  return (
+    <div className="tg-page">
+      <PageHeading
+        eyebrow="OFFICIAL CIRCUIT"
+        title="OFFICIAL CONTROL"
+        description="Control which official events appear as live, upcoming or archived."
+      />
+
+      <div className="tg-control-grid">
+        {official.map((item) => (
+          <div className="tg-control-card" key={item.id}>
+            <div className="tg-control-card-top">
+              <Badge
+                type={
+                  item.status === "LIVE"
+                    ? "live"
+                    : item.status === "UPCOMING"
+                    ? "blue"
+                    : "default"
+                }
+              >
+                {item.status}
+              </Badge>
+
+              <span>{item.stage}</span>
+            </div>
+
+            <h3>{item.name}</h3>
+
+            <div className="tg-control-stats">
+              <div>
+                <strong>{item.matches}</strong>
+                <span>MATCHES</span>
+              </div>
+
+              <div>
+                <strong>{item.teams}</strong>
+                <span>TEAMS</span>
+              </div>
+            </div>
+
+            <div className="tg-status-buttons">
+              {(
+                ["LIVE", "UPCOMING", "COMPLETED", "ARCHIVED"] as const
+              ).map((status) => (
+                <button
+                  key={status}
+                  className={
+                    item.status === status ? "selected" : ""
+                  }
+                  onClick={() => changeStatus(item.id, status)}
+                  type="button"
+                >
+                  {status}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
 }
 
-/*
-=========================================================
-   MATCH EDITOR
-========================================================= */
+/* =========================================================
+   SCRIMS
+   ========================================================= */
 
-function MatchEditor({
-  match,
-  editing,
-  onEdit,
-  onClose,
-  onUpdate,
-  onDelete,
+function ScrimsPage({
+  tournaments,
+  setTournaments,
+  log,
 }: {
-  match: Match;
-  editing: boolean;
-  onEdit: () => void;
-  onClose: () => void;
-  onUpdate: (
-    patch: Partial<Match>,
-  ) => void;
-  onDelete: () => void;
+  tournaments: Tournament[];
+  setTournaments: React.Dispatch<React.SetStateAction<Tournament[]>>;
+  log: (action: string, description: string) => void;
 }) {
-  if (!editing) {
-    return (
-      <div className="tg-data-row">
-        <div className="tg-row-main">
-          <div className="tg-match-number">
-            {String(
-              match.number,
-            ).padStart(2, "0")}
+  const scrims = tournaments.filter(
+    (item) => item.type === "SCRIM"
+  );
+
+  const [showModal, setShowModal] = useState(false);
+  const [name, setName] = useState("");
+  const [stage, setStage] = useState("SCRIM");
+  const [teams, setTeams] = useState("18");
+  const [matches, setMatches] = useState("6");
+
+  function createScrim() {
+    if (!name.trim()) return;
+
+    const item: Tournament = {
+      id: makeId("scrim"),
+      name,
+      type: "SCRIM",
+      status: "UPCOMING",
+      stage,
+      matches: Number(matches) || 0,
+      teams: Number(teams) || 0,
+      startDate: "",
+      endDate: "",
+      description: "Scrim competition.",
+    };
+
+    setTournaments((current) => [item, ...current]);
+
+    log("Scrim created", `${name} was created.`);
+
+    setShowModal(false);
+    setName("");
+    setStage("SCRIM");
+    setTeams("18");
+    setMatches("6");
+  }
+
+  function remove(id: string) {
+    const item = tournaments.find((x) => x.id === id);
+
+    if (!item) return;
+
+    if (!window.confirm(`Delete ${item.name}?`)) return;
+
+    setTournaments((current) =>
+      current.filter((x) => x.id !== id)
+    );
+
+    log("Scrim deleted", `${item.name} was deleted.`);
+  }
+
+  return (
+    <div className="tg-page">
+      <PageHeading
+        eyebrow="COMMUNITY COMPETITION"
+        title="SCRIMS"
+        description="Create and control private or community scrim events."
+        button={
+          <button
+            className="tg-primary-button"
+            onClick={() => setShowModal(true)}
+          >
+            <Plus size={18} />
+            NEW SCRIM
+          </button>
+        }
+      />
+
+      <div className="tg-control-grid">
+        {scrims.map((item) => (
+          <div className="tg-control-card" key={item.id}>
+            <div className="tg-control-card-top">
+              <Badge type="blue">SCRIM</Badge>
+              <span>{item.status}</span>
+            </div>
+
+            <h3>{item.name}</h3>
+
+            <p>{item.description}</p>
+
+            <div className="tg-control-stats">
+              <div>
+                <strong>{item.matches}</strong>
+                <span>MATCHES</span>
+              </div>
+
+              <div>
+                <strong>{item.teams}</strong>
+                <span>TEAMS</span>
+              </div>
+            </div>
+
+            <button
+              className="tg-danger-button tg-full-button"
+              onClick={() => remove(item.id)}
+            >
+              <Trash2 size={16} />
+              DELETE SCRIM
+            </button>
           </div>
+        ))}
 
-          <div>
-            <strong>
-              MATCH {match.number}
-            </strong>
+        {scrims.length === 0 && (
+          <EmptyState
+            title="No scrims"
+            description="Create a scrim event from the button above."
+          />
+        )}
+      </div>
 
-            <span>
-              {match.map} ·{" "}
-              {match.date}
-            </span>
+      {showModal && (
+        <Modal
+          title="CREATE SCRIM"
+          onClose={() => setShowModal(false)}
+          footer={
+            <>
+              <button
+                className="tg-secondary-button"
+                onClick={() => setShowModal(false)}
+              >
+                CANCEL
+              </button>
+
+              <button
+                className="tg-primary-button"
+                onClick={createScrim}
+              >
+                <Plus size={17} />
+                CREATE
+              </button>
+            </>
+          }
+        >
+          <div className="tg-form-grid">
+            <Field
+              label="SCRIM NAME"
+              value={name}
+              onChange={setName}
+              placeholder="TG COMMUNITY SCRIM"
+            />
+
+            <Field
+              label="STAGE"
+              value={stage}
+              onChange={setStage}
+              placeholder="SCRIM"
+            />
+
+            <Field
+              label="TEAMS"
+              value={teams}
+              onChange={setTeams}
+              type="number"
+            />
+
+            <Field
+              label="MATCHES"
+              value={matches}
+              onChange={setMatches}
+              type="number"
+            />
           </div>
-        </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
 
-        <div className="tg-team-numbers">
-          <div>
-            <small>STATUS</small>
-            <StatusBadge
-              status={
-                match.status
+/* =========================================================
+   WEBSITE CONTENT
+   ========================================================= */
+
+function ContentPage({
+  content,
+  setContent,
+  log,
+}: {
+  content: SiteContent;
+  setContent: React.Dispatch<React.SetStateAction<SiteContent>>;
+  log: (action: string, description: string) => void;
+}) {
+  const [draft, setDraft] = useState(content);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    setDraft(content);
+  }, [content]);
+
+  function save() {
+    setContent(draft);
+    setSaved(true);
+
+    log("Website content updated", "Public website content was changed.");
+
+    setTimeout(() => setSaved(false), 1800);
+  }
+
+  return (
+    <div className="tg-page">
+      <PageHeading
+        eyebrow="PUBLIC WEBSITE"
+        title="CONTENT CONTROL"
+        description="Change public-facing headings and messages without editing the page."
+        button={
+          <button className="tg-primary-button" onClick={save}>
+            {saved ? <Check size={18} /> : <Save size={18} />}
+            {saved ? "SAVED" : "SAVE CHANGES"}
+          </button>
+        }
+      />
+
+      <div className="tg-content-editor">
+        <Panel title="HERO SECTION" icon={<Globe size={18} />}>
+          <div className="tg-form-grid">
+            <Field
+              label="HERO TITLE"
+              value={draft.heroTitle}
+              onChange={(value) =>
+                setDraft((current) => ({
+                  ...current,
+                  heroTitle: value,
+                }))
+              }
+            />
+
+            <Field
+              label="EYEBROW"
+              value={draft.heroSubtitle}
+              onChange={(value) =>
+                setDraft((current) => ({
+                  ...current,
+                  heroSubtitle: value,
+                }))
+              }
+            />
+
+            <label className="tg-field tg-field-full">
+              <span>DESCRIPTION</span>
+
+              <textarea
+                value={draft.heroDescription}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    heroDescription: event.target.value,
+                  }))
+                }
+              />
+            </label>
+          </div>
+        </Panel>
+
+        <Panel title="SECTION TITLES" icon={<FileText size={18} />}>
+          <div className="tg-form-grid">
+            <Field
+              label="OFFICIAL SECTION"
+              value={draft.officialTitle}
+              onChange={(value) =>
+                setDraft((current) => ({
+                  ...current,
+                  officialTitle: value,
+                }))
+              }
+            />
+
+            <Field
+              label="SCRIM SECTION"
+              value={draft.scrimTitle}
+              onChange={(value) =>
+                setDraft((current) => ({
+                  ...current,
+                  scrimTitle: value,
+                }))
+              }
+            />
+
+            <Field
+              label="FOOTER"
+              value={draft.footerText}
+              onChange={(value) =>
+                setDraft((current) => ({
+                  ...current,
+                  footerText: value,
+                }))
               }
             />
           </div>
-
-          <div>
-            <small>KILLS</small>
-            <strong>
-              {match.kills}
-            </strong>
-          </div>
-
-          <div>
-            <small>POINTS</small>
-            <strong>
-              {match.points}
-            </strong>
-          </div>
-
-          <VisibilityButton
-            visible={
-              match.visible
-            }
-            onClick={() =>
-              onUpdate({
-                visible:
-                  !match.visible,
-              })
-            }
-          />
-
-          <button
-            className="tg-row-button"
-            onClick={onEdit}
-          >
-            <Edit3 size={16} />
-          </button>
-
-          <button
-            className="tg-row-button danger"
-            onClick={onDelete}
-          >
-            <Trash2 size={16} />
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="tg-edit-card">
-      <div className="tg-edit-head">
-        <div>
-          <span>EDIT MATCH</span>
-          <strong>
-            MATCH {match.number}
-          </strong>
-        </div>
-
-        <button
-          onClick={onClose}
-        >
-          <X size={18} />
-        </button>
-      </div>
-
-      <div className="tg-form-grid">
-        <NumberField
-          label="MATCH NUMBER"
-          value={match.number}
-          onChange={(value) =>
-            onUpdate({
-              number: value,
-            })
-          }
-        />
-
-        <Field
-          label="MAP"
-          value={match.map}
-          onChange={(value) =>
-            onUpdate({
-              map: value,
-            })
-          }
-        />
-
-        <div>
-          <label>STATUS</label>
-
-          <select
-            value={
-              match.status
-            }
-            onChange={(e) =>
-              onUpdate({
-                status:
-                  e.target
-                    .value as Match["status"],
-              })
-            }
-          >
-            <option>
-              UPCOMING
-            </option>
-
-            <option>
-              LIVE
-            </option>
-
-            <option>
-              COMPLETED
-            </option>
-          </select>
-        </div>
-
-        <NumberField
-          label="TEAMS"
-          value={match.teams}
-          onChange={(value) =>
-            onUpdate({
-              teams: value,
-            })
-          }
-        />
-
-        <NumberField
-          label="KILLS"
-          value={match.kills}
-          onChange={(value) =>
-            onUpdate({
-              kills: value,
-            })
-          }
-        />
-
-        <NumberField
-          label="POINTS"
-          value={match.points}
-          onChange={(value) =>
-            onUpdate({
-              points: value,
-            })
-          }
-        />
-
-        <Field
-          label="DATE"
-          value={match.date}
-          onChange={(value) =>
-            onUpdate({
-              date: value,
-            })
-          }
-        />
-      </div>
-
-      <div className="tg-edit-actions">
-        <ToggleRow
-          label="VISIBLE ON WEBSITE"
-          value={
-            match.visible
-          }
-          onChange={(value) =>
-            onUpdate({
-              visible: value,
-            })
-          }
-        />
-
-        <button
-          className="tg-save-button"
-          onClick={onClose}
-        >
-          <Save size={16} />
-          DONE
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/* =========================================================
-   PLAYER EDITOR
-========================================================= */
-
-function PlayerEditor({
-  player,
-  teams,
-  editing,
-  onEdit,
-  onClose,
-  onUpdate,
-  onDelete,
-}: {
-  player: Player;
-  teams: Team[];
-  editing: boolean;
-  onEdit: () => void;
-  onClose: () => void;
-  onUpdate: (
-    patch: Partial<Player>,
-  ) => void;
-  onDelete: () => void;
-}) {
-  if (!editing) {
-    return (
-      <div className="tg-data-row">
-        <div className="tg-row-main">
-          <div className="tg-player-image">
-            {player.image ? (
-              <img
-                src={player.image}
-                alt=""
-              />
-            ) : (
-              player.name
-                .slice(0, 1)
-                .toUpperCase()
-            )}
-          </div>
-
-          <div>
-            <strong>
-              {player.name}
-            </strong>
-
-            <span>
-              {player.role} ·{" "}
-              {player.team}
-            </span>
-          </div>
-        </div>
-
-        <div className="tg-team-numbers">
-          <div>
-            <small>KILLS</small>
-            <strong>
-              {player.kills}
-            </strong>
-          </div>
-
-          <div>
-            <small>MATCHES</small>
-            <strong>
-              {player.matches}
-            </strong>
-          </div>
-
-          <VisibilityButton
-            visible={
-              player.visible
-            }
-            onClick={() =>
-              onUpdate({
-                visible:
-                  !player.visible,
-              })
-            }
-          />
-
-          <button
-            className="tg-row-button"
-            onClick={onEdit}
-          >
-            <Edit3 size={16} />
-          </button>
-
-          <button
-            className="tg-row-button danger"
-            onClick={onDelete}
-          >
-            <Trash2 size={16} />
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="tg-edit-card">
-      <div className="tg-edit-head">
-        <div>
-          <span>EDIT PLAYER</span>
-          <strong>
-            {player.id}
-          </strong>
-        </div>
-
-        <button
-          onClick={onClose}
-        >
-          <X size={18} />
-        </button>
-      </div>
-
-      <div className="tg-form-grid">
-        <Field
-          label="PLAYER NAME"
-          value={
-            player.name
-          }
-          onChange={(value) =>
-            onUpdate({
-              name: value,
-            })
-          }
-        />
-
-        <div>
-          <label>TEAM</label>
-
-          <select
-            value={
-              player.team
-            }
-            onChange={(e) =>
-              onUpdate({
-                team:
-                  e.target
-                    .value,
-              })
-            }
-          >
-            {teams.map(
-              (team) => (
-                <option
-                  key={
-                    team.id
-                  }
-                >
-                  {team.name}
-                </option>
-              ),
-            )}
-          </select>
-        </div>
-
-        <Field
-          label="ROLE"
-          value={
-            player.role
-          }
-          onChange={(value) =>
-            onUpdate({
-              role: value,
-            })
-          }
-        />
-
-        <Field
-          label="IMAGE PATH"
-          value={
-            player.image
-          }
-          onChange={(value) =>
-            onUpdate({
-              image: value,
-            })
-          }
-        />
-
-        <NumberField
-          label="KILLS"
-          value={
-            player.kills
-          }
-          onChange={(value) =>
-            onUpdate({
-              kills: value,
-            })
-          }
-        />
-
-        <NumberField
-          label="MATCHES"
-          value={
-            player.matches
-          }
-          onChange={(value) =>
-            onUpdate({
-              matches: value,
-            })
-          }
-        />
-      </div>
-
-      <div className="tg-edit-actions">
-        <ToggleRow
-          label="VISIBLE ON WEBSITE"
-          value={
-            player.visible
-          }
-          onChange={(value) =>
-            onUpdate({
-              visible: value,
-            })
-          }
-        />
-
-        <button
-          className="tg-save-button"
-          onClick={onClose}
-        >
-          <Save size={16} />
-          DONE
-        </button>
+        </Panel>
       </div>
     </div>
   );
@@ -3150,500 +2982,2858 @@ function PlayerEditor({
 
 /* =========================================================
    ADMINS
-========================================================= */
+   ========================================================= */
 
-function Admins({
-  state,
+function AdminsPage({
+  admins,
+  setAdmins,
+  invites,
+  setInvites,
   currentAdmin,
-  setState,
-  showNotice,
+  log,
 }: {
-  state: AdminState;
-  currentAdmin?: AdminUser;
-  setState: React.Dispatch<
-    React.SetStateAction<AdminState>
-  >;
-  showNotice: (
-    message: string,
-  ) => void;
+  admins: AdminUser[];
+  setAdmins: React.Dispatch<React.SetStateAction<AdminUser[]>>;
+  invites: Invite[];
+  setInvites: React.Dispatch<React.SetStateAction<Invite[]>>;
+  currentAdmin: AdminUser;
+  log: (action: string, description: string) => void;
 }) {
-  function toggleAdmin(id: string) {
-    if (
-      id === currentAdmin?.id
-    ) {
-      showNotice(
-        "You cannot disable your own account.",
-      );
-      return;
-    }
+  const [showInvite, setShowInvite] = useState(false);
 
-    setState((prev) => ({
-      ...prev,
-      admins:
-        prev.admins.map(
-          (admin) =>
-            admin.id === id
-              ? {
-                  ...admin,
-                  active:
-                    !admin.active,
-                }
-              : admin,
-        ),
-    }));
-  }
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState<AdminRole>("admin");
 
-  function changeRole(
-    id: string,
-    role: AdminRole,
-  ) {
-    setState((prev) => ({
-      ...prev,
-      admins:
-        prev.admins.map(
-          (admin) =>
-            admin.id === id
-              ? {
-                  ...admin,
-                  role,
-                }
-              : admin,
-        ),
-    }));
-  }
+  const [generatedInvite, setGeneratedInvite] =
+    useState<string | null>(null);
 
-  function deleteAdmin(
-    id: string,
-  ) {
-    if (
-      id === currentAdmin?.id
-    ) {
-      showNotice(
-        "You cannot delete yourself.",
-      );
-      return;
-    }
+  function createInvite() {
+    if (!inviteEmail.trim()) return;
 
-    if (
-      !confirm(
-        "Remove this admin?",
-      )
-    ) {
-      return;
-    }
+    const token = crypto.randomUUID
+      ? crypto.randomUUID()
+      : makeId("token");
 
-    setState((prev) => ({
-      ...prev,
-      admins:
-        prev.admins.filter(
-          (admin) =>
-            admin.id !== id,
-        ),
-    }));
+    const invite: Invite = {
+      id: makeId("invite"),
+      token,
+      email: inviteEmail.trim(),
+      role: inviteRole,
+      createdAt: now(),
+      expiresAt: new Date(
+        Date.now() + 24 * 60 * 60 * 1000
+      ).toISOString(),
+      used: false,
+    };
 
-    showNotice(
-      "Admin removed.",
+    setInvites((current) => [invite, ...current]);
+
+    const link = `${window.location.origin}/admin?invite=${token}`;
+
+    setGeneratedInvite(link);
+
+    log(
+      "Admin invite created",
+      `Invite generated for ${invite.email}.`
     );
   }
 
+  function toggleAdmin(id: string) {
+    setAdmins((current) =>
+      current.map((admin) =>
+        admin.id === id
+          ? { ...admin, active: !admin.active }
+          : admin
+      )
+    );
+
+    const admin = admins.find((x) => x.id === id);
+
+    if (admin) {
+      log(
+        "Admin status changed",
+        `${admin.email} was ${
+          admin.active ? "disabled" : "enabled"
+        }.`
+      );
+    }
+  }
+
+  function deleteAdmin(id: string) {
+    const admin = admins.find((x) => x.id === id);
+
+    if (!admin) return;
+
+    if (admin.role === "owner") {
+      window.alert("The owner account cannot be deleted.");
+      return;
+    }
+
+    if (!window.confirm(`Remove ${admin.email} as admin?`)) return;
+
+    setAdmins((current) =>
+      current.filter((x) => x.id !== id)
+    );
+
+    log("Admin removed", `${admin.email} was removed.`);
+  }
+
+  function copyInvite() {
+    if (!generatedInvite) return;
+
+    navigator.clipboard?.writeText(generatedInvite);
+
+    window.alert("Invite link copied.");
+  }
+
   return (
-    <section>
-      <SectionHeader
+    <div className="tg-page">
+      <PageHeading
         eyebrow="ACCESS CONTROL"
         title="ADMINS"
-        description="Control who can access the management system."
+        description="Give trusted people controlled access to the admin panel."
+        button={
+          currentAdmin.role === "owner" ? (
+            <button
+              className="tg-primary-button"
+              onClick={() => {
+                setGeneratedInvite(null);
+                setShowInvite(true);
+              }}
+            >
+              <UserPlus size={18} />
+              INVITE ADMIN
+            </button>
+          ) : undefined
+        }
       />
 
-      <div className="tg-admin-list">
-        {state.admins.map(
-          (admin) => (
-            <div
-              className="tg-data-row"
-              key={admin.id}
-            >
-              <div className="tg-row-main">
-                <div className="tg-admin-avatar-large">
-                  {admin.name
-                    .slice(0, 1)
-                    .toUpperCase()}
-                </div>
-
-                <div>
-                  <strong>
-                    {admin.name}
-                  </strong>
-
-                  <span>
-                    {admin.email}
-                  </span>
-                </div>
-              </div>
-
-              <div className="tg-admin-controls">
-                <select
-                  value={
-                    admin.role
-                  }
-                  disabled={
-                    admin.role ===
-                    "owner"
-                  }
-                  onChange={(e) =>
-                    changeRole(
-                      admin.id,
-                      e.target
-                        .value as AdminRole,
-                    )
-                  }
-                >
-                  <option value="owner">
-                    OWNER
-                  </option>
-
-                  <option value="admin">
-                    ADMIN
-                  </option>
-
-                  <option value="editor">
-                    EDITOR
-                  </option>
-
-                  <option value="viewer">
-                    VIEWER
-                  </option>
-                </select>
-
-                <button
-                  className={`tg-status-toggle ${
-                    admin.active
-                      ? "on"
-                      : ""
-                  }`}
-                  onClick={() =>
-                    toggleAdmin(
-                      admin.id,
-                    )
-                  }
-                >
-                  {admin.active
-                    ? "ACTIVE"
-                    : "DISABLED"}
-                </button>
-
-                <button
-                  className="tg-row-button danger"
-                  onClick={() =>
-                    deleteAdmin(
-                      admin.id,
-                    )
-                  }
-                >
-                  <Trash2
-                    size={16}
-                  />
-                </button>
-              </div>
-            </div>
-          ),
-        )}
-      </div>
-
-      <div className="tg-info-card">
-        <Shield size={20} />
+      <div className="tg-security-banner">
+        <div className="tg-security-icon">
+          <ShieldCheck size={22} />
+        </div>
 
         <div>
-          <strong>
-            OWNER
-          </strong>
-
+          <strong>ADMIN ACCESS</strong>
           <p>
-            The owner is the highest-level
-            account and cannot be removed from
-            this panel.
+            Owner controls who can access the admin panel and what
+            each role can manage.
           </p>
         </div>
       </div>
-    </section>
-  );
-}
 
-/*
-=========================================================
-   ANALYTICS
-========================================================= */
+      <Panel title="CURRENT ADMINS" icon={<Shield size={18} />}>
+        <div className="tg-admin-list">
+          {admins.map((admin) => (
+            <div className="tg-admin-row" key={admin.id}>
+              <div className="tg-admin-avatar large">
+                {admin.name.charAt(0).toUpperCase()}
+              </div>
 
-function Analytics({
-  state,
-}: {
-  state: AdminState;
-}) {
-  const completed =
-    state.matches.filter(
-      (match) =>
-        match.status ===
-        "COMPLETED",
-    );
+              <div className="tg-admin-info">
+                <strong>{admin.name}</strong>
+                <span>{admin.email}</span>
+                <small>
+                  Created {formatDate(admin.createdAt)}
+                </small>
+              </div>
 
-  const kills =
-    completed.reduce(
-      (sum, match) =>
-        sum + match.kills,
-      0,
-    );
+              <Badge
+                type={
+                  admin.role === "owner"
+                    ? "warning"
+                    : admin.role === "admin"
+                    ? "live"
+                    : "blue"
+                }
+              >
+                {roleLabel(admin.role)}
+              </Badge>
 
-  const points =
-    completed.reduce(
-      (sum, match) =>
-        sum + match.points,
-      0,
-    );
+              <Badge type={admin.active ? "success" : "default"}>
+                {admin.active ? "ACTIVE" : "DISABLED"}
+              </Badge>
 
-  const average =
-    completed.length
-      ? (
-          points /
-          completed.length
-        ).toFixed(1)
-      : "0.0";
+              {admin.role !== "owner" && currentAdmin.role === "owner" && (
+                <div className="tg-row-actions">
+                  <IconButton
+                    title={admin.active ? "Disable" : "Enable"}
+                    onClick={() => toggleAdmin(admin.id)}
+                  >
+                    {admin.active ? (
+                      <Lock size={16} />
+                    ) : (
+                      <ShieldCheck size={16} />
+                    )}
+                  </IconButton>
 
-  const topTeam =
-    [...state.teams].sort(
-      (a, b) =>
-        b.points -
-        a.points,
-    )[0];
-
-  return (
-    <section>
-      <SectionHeader
-        eyebrow="PERFORMANCE DATA"
-        title="ANALYTICS"
-        description="Quick overview of competition performance."
-      />
-
-      <div className="tg-dashboard-stats">
-        <DashboardStat
-          icon={<Gamepad2 />}
-          label="COMPLETED MATCHES"
-          value={
-            completed.length
-          }
-          sub="Finished matches"
-        />
-
-        <DashboardStat
-          icon={<Zap />}
-          label="TOTAL KILLS"
-          value={kills}
-          sub="Across completed matches"
-        />
-
-        <DashboardStat
-          icon={<BarChart3 />}
-          label="TOTAL POINTS"
-          value={points}
-          sub="Recorded points"
-        />
-
-        <DashboardStat
-          icon={<Activity />}
-          label="AVG POINTS"
-          value={average}
-          sub="Per completed match"
-        />
-      </div>
-
-      <div className="tg-panel">
-        <PanelTitle
-          title="TOP TEAM"
-          icon={<Trophy />}
-        />
-
-        {topTeam ? (
-          <div className="tg-top-team">
-            <div className="tg-rank-big">
-              #{topTeam.position}
-            </div>
-
-            <div className="tg-team-logo huge">
-              {topTeam.logo ? (
-                <img
-                  src={
-                    topTeam.logo
-                  }
-                  alt=""
-                />
-              ) : (
-                topTeam.shortName
+                  <IconButton
+                    title="Remove admin"
+                    onClick={() => deleteAdmin(admin.id)}
+                  >
+                    <Trash2 size={16} />
+                  </IconButton>
+                </div>
               )}
             </div>
+          ))}
 
-            <div>
-              <strong>
-                {topTeam.name}
-              </strong>
+          {admins.length === 0 && (
+            <EmptyState
+              title="No admins"
+              description="The first owner account will appear here."
+            />
+          )}
+        </div>
+      </Panel>
 
-              <span>
-                {topTeam.kills} KILLS ·{" "}
-                {topTeam.points} POINTS
-              </span>
+      <Panel title="ACTIVE INVITES" icon={<Link2 size={18} />}>
+        <div className="tg-invite-list">
+          {invites
+            .filter((invite) => !invite.used)
+            .map((invite) => (
+              <div className="tg-invite-row" key={invite.id}>
+                <div className="tg-invite-icon">
+                  <KeyRound size={19} />
+                </div>
+
+                <div>
+                  <strong>{invite.email}</strong>
+                  <span>
+                    {roleLabel(invite.role)} · Expires{" "}
+                    {formatDate(invite.expiresAt)}
+                  </span>
+                </div>
+
+                <button
+                  className="tg-secondary-button"
+                  onClick={() => {
+                    const link = `${window.location.origin}/admin?invite=${invite.token}`;
+                    navigator.clipboard?.writeText(link);
+                    window.alert("Invite link copied.");
+                  }}
+                >
+                  <Copy size={16} />
+                  COPY LINK
+                </button>
+              </div>
+            ))}
+
+          {invites.filter((x) => !x.used).length === 0 && (
+            <EmptyState
+              title="No active invites"
+              description="Create an invite when you want to give someone admin access."
+            />
+          )}
+        </div>
+      </Panel>
+
+      {showInvite && (
+        <Modal
+          title="INVITE NEW ADMIN"
+          onClose={() => setShowInvite(false)}
+          footer={
+            <>
+              <button
+                className="tg-secondary-button"
+                onClick={() => setShowInvite(false)}
+              >
+                CLOSE
+              </button>
+
+              {!generatedInvite && (
+                <button
+                  className="tg-primary-button"
+                  onClick={createInvite}
+                >
+                  <Link2 size={17} />
+                  GENERATE LINK
+                </button>
+              )}
+            </>
+          }
+        >
+          {!generatedInvite ? (
+            <div className="tg-form-grid">
+              <Field
+                label="EMAIL"
+                value={inviteEmail}
+                onChange={setInviteEmail}
+                placeholder="newadmin@example.com"
+                type="email"
+              />
+
+              <SelectField
+                label="ROLE"
+                value={inviteRole}
+                onChange={(value) =>
+                  setInviteRole(value as AdminRole)
+                }
+              >
+                <option value="admin">ADMIN</option>
+                <option value="editor">EDITOR</option>
+                <option value="scorekeeper">SCOREKEEPER</option>
+              </SelectField>
             </div>
-          </div>
-        ) : (
-          <div className="tg-empty-box">
-            No team data.
-          </div>
-        )}
-      </div>
-    </section>
+          ) : (
+            <div className="tg-generated-invite">
+              <div className="tg-generated-icon">
+                <Link2 size={28} />
+              </div>
+
+              <h3>INVITE READY</h3>
+
+              <p>
+                Send this link to the person. They can open it and
+                complete their admin account setup.
+              </p>
+
+              <div className="tg-link-box">
+                <input value={generatedInvite} readOnly />
+
+                <button
+                  className="tg-primary-button"
+                  onClick={copyInvite}
+                >
+                  <Copy size={16} />
+                  COPY
+                </button>
+              </div>
+
+              <div className="tg-invite-warning">
+                <Lock size={15} />
+                This demo stores invite state locally. Production
+                authentication should validate the token server-side.
+              </div>
+            </div>
+          )}
+        </Modal>
+      )}
+    </div>
   );
 }
 
 /* =========================================================
-   SMALL COMPONENTS
-========================================================= */
+   ACTIVITY
+   ========================================================= */
 
-function AdminNavButton({
-  icon,
-  label,
-  active,
-  onClick,
+function ActivityPage({
+  activities,
 }: {
-  icon: React.ReactNode;
-  label: string;
-  active: boolean;
-  onClick: () => void;
+  activities: ActivityItem[];
 }) {
-  return (
-    <button
-      className={`tg-nav-button ${
-        active ? "active" : ""
-      }`}
-      onClick={onClick}
-    >
-      {icon}
-      <span>{label}</span>
+  const [search, setSearch] = useState("");
 
-      {active && (
-        <ChevronRight
-          size={15}
-        />
-      )}
-    </button>
+  const filtered = activities.filter((item) =>
+    `${item.action} ${item.description} ${item.admin}`
+      .toLowerCase()
+      .includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="tg-page">
+      <PageHeading
+        eyebrow="SECURITY & AUDIT"
+        title="ACTIVITY LOG"
+        description="Review important actions performed inside the admin panel."
+      />
+
+      <div className="tg-toolbar">
+        <div className="tg-search">
+          <Search size={18} />
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search activity..."
+          />
+        </div>
+      </div>
+
+      <Panel title="AUDIT TRAIL" icon={<Activity size={18} />}>
+        <div className="tg-audit-list">
+          {filtered.map((item) => (
+            <div className="tg-audit-row" key={item.id}>
+              <div className="tg-audit-marker">
+                <Activity size={17} />
+              </div>
+
+              <div className="tg-audit-content">
+                <strong>{item.action}</strong>
+                <p>{item.description}</p>
+                <span>
+                  {item.admin} ·{" "}
+                  {new Date(item.createdAt).toLocaleString("en-IN")}
+                </span>
+              </div>
+            </div>
+          ))}
+
+          {filtered.length === 0 && (
+            <EmptyState
+              title="No activity found"
+              description="There are no matching audit records."
+            />
+          )}
+        </div>
+      </Panel>
+    </div>
   );
 }
 
-function SectionHeader({
-  eyebrow,
-  title,
-  description,
-  action,
+/* =========================================================
+   SETTINGS
+   ========================================================= */
+
+function SettingsPage({
+  settings,
+  setSettings,
+  log,
 }: {
-  eyebrow: string;
-  title: string;
+  settings: SiteSettings;
+  setSettings: React.Dispatch<React.SetStateAction<SiteSettings>>;
+  log: (action: string, description: string) => void;
+}) {
+  function toggle(key: keyof SiteSettings) {
+    const next = !settings[key];
+
+    setSettings((current) => ({
+      ...current,
+      [key]: next,
+    }));
+
+    log(
+      "Setting changed",
+      `${String(key)} was ${next ? "enabled" : "disabled"}.`
+    );
+  }
+
+  return (
+    <div className="tg-page">
+      <PageHeading
+        eyebrow="SYSTEM CONTROL"
+        title="SETTINGS"
+        description="Control how the public Total Gaming Hub behaves."
+      />
+
+      <div className="tg-settings-grid">
+        <Panel title="PUBLIC WEBSITE" icon={<Globe size={18} />}>
+          <SettingRow
+            label="Maintenance mode"
+            description="Temporarily show a maintenance state to public visitors."
+            value={settings.maintenance}
+            onChange={() => toggle("maintenance")}
+          />
+
+          <SettingRow
+            label="Public results"
+            description="Allow visitors to see match results."
+            value={settings.publicResults}
+            onChange={() => toggle("publicResults")}
+          />
+
+          <SettingRow
+            label="Public standings"
+            description="Allow visitors to see tournament standings."
+            value={settings.publicStandings}
+            onChange={() => toggle("publicStandings")}
+          />
+
+          <SettingRow
+            label="Live competition feed"
+            description="Show live tournament updates."
+            value={settings.liveFeed}
+            onChange={() => toggle("liveFeed")}
+          />
+        </Panel>
+
+        <Panel title="ACCESS" icon={<Lock size={18} />}>
+          <SettingRow
+            label="Registration"
+            description="Allow public users to register for available events."
+            value={settings.allowRegistration}
+            onChange={() => toggle("allowRegistration")}
+          />
+
+          <SettingRow
+            label="First admin setup"
+            description="Only keep this enabled while the first owner is being created."
+            value={settings.showAdminSetup}
+            onChange={() => toggle("showAdminSetup")}
+          />
+        </Panel>
+      </div>
+    </div>
+  );
+}
+
+function SettingRow({
+  label,
+  description,
+  value,
+  onChange,
+}: {
+  label: string;
   description: string;
-  action?: React.ReactNode;
+  value: boolean;
+  onChange: () => void;
 }) {
   return (
-    <div className="tg-section-header">
+    <div className="tg-setting-row">
       <div>
-        <div className="tg-overline">
-          <span />
-          {eyebrow}
+        <strong>{label}</strong>
+        <p>{description}</p>
+      </div>
+
+      <button
+        className={`tg-switch ${value ? "on" : ""}`}
+        onClick={onChange}
+        type="button"
+        aria-label={label}
+      >
+        <span />
+      </button>
+    </div>
+  );
+}
+
+/* =========================================================
+   GENERIC NOT IMPLEMENTED PAGE
+   ========================================================= */
+
+function PlaceholderPage({
+  title,
+  eyebrow,
+  description,
+}: {
+  title: string;
+  eyebrow: string;
+  description: string;
+}) {
+  return (
+    <div className="tg-page">
+      <PageHeading
+        eyebrow={eyebrow}
+        title={title}
+        description={description}
+      />
+
+      <div className="tg-placeholder">
+        <div className="tg-placeholder-icon">
+          <BarChart3 size={32} />
         </div>
 
-        <h2>{title}</h2>
+        <h3>CONTROL MODULE</h3>
 
         <p>
-          {description}
+          This module is connected to the admin navigation and ready
+          for your project data layer.
         </p>
       </div>
-
-      {action && (
-        <div>
-          {action}
-        </div>
-      )}
     </div>
   );
 }
 
-function DashboardStat({
-  icon,
-  label,
-  value,
-  sub,
-  onClick,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: number | string;
-  sub: string;
-  onClick?: () => void;
-}) {
+/* =========================================================
+   ADMIN APP
+   ========================================================= */
+
+export default function Admin() {
+  const [initialized, setInitialized] = useState<boolean>(() =>
+    readStorage(STORAGE.initialized, false)
+  );
+
+  const [sessionId, setSessionId] = useState<string | null>(() =>
+    readStorage<string | null>(STORAGE.session, null)
+  );
+
+  const [admins, setAdmins] = useState<AdminUser[]>(() =>
+    readStorage(STORAGE.admins, DEFAULT_ADMINS)
+  );
+
+  const [invites, setInvites] = useState<Invite[]>(() =>
+    readStorage(STORAGE.invites, [])
+  );
+
+  const [tournaments, setTournaments] = useState<Tournament[]>(
+    () => readStorage(STORAGE.tournaments, DEFAULT_TOURNAMENTS)
+  );
+
+  const [matches, setMatches] = useState<Match[]>(() =>
+    readStorage(STORAGE.matches, DEFAULT_MATCHES)
+  );
+
+  const [teams, setTeams] = useState<Team[]>(() =>
+    readStorage(STORAGE.teams, DEFAULT_TEAMS)
+  );
+
+  const [players, setPlayers] = useState<Player[]>(() =>
+    readStorage(STORAGE.players, DEFAULT_PLAYERS)
+  );
+
+  const [content, setContent] = useState<SiteContent>(() =>
+    readStorage(STORAGE.content, DEFAULT_CONTENT)
+  );
+
+  const [settings, setSettings] = useState<SiteSettings>(() =>
+    readStorage(STORAGE.settings, DEFAULT_SETTINGS)
+  );
+
+  const [activities, setActivities] = useState<ActivityItem[]>(
+    () => readStorage(STORAGE.activity, [])
+  );
+
+  const [section, setSection] = useState<Section>("dashboard");
+  const [mobileSidebar, setMobileSidebar] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  /* =======================================================
+     PERSIST EVERYTHING
+     ======================================================= */
+
+  useEffect(() => {
+    writeStorage(STORAGE.initialized, initialized);
+  }, [initialized]);
+
+  useEffect(() => {
+    writeStorage(STORAGE.admins, admins);
+  }, [admins]);
+
+  useEffect(() => {
+    writeStorage(STORAGE.invites, invites);
+  }, [invites]);
+
+  useEffect(() => {
+    writeStorage(STORAGE.tournaments, tournaments);
+  }, [tournaments]);
+
+  useEffect(() => {
+    writeStorage(STORAGE.matches, matches);
+  }, [matches]);
+
+  useEffect(() => {
+    writeStorage(STORAGE.teams, teams);
+  }, [teams]);
+
+  useEffect(() => {
+    writeStorage(STORAGE.players, players);
+  }, [players]);
+
+  useEffect(() => {
+    writeStorage(STORAGE.content, content);
+  }, [content]);
+
+  useEffect(() => {
+    writeStorage(STORAGE.settings, settings);
+  }, [settings]);
+
+  useEffect(() => {
+    writeStorage(STORAGE.activity, activities);
+  }, [activities]);
+
+  /* =======================================================
+     CURRENT ADMIN
+     ======================================================= */
+
+  const currentAdmin = useMemo(() => {
+    if (!sessionId) return null;
+
+    return admins.find((admin) => admin.id === sessionId) || null;
+  }, [admins, sessionId]);
+
+  /* =======================================================
+     ACTIVITY LOGGER
+     ======================================================= */
+
+  function log(action: string, description: string) {
+    const adminName = currentAdmin?.name || "System";
+
+    const activity: ActivityItem = {
+      id: makeId("activity"),
+      action,
+      description,
+      admin: adminName,
+      createdAt: now(),
+    };
+
+    setActivities((current) => [activity, ...current].slice(0, 200));
+  }
+
+  /* =======================================================
+     INITIAL OWNER CREATION
+     ======================================================= */
+
+  function createOwner(
+    name: string,
+    email: string,
+    password: string
+  ) {
+    /*
+      Demo password storage.
+
+      IMPORTANT:
+      For production, replace this with real authentication.
+      Never store plaintext passwords in production.
+    */
+
+    const owner: AdminUser & { password?: string } = {
+      id: makeId("admin"),
+      name,
+      email,
+      role: "owner",
+      active: true,
+      createdAt: now(),
+      lastLogin: now(),
+      password,
+    };
+
+    const nextAdmins = [owner];
+
+    setAdmins(nextAdmins);
+
+    writeStorage(STORAGE.admins, nextAdmins);
+
+    setInitialized(true);
+
+    setSessionId(owner.id);
+
+    writeStorage(STORAGE.session, owner.id);
+
+    const activity: ActivityItem = {
+      id: makeId("activity"),
+      action: "Owner created",
+      description: `${email} became the first admin owner.`,
+      admin: name,
+      createdAt: now(),
+    };
+
+    setActivities([activity]);
+  }
+
+  /* =======================================================
+     LOGIN
+     ======================================================= */
+
+  function login(email: string, password: string) {
+    const storedAdmins = readStorage<
+      (AdminUser & { password?: string })[]
+    >(STORAGE.admins, []);
+
+    const admin = storedAdmins.find(
+      (item) =>
+        item.email.toLowerCase() === email.toLowerCase() &&
+        item.password === password &&
+        item.active
+    );
+
+    if (!admin) {
+      window.alert("Invalid email, password or disabled account.");
+      return;
+    }
+
+    const updated = storedAdmins.map((item) =>
+      item.id === admin.id
+        ? { ...item, lastLogin: now() }
+        : item
+    );
+
+    setAdmins(updated);
+    setSessionId(admin.id);
+
+    writeStorage(STORAGE.session, admin.id);
+
+    setSection("dashboard");
+
+    const activity: ActivityItem = {
+      id: makeId("activity"),
+      action: "Admin login",
+      description: `${admin.email} signed into the admin panel.`,
+      admin: admin.name,
+      createdAt: now(),
+    };
+
+    setActivities((current) => [activity, ...current]);
+  }
+
+  /* =======================================================
+     LOGOUT
+     ======================================================= */
+
+  function logout() {
+    if (currentAdmin) {
+      log(
+        "Admin logout",
+        `${currentAdmin.email} signed out.`
+      );
+    }
+
+    localStorage.removeItem(STORAGE.session);
+    setSessionId(null);
+  }
+
+  /* =======================================================
+     REFRESH
+     ======================================================= */
+
+  function refresh() {
+    setRefreshKey((value) => value + 1);
+  }
+
+  /* =======================================================
+     AUTH FLOW
+     ======================================================= */
+
+  if (!initialized || admins.length === 0) {
+    return (
+      <>
+        <AdminStyles />
+
+        <SetupScreen onComplete={createOwner} />
+      </>
+    );
+  }
+
+  if (!currentAdmin) {
+    return (
+      <>
+        <AdminStyles />
+
+        <LoginScreen onLogin={login} />
+      </>
+    );
+  }
+
+  /* =======================================================
+     PAGE
+     ======================================================= */
+
+  function renderPage() {
+    switch (section) {
+      case "dashboard":
+        return (
+          <Dashboard
+            tournaments={tournaments}
+            matches={matches}
+            teams={teams}
+            players={players}
+            admins={admins}
+            activities={activities}
+            onNavigate={setSection}
+          />
+        );
+
+      case "tournaments":
+        return (
+          <TournamentsPage
+            tournaments={tournaments}
+            setTournaments={setTournaments}
+            log={log}
+          />
+        );
+
+      case "matches":
+        return (
+          <MatchesPage
+            matches={matches}
+            setMatches={setMatches}
+            tournaments={tournaments}
+            log={log}
+          />
+        );
+
+      case "teams":
+        return (
+          <TeamsPage
+            teams={teams}
+            setTeams={setTeams}
+            log={log}
+          />
+        );
+
+      case "players":
+        return (
+          <PlayersPage
+            players={players}
+            setPlayers={setPlayers}
+            teams={teams}
+            log={log}
+          />
+        );
+
+      case "official":
+        return (
+          <OfficialPage
+            tournaments={tournaments}
+            setTournaments={setTournaments}
+            log={log}
+          />
+        );
+
+      case "scrims":
+        return (
+          <ScrimsPage
+            tournaments={tournaments}
+            setTournaments={setTournaments}
+            log={log}
+          />
+        );
+
+      case "content":
+        return (
+          <ContentPage
+            content={content}
+            setContent={setContent}
+            log={log}
+          />
+        );
+
+      case "admins":
+        return (
+          <AdminsPage
+            admins={admins}
+            setAdmins={setAdmins}
+            invites={invites}
+            setInvites={setInvites}
+            currentAdmin={currentAdmin}
+            log={log}
+          />
+        );
+
+      case "activity":
+        return <ActivityPage activities={activities} />;
+
+      case "settings":
+        return (
+          <SettingsPage
+            settings={settings}
+            setSettings={setSettings}
+            log={log}
+          />
+        );
+
+      default:
+        return null;
+    }
+  }
+
   return (
-    <button
-      className="tg-dashboard-stat"
-      onClick={onClick}
-    >
-      <div className="tg-stat-icon">
-        {icon}
+    <>
+      <AdminStyles />
+
+      <div className="tg-admin-app" key={refreshKey}>
+        <Sidebar
+          section={section}
+          setSection={setSection}
+          currentAdmin={currentAdmin}
+          mobileOpen={mobileSidebar}
+          onClose={() => setMobileSidebar(false)}
+          onLogout={logout}
+        />
+
+        <main className="tg-main">
+          <Topbar
+            title={
+              section === "dashboard"
+                ? "COMMAND CENTER"
+                : section.replace("-", " ").toUpperCase()
+            }
+            subtitle="TOTAL GAMING HUB / ADMIN"
+            onMenu={() => setMobileSidebar(true)}
+            onRefresh={refresh}
+          />
+
+          <div className="tg-content">{renderPage()}</div>
+        </main>
       </div>
-
-      <span>{label}</span>
-
-      <strong>{value}</strong>
-
-      <small>{sub}</small>
-
-      <ChevronRight
-        className="stat-arrow"
-        size={17}
-      />
-    </button>
+    </>
   );
 }
 
-function PanelTitle({
-  title,
-  icon,
-}: {
-  title: string;
-  icon: React.ReactNode;
-}) {
+/* =========================================================
+   ADMIN STYLES
+   ========================================================= */
+
+function AdminStyles() {
   return (
-    <div className="tg-panel-title">
-      <div>
-        {icon}
-        <span>{title}</span>
-      </div>
+    <style>{`
+      * {
+        box-sizing: border-box;
+      }
 
-      <MoreHorizontal
-        size={19}
-      />
-    </div>
+      :root {
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+
+        color-scheme: dark;
+      }
+
+      html,
+      body,
+      #root {
+        margin: 0;
+        min-height: 100%;
+        width: 100%;
+      }
+
+      body {
+        background: #07070c;
+        color: #f6f4fa;
+      }
+
+      button,
+      input,
+      textarea,
+      select {
+        font: inherit;
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      .tg-admin-app {
+        min-height: 100vh;
+        background:
+          radial-gradient(
+            circle at 80% 0%,
+            rgba(126, 44, 255, 0.13),
+            transparent 30%
+          ),
+          radial-gradient(
+            circle at 10% 100%,
+            rgba(0, 188, 255, 0.06),
+            transparent 28%
+          ),
+          #07070c;
+      }
+
+      .tg-admin-app::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0.22;
+        background-image:
+          linear-gradient(
+            rgba(255,255,255,0.025) 1px,
+            transparent 1px
+          ),
+          linear-gradient(
+            90deg,
+            rgba(255,255,255,0.025) 1px,
+            transparent 1px
+          );
+        background-size: 42px 42px;
+      }
+
+      /* SIDEBAR */
+
+      .tg-sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 258px;
+        z-index: 50;
+        display: flex;
+        flex-direction: column;
+        background: rgba(10, 9, 16, 0.97);
+        border-right: 1px solid rgba(255,255,255,0.08);
+        backdrop-filter: blur(20px);
+      }
+
+      .tg-sidebar-brand {
+        min-height: 84px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 0 20px;
+        border-bottom: 1px solid rgba(255,255,255,0.07);
+      }
+
+      .tg-mini-logo,
+      .tg-auth-logo {
+        display: grid;
+        place-items: center;
+        flex: 0 0 auto;
+        border: 1px solid rgba(180, 93, 255, 0.55);
+        background:
+          linear-gradient(
+            145deg,
+            rgba(140, 38, 255, 0.32),
+            rgba(255, 193, 52, 0.09)
+          );
+        box-shadow:
+          0 0 28px rgba(141, 43, 255, 0.18);
+      }
+
+      .tg-mini-logo {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+      }
+
+      .tg-sidebar-brand strong,
+      .tg-auth-brand strong {
+        display: block;
+        font-size: 13px;
+        letter-spacing: 1.5px;
+      }
+
+      .tg-sidebar-brand span,
+      .tg-auth-brand span {
+        display: block;
+        margin-top: 4px;
+        color: #777583;
+        font-size: 9px;
+        letter-spacing: 2.3px;
+      }
+
+      .tg-sidebar-section-label {
+        padding: 25px 20px 10px;
+        color: #5f5d69;
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 2.4px;
+      }
+
+      .tg-sidebar-nav {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        padding: 0 11px;
+        overflow-y: auto;
+      }
+
+      .tg-nav-item {
+        width: 100%;
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 12px;
+        color: #85828e;
+        border: 1px solid transparent;
+        background: transparent;
+        border-radius: 10px;
+        text-align: left;
+        transition: 0.18s ease;
+      }
+
+      .tg-nav-item:hover {
+        color: #fff;
+        background: rgba(255,255,255,0.035);
+      }
+
+      .tg-nav-item.active {
+        color: #fff;
+        border-color: rgba(166, 72, 255, 0.26);
+        background:
+          linear-gradient(
+            90deg,
+            rgba(130, 31, 255, 0.17),
+            rgba(255,255,255,0.025)
+          );
+      }
+
+      .tg-nav-item.active::before {
+        content: "";
+        position: absolute;
+        left: -11px;
+        top: 7px;
+        bottom: 7px;
+        width: 3px;
+        border-radius: 0 3px 3px 0;
+        background: linear-gradient(
+          #bd70ff,
+          #ffca38
+        );
+      }
+
+      .tg-nav-item svg {
+        flex: 0 0 auto;
+      }
+
+      .tg-nav-arrow {
+        margin-left: auto;
+      }
+
+      .tg-sidebar-bottom {
+        margin-top: auto;
+        padding: 14px;
+        border-top: 1px solid rgba(255,255,255,0.07);
+      }
+
+      .tg-admin-mini {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        padding: 9px;
+        border-radius: 10px;
+        background: rgba(255,255,255,0.025);
+      }
+
+      .tg-admin-avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background:
+          linear-gradient(
+            145deg,
+            #8e31ff,
+            #302038
+          );
+        color: #fff;
+        font-weight: 800;
+      }
+
+      .tg-admin-avatar.large {
+        width: 44px;
+        height: 44px;
+      }
+
+      .tg-admin-mini-info {
+        min-width: 0;
+      }
+
+      .tg-admin-mini-info strong,
+      .tg-admin-mini-info span {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .tg-admin-mini-info strong {
+        font-size: 12px;
+      }
+
+      .tg-admin-mini-info span {
+        margin-top: 3px;
+        color: #8d8997;
+        font-size: 9px;
+        letter-spacing: 1.4px;
+      }
+
+      .tg-logout-button {
+        width: 100%;
+        margin-top: 9px;
+        padding: 10px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        color: #8d8997;
+        border: 1px solid rgba(255,255,255,0.07);
+        border-radius: 9px;
+        background: transparent;
+      }
+
+      .tg-logout-button:hover {
+        color: #fff;
+        border-color: rgba(255,255,255,0.15);
+      }
+
+      .tg-mobile-close,
+      .tg-mobile-menu {
+        display: none;
+      }
+
+      /* MAIN */
+
+      .tg-main {
+        min-height: 100vh;
+        margin-left: 258px;
+      }
+
+      .tg-topbar {
+        height: 84px;
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        padding: 0 30px;
+        background: rgba(7,7,12,0.84);
+        border-bottom: 1px solid rgba(255,255,255,0.07);
+        backdrop-filter: blur(20px);
+      }
+
+      .tg-topbar-title {
+        min-width: 0;
+      }
+
+      .tg-topbar-title span {
+        color: #5f5d69;
+        font-size: 9px;
+        letter-spacing: 2px;
+      }
+
+      .tg-topbar-title h1 {
+        margin: 4px 0 0;
+        font-size: 21px;
+        letter-spacing: 0.8px;
+      }
+
+      .tg-topbar-actions {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+
+      .tg-live-indicator {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin-right: 5px;
+        padding: 7px 10px;
+        border: 1px solid rgba(35,220,157,0.18);
+        border-radius: 6px;
+        color: #44dfa7;
+        background: rgba(35,220,157,0.045);
+        font-size: 8px;
+        font-weight: 800;
+        letter-spacing: 1.5px;
+      }
+
+      .tg-live-indicator span {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #35dfa2;
+        box-shadow: 0 0 10px #35dfa2;
+      }
+
+      .tg-icon-button {
+        width: 37px;
+        height: 37px;
+        display: grid;
+        place-items: center;
+        color: #8b8794;
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 9px;
+        background: rgba(255,255,255,0.025);
+      }
+
+      .tg-icon-button:hover {
+        color: #fff;
+        border-color: rgba(173,76,255,0.4);
+      }
+
+      .tg-content {
+        position: relative;
+        z-index: 1;
+        max-width: 1500px;
+        margin: 0 auto;
+        padding: 34px 30px 70px;
+      }
+
+      /* PAGE */
+
+      .tg-page {
+        animation: tgFadeIn 0.22s ease;
+      }
+
+      @keyframes tgFadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(4px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .tg-page-heading,
+      .tg-page-intro {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 20px;
+        margin-bottom: 28px;
+      }
+
+      .tg-eyebrow {
+        margin-bottom: 8px;
+        color: #ae63ff;
+        font-size: 9px;
+        font-weight: 900;
+        letter-spacing: 2.5px;
+      }
+
+      .tg-page-heading h2,
+      .tg-page-intro h2 {
+        margin: 0;
+        font-size: clamp(27px, 4vw, 43px);
+        line-height: 1;
+        letter-spacing: -1px;
+      }
+
+      .tg-page-heading p,
+      .tg-page-intro p {
+        max-width: 700px;
+        margin: 10px 0 0;
+        color: #797582;
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      /* BUTTONS */
+
+      .tg-primary-button,
+      .tg-secondary-button,
+      .tg-danger-button {
+        min-height: 39px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 0 15px;
+        border-radius: 8px;
+        font-size: 10px;
+        font-weight: 900;
+        letter-spacing: 1.1px;
+        transition: 0.18s ease;
+      }
+
+      .tg-primary-button {
+        color: #fff;
+        border: 1px solid rgba(192,111,255,0.7);
+        background:
+          linear-gradient(
+            110deg,
+            #7f25ed,
+            #b84cff
+          );
+        box-shadow:
+          0 8px 28px rgba(129,35,239,0.22);
+      }
+
+      .tg-primary-button:hover {
+        transform: translateY(-1px);
+        box-shadow:
+          0 11px 35px rgba(129,35,239,0.32);
+      }
+
+      .tg-secondary-button {
+        color: #aaa5b2;
+        border: 1px solid rgba(255,255,255,0.11);
+        background: rgba(255,255,255,0.035);
+      }
+
+      .tg-secondary-button:hover {
+        color: #fff;
+        border-color: rgba(180,90,255,0.4);
+      }
+
+      .tg-danger-button {
+        color: #ff707b;
+        border: 1px solid rgba(255,90,104,0.2);
+        background: rgba(255,70,90,0.055);
+      }
+
+      .tg-danger-button:hover {
+        color: #fff;
+        background: rgba(255,70,90,0.13);
+      }
+
+      .tg-full-button {
+        width: 100%;
+      }
+
+      .tg-text-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        color: #a866ff;
+        border: 0;
+        background: transparent;
+        font-size: 9px;
+        font-weight: 900;
+        letter-spacing: 1.3px;
+      }
+
+      /* BADGES */
+
+      .tg-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: fit-content;
+        padding: 6px 9px;
+        border-radius: 5px;
+        border: 1px solid rgba(255,255,255,0.09);
+        background: rgba(255,255,255,0.035);
+        color: #aaa6b1;
+        font-size: 8px;
+        font-weight: 900;
+        letter-spacing: 1.2px;
+      }
+
+      .tg-badge-live {
+        color: #39dfa4;
+        border-color: rgba(39,220,157,0.22);
+        background: rgba(39,220,157,0.065);
+      }
+
+      .tg-badge-warning {
+        color: #f7c94d;
+        border-color: rgba(247,201,77,0.25);
+        background: rgba(247,201,77,0.06);
+      }
+
+      .tg-badge-success {
+        color: #69dca7;
+        border-color: rgba(105,220,167,0.2);
+        background: rgba(105,220,167,0.05);
+      }
+
+      .tg-badge-danger {
+        color: #ff737d;
+        border-color: rgba(255,115,125,0.2);
+        background: rgba(255,115,125,0.05);
+      }
+
+      .tg-badge-blue {
+        color: #46bfff;
+        border-color: rgba(70,191,255,0.2);
+        background: rgba(70,191,255,0.05);
+      }
+
+      /* STATS */
+
+      .tg-stat-grid {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 11px;
+        margin-bottom: 14px;
+      }
+
+      .tg-stat-card {
+        position: relative;
+        min-height: 145px;
+        padding: 20px;
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.08);
+        background:
+          linear-gradient(
+            145deg,
+            rgba(255,255,255,0.045),
+            rgba(255,255,255,0.012)
+          );
+      }
+
+      .tg-stat-card::after {
+        content: "";
+        position: absolute;
+        right: -30px;
+        bottom: -50px;
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        background: rgba(157,67,255,0.12);
+        filter: blur(25px);
+      }
+
+      .tg-stat-accent {
+        border-color: rgba(176,83,255,0.28);
+      }
+
+      .tg-stat-icon {
+        color: #89848f;
+        margin-bottom: 17px;
+      }
+
+      .tg-stat-accent .tg-stat-icon {
+        color: #ba70ff;
+      }
+
+      .tg-stat-label {
+        color: #65616c;
+        font-size: 8px;
+        font-weight: 900;
+        letter-spacing: 1.8px;
+      }
+
+      .tg-stat-value {
+        margin-top: 5px;
+        font-size: 32px;
+        font-weight: 900;
+      }
+
+      /* PANELS */
+
+      .tg-panel {
+        margin-bottom: 14px;
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(13,13,20,0.76);
+      }
+
+      .tg-panel-header {
+        min-height: 58px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        padding: 0 19px;
+        border-bottom: 1px solid rgba(255,255,255,0.065);
+      }
+
+      .tg-panel-title {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        color: #f0edf4;
+        font-size: 10px;
+        font-weight: 900;
+        letter-spacing: 1.5px;
+      }
+
+      .tg-panel-title svg {
+        color: #ae62ff;
+      }
+
+      .tg-panel-body {
+        padding: 18px;
+      }
+
+      .tg-dashboard-columns {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+
+      /* LISTS */
+
+      .tg-list-row {
+        min-height: 64px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        border-bottom: 1px solid rgba(255,255,255,0.055);
+      }
+
+      .tg-list-row:last-child {
+        border-bottom: 0;
+      }
+
+      .tg-list-icon {
+        width: 37px;
+        height: 37px;
+        display: grid;
+        place-items: center;
+        border-radius: 8px;
+      }
+
+      .tg-list-icon.purple {
+        color: #bc70ff;
+        background: rgba(160,60,255,0.09);
+      }
+
+      .tg-list-content {
+        min-width: 0;
+        flex: 1;
+      }
+
+      .tg-list-content strong,
+      .tg-list-content span {
+        display: block;
+      }
+
+      .tg-list-content strong {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 12px;
+      }
+
+      .tg-list-content span {
+        margin-top: 5px;
+        color: #65616d;
+        font-size: 9px;
+        letter-spacing: 0.5px;
+      }
+
+      .tg-activity-row {
+        min-height: 66px;
+        display: flex;
+        gap: 11px;
+        padding: 9px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.055);
+      }
+
+      .tg-activity-row:last-child {
+        border-bottom: 0;
+      }
+
+      .tg-activity-dot {
+        width: 7px;
+        height: 7px;
+        margin-top: 6px;
+        flex: 0 0 auto;
+        border-radius: 50%;
+        background: #a64fff;
+        box-shadow: 0 0 11px rgba(166,79,255,0.7);
+      }
+
+      .tg-activity-row strong,
+      .tg-activity-row span,
+      .tg-activity-row small {
+        display: block;
+      }
+
+      .tg-activity-row strong {
+        font-size: 11px;
+      }
+
+      .tg-activity-row span {
+        margin-top: 4px;
+        color: #76727d;
+        font-size: 10px;
+      }
+
+      .tg-activity-row small {
+        margin-top: 5px;
+        color: #4f4c56;
+        font-size: 8px;
+      }
+
+      /* QUICK */
+
+      .tg-quick-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 9px;
+      }
+
+      .tg-quick-action {
+        min-height: 68px;
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        padding: 0 15px;
+        color: #8d8995;
+        border: 1px solid rgba(255,255,255,0.07);
+        background: rgba(255,255,255,0.018);
+        text-align: left;
+      }
+
+      .tg-quick-action:hover {
+        color: #fff;
+        border-color: rgba(171,76,255,0.34);
+      }
+
+      .tg-quick-action span {
+        flex: 1;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+      }
+
+      /* TOOLBAR */
+
+      .tg-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+
+      .tg-search {
+        flex: 1;
+        max-width: 470px;
+        height: 42px;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 0 13px;
+        color: #66626d;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(255,255,255,0.025);
+      }
+
+      .tg-search input {
+        width: 100%;
+        outline: 0;
+        color: #fff;
+        border: 0;
+        background: transparent;
+        font-size: 11px;
+      }
+
+      .tg-search input::placeholder {
+        color: #55525d;
+      }
+
+      .tg-toolbar-count {
+        color: #68646f;
+        font-size: 9px;
+        font-weight: 900;
+        letter-spacing: 1.3px;
+      }
+
+      /* TABLE */
+
+      .tg-table-wrap {
+        overflow-x: auto;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(13,13,20,0.76);
+      }
+
+      .tg-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 850px;
+      }
+
+      .tg-table th {
+        padding: 13px 15px;
+        color: #5d5964;
+        border-bottom: 1px solid rgba(255,255,255,0.07);
+        background: rgba(255,255,255,0.018);
+        font-size: 8px;
+        text-align: left;
+        letter-spacing: 1.5px;
+      }
+
+      .tg-table td {
+        padding: 14px 15px;
+        color: #aaa6b1;
+        border-bottom: 1px solid rgba(255,255,255,0.055);
+        font-size: 10px;
+        vertical-align: middle;
+      }
+
+      .tg-table tbody tr:hover {
+        background: rgba(157,65,255,0.025);
+      }
+
+      .tg-table-main strong,
+      .tg-table-main span {
+        display: block;
+      }
+
+      .tg-table-main strong {
+        color: #f3f0f5;
+        font-size: 11px;
+      }
+
+      .tg-table-main span {
+        max-width: 300px;
+        margin-top: 5px;
+        color: #57535f;
+        font-size: 9px;
+      }
+
+      .tg-table small {
+        color: #5f5b66;
+      }
+
+      .tg-number-highlight {
+        color: #31baff !important;
+        font-weight: 900;
+      }
+
+      .tg-row-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 5px;
+      }
+
+      /* FORM */
+
+      .tg-form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+      }
+
+      .tg-field {
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+      }
+
+      .tg-field-full {
+        grid-column: 1 / -1;
+      }
+
+      .tg-field > span {
+        color: #66626d;
+        font-size: 8px;
+        font-weight: 900;
+        letter-spacing: 1.4px;
+      }
+
+      .tg-field input,
+      .tg-field select,
+      .tg-field textarea {
+        width: 100%;
+        outline: none;
+        color: #eeeaf2;
+        border: 1px solid rgba(255,255,255,0.09);
+        border-radius: 7px;
+        background: #111018;
+        padding: 11px 12px;
+        font-size: 11px;
+      }
+
+      .tg-field input:focus,
+      .tg-field select:focus,
+      .tg-field textarea:focus {
+        border-color: rgba(172,78,255,0.55);
+      }
+
+      .tg-field textarea {
+        min-height: 100px;
+        resize: vertical;
+      }
+
+      .tg-form-error {
+        margin: 10px 0;
+        padding: 10px;
+        color: #ff7c85;
+        border: 1px solid rgba(255,90,100,0.18);
+        background: rgba(255,80,90,0.05);
+        font-size: 10px;
+      }
+
+      /* MATCH */
+
+      .tg-match-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 13px;
+      }
+
+      .tg-match-card {
+        position: relative;
+        padding: 19px;
+        border: 1px solid rgba(255,255,255,0.08);
+        background:
+          linear-gradient(
+            145deg,
+            rgba(255,255,255,0.035),
+            rgba(255,255,255,0.01)
+          );
+      }
+
+      .tg-match-card:hover {
+        border-color: rgba(170,76,255,0.3);
+      }
+
+      .tg-match-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .tg-match-top > span {
+        color: #5c5864;
+        font-size: 10px;
+        font-weight: 900;
+        letter-spacing: 1px;
+      }
+
+      .tg-match-card h3 {
+        margin: 22px 0 5px;
+        font-size: 25px;
+      }
+
+      .tg-match-card > p {
+        margin: 0;
+        color: #67636e;
+        font-size: 10px;
+      }
+
+      .tg-match-info {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        margin-top: 20px;
+        border-top: 1px solid rgba(255,255,255,0.06);
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+      }
+
+      .tg-match-info div {
+        padding: 12px 7px;
+        border-right: 1px solid rgba(255,255,255,0.06);
+      }
+
+      .tg-match-info div:last-child {
+        border-right: 0;
+      }
+
+      .tg-match-info span,
+      .tg-match-info strong {
+        display: block;
+      }
+
+      .tg-match-info span {
+        color: #55515c;
+        font-size: 7px;
+        letter-spacing: 1.2px;
+      }
+
+      .tg-match-info strong {
+        margin-top: 5px;
+        font-size: 10px;
+      }
+
+      .tg-match-score {
+        padding: 17px 0;
+      }
+
+      .tg-match-score span {
+        display: block;
+        color: #5b5762;
+        font-size: 8px;
+        letter-spacing: 1.3px;
+      }
+
+      .tg-match-score strong {
+        display: block;
+        margin-top: 2px;
+        color: #28baff;
+        font-size: 30px;
+      }
+
+      .tg-card-actions {
+        display: flex;
+        gap: 7px;
+      }
+
+      /* TEAMS */
+
+      .tg-team-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 13px;
+      }
+
+      .tg-team-card {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 14px;
+        padding: 18px;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(13,13,20,0.76);
+      }
+
+      .tg-team-logo {
+        width: 66px;
+        height: 66px;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        border: 1px solid rgba(180,85,255,0.25);
+        background: #111018;
+      }
+
+      .tg-team-logo img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+
+      .tg-team-main h3 {
+        margin: 9px 0 2px;
+        font-size: 16px;
+      }
+
+      .tg-team-main > span {
+        color: #625e69;
+        font-size: 9px;
+        letter-spacing: 1.3px;
+      }
+
+      .tg-team-meta {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        padding-top: 13px;
+        border-top: 1px solid rgba(255,255,255,0.06);
+      }
+
+      .tg-team-meta small,
+      .tg-team-meta strong {
+        display: block;
+      }
+
+      .tg-team-meta small {
+        color: #57535e;
+        font-size: 7px;
+        letter-spacing: 1.2px;
+      }
+
+      .tg-team-meta strong {
+        margin-top: 4px;
+        font-size: 10px;
+      }
+
+      .tg-team-card .tg-card-actions {
+        grid-column: 1 / -1;
+      }
+
+      /* PLAYER */
+
+      .tg-player-cell {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .tg-player-avatar {
+        width: 34px;
+        height: 34px;
+        display: grid;
+        place-items: center;
+        color: #d7b4ff;
+        border: 1px solid rgba(177,80,255,0.25);
+        background: rgba(153,57,255,0.09);
+        font-weight: 900;
+      }
+
+      /* CONTROL */
+
+      .tg-control-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 13px;
+      }
+
+      .tg-control-card {
+        padding: 20px;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(13,13,20,0.76);
+      }
+
+      .tg-control-card-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .tg-control-card-top > span {
+        color: #5d5964;
+        font-size: 8px;
+        font-weight: 900;
+        letter-spacing: 1.4px;
+      }
+
+      .tg-control-card h3 {
+        margin: 22px 0 5px;
+        font-size: 20px;
+      }
+
+      .tg-control-card p {
+        color: #6d6974;
+        font-size: 10px;
+        line-height: 1.5;
+      }
+
+      .tg-control-stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        margin: 18px 0;
+        border-top: 1px solid rgba(255,255,255,0.06);
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+      }
+
+      .tg-control-stats div {
+        padding: 14px 4px;
+        border-right: 1px solid rgba(255,255,255,0.06);
+      }
+
+      .tg-control-stats div:last-child {
+        border: 0;
+      }
+
+      .tg-control-stats strong,
+      .tg-control-stats span {
+        display: block;
+      }
+
+      .tg-control-stats strong {
+        font-size: 25px;
+      }
+
+      .tg-control-stats span {
+        margin-top: 3px;
+        color: #57535e;
+        font-size: 7px;
+        letter-spacing: 1.2px;
+      }
+
+      .tg-status-buttons {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 5px;
+      }
+
+      .tg-status-buttons button {
+        padding: 9px 4px;
+        color: #696570;
+        border: 1px solid rgba(255,255,255,0.07);
+        background: rgba(255,255,255,0.018);
+        font-size: 7px;
+        font-weight: 900;
+        letter-spacing: 0.7px;
+      }
+
+      .tg-status-buttons button.selected {
+        color: #fff;
+        border-color: rgba(171,77,255,0.4);
+        background: rgba(151,55,255,0.13);
+      }
+
+      /* CONTENT */
+
+      .tg-content-editor {
+        max-width: 950px;
+      }
+
+      /* ADMIN */
+
+      .tg-security-banner {
+        display: flex;
+        gap: 14px;
+        align-items: center;
+        margin-bottom: 14px;
+        padding: 17px;
+        border: 1px solid rgba(168,75,255,0.18);
+        background: rgba(145,46,255,0.045);
+      }
+
+      .tg-security-icon {
+        width: 42px;
+        height: 42px;
+        display: grid;
+        place-items: center;
+        color: #ba6cff;
+        border: 1px solid rgba(180,84,255,0.25);
+        background: rgba(180,84,255,0.08);
+      }
+
+      .tg-security-banner strong {
+        font-size: 10px;
+        letter-spacing: 1.4px;
+      }
+
+      .tg-security-banner p {
+        margin: 4px 0 0;
+        color: #6e6a75;
+        font-size: 10px;
+      }
+
+      .tg-admin-list,
+      .tg-invite-list {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .tg-admin-row,
+      .tg-invite-row {
+        min-height: 72px;
+        display: flex;
+        align-items: center;
+        gap: 13px;
+        padding: 10px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.055);
+      }
+
+      .tg-admin-row:last-child,
+      .tg-invite-row:last-child {
+        border-bottom: 0;
+      }
+
+      .tg-admin-info {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .tg-admin-info strong,
+      .tg-admin-info span,
+      .tg-admin-info small {
+        display: block;
+      }
+
+      .tg-admin-info strong {
+        font-size: 11px;
+      }
+
+      .tg-admin-info span {
+        margin-top: 3px;
+        color: #77727e;
+        font-size: 10px;
+      }
+
+      .tg-admin-info small {
+        margin-top: 3px;
+        color: #4f4b56;
+        font-size: 8px;
+      }
+
+      .tg-invite-icon {
+        width: 38px;
+        height: 38px;
+        display: grid;
+        place-items: center;
+        color: #a85aff;
+        border: 1px solid rgba(168,90,255,0.2);
+        background: rgba(168,90,255,0.07);
+      }
+
+      .tg-invite-row > div:nth-child(2) {
+        flex: 1;
+      }
+
+      .tg-invite-row strong,
+      .tg-invite-row span {
+        display: block;
+      }
+
+      .tg-invite-row strong {
+        font-size: 11px;
+      }
+
+      .tg-invite-row span {
+        margin-top: 4px;
+        color: #67636d;
+        font-size: 9px;
+      }
+
+      .tg-generated-invite {
+        text-align: center;
+      }
+
+      .tg-generated-icon {
+        width: 58px;
+        height: 58px;
+        margin: 0 auto 13px;
+        display: grid;
+        place-items: center;
+        color: #c071ff;
+        border: 1px solid rgba(190,105,255,0.3);
+        background: rgba(190,105,255,0.08);
+      }
+
+      .tg-generated-invite h3 {
+        margin: 0;
+        font-size: 19px;
+      }
+
+      .tg-generated-invite p {
+        max-width: 500px;
+        margin: 8px auto 17px;
+        color: #706b77;
+        font-size: 10px;
+        line-height: 1.6;
+      }
+
+      .tg-link-box {
+        display: flex;
+        gap: 7px;
+      }
+
+      .tg-link-box input {
+        flex: 1;
+        min-width: 0;
+        color: #a9a3b0;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: #0d0c12;
+        padding: 0 10px;
+        font-size: 10px;
+      }
+
+      .tg-invite-warning {
+        margin-top: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        color: #6e6974;
+        font-size: 8px;
+      }
+
+      /* SETTINGS */
+
+      .tg-settings-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+
+      .tg-setting-row {
+        min-height: 76px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 10px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.055);
+      }
+
+      .tg-setting-row:last-child {
+        border-bottom: 0;
+      }
+
+      .tg-setting-row > div {
+        flex: 1;
+      }
+
+      .tg-setting-row strong {
+        font-size: 11px;
+      }
+
+      .tg-setting-row p {
+        margin: 4px 0 0;
+        color: #65616c;
+        font-size: 9px;
+        line-height: 1.5;
+      }
+
+      .tg-switch {
+        width: 43px;
+        height: 24px;
+        padding: 2px;
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 99px;
+        background: #17151d;
+      }
+
+      .tg-switch span {
+        display: block;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #67626d;
+        transition: 0.18s ease;
+      }
+
+      .tg-switch.on {
+        border-color: rgba(174,78,255,0.45);
+        background: rgba(142,42,255,0.22);
+      }
+
+      .tg-switch.on span {
+        transform: translateX(18px);
+        background: #bd6cff;
+        box-shadow: 0 0 12px rgba(189,108,255,0.55);
+      }
+
+      /* AUDIT */
+
+      .tg-audit-list {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .tg-audit-row {
+        display: flex;
+        gap: 14px;
+        padding: 14px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.055);
+      }
+
+      .tg-audit-row:last-child {
+        border-bottom: 0;
+      }
+
+      .tg-audit-marker {
+        width: 37px;
+        height: 37px;
+        display: grid;
+        place-items: center;
+        flex: 0 0 auto;
+        color: #a85aff;
+        border: 1px solid rgba(168,90,255,0.2);
+        background: rgba(168,90,255,0.07);
+      }
+
+      .tg-audit-content strong {
+        font-size: 11px;
+      }
+
+      .tg-audit-content p {
+        margin: 4px 0;
+        color: #76717c;
+        font-size: 10px;
+      }
+
+      .tg-audit-content span {
+        color: #4e4a55;
+        font-size: 8px;
+      }
+
+      /* EMPTY */
+
+      .tg-empty {
+        min-height: 220px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 25px;
+        color: #55515c;
+        text-align: center;
+      }
+
+      .tg-empty h3 {
+        margin: 12px 0 4px;
+        color: #aaa5b0;
+        font-size: 12px;
+        letter-spacing: 1px;
+      }
+
+      .tg-empty p {
+        max-width: 390px;
+        margin: 0 0 14px;
+        color: #5d5964;
+        font-size: 9px;
+        line-height: 1.5;
+      }
+
+      /* PLACEHOLDER */
+
+      .tg-placeholder {
+        min-height: 380px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(13,13,20,0.7);
+      }
+
+      .tg-placeholder-icon {
+        width: 66px;
+        height: 66px;
+        display: grid;
+        place-items: center;
+        color: #b065ff;
+        border: 1px solid rgba(176,101,255,0.24);
+        background: rgba(176,101,255,0.07);
+      }
+
+      .tg-placeholder h3 {
+        margin: 18px 0 6px;
+        font-size: 15px;
+        letter-spacing: 1.3px;
+      }
+
+      .tg-placeholder p {
+        max-width: 480px;
+        color: #68636e;
+        font-size: 10px;
+        line-height: 1.6;
+      }
+
+      /* MODAL */
+
+      .tg-modal-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        display: grid;
+        place-items: center;
+        padding: 20px;
+        background: rgba(0,0,0,0.7);
+        backdrop-filter: blur(8px);
+      }
+
+      .tg-modal {
+        width: min(720px, 100%);
+        max-height: 90vh;
+        overflow-y: auto;
+        border: 1px solid rgba(184,89,255,0.24);
+        background: #0e0d14;
+        box-shadow: 0 30px 100px rgba(0,0,0,0.55);
+      }
+
+      .tg-modal-header {
+        min-height: 62px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 19px;
+        border-bottom: 1px solid rgba(255,255,255,0.07);
+      }
+
+      .tg-modal-header h2 {
+        margin: 0;
+        font-size: 15px;
+        letter-spacing: 1px;
+      }
+
+      .tg-modal-body {
+        padding: 20px;
+      }
+
+      .tg-modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        padding: 13px 19px;
+        border-top: 1px solid rgba(255,255,255,0.07);
+      }
+
+      /* AUTH */
+
+      .tg-auth-page {
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        position: relative;
+        overflow: hidden;
+        padding: 25px;
+        background:
+          radial-gradient(
+            circle at 50% 20%,
+            rgba(142,43,255,0.16),
+            transparent 35%
+          ),
+          #07070c;
+      }
+
+      .tg-auth-grid {
+        position: absolute;
+        inset: 0;
+        opacity: 0.24;
+        background-image:
+          linear-gradient(
+            rgba(255,255,255,0.025) 1px,
+            transparent 1px
+          ),
+          linear-gradient(
+            90deg,
+            rgba(255,255,255,0.025) 1px,
+            transparent 1px
+          );
+        background-size: 42px 42px;
+      }
+
+      .tg-auth-card {
+        position: relative;
+        width: min(470px, 100%);
+        padding: 28px;
+        border: 1px solid rgba(177,82,255,0.25);
+        background: rgba(13,12,19,0.92);
+        box-shadow:
+          0 35px 100px rgba(0,0,0,0.5),
+          0 0 70px rgba(128,38,235,0.08);
+      }
+
+      .tg-auth-brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 35px;
+      }
+
+      .tg-auth-logo {
+        width: 51px;
+        height: 51px;
+        border-radius: 13px;
+      }
+
+      .tg-auth-heading {
+        margin-bottom: 22px;
+      }
+
+      .tg-auth-heading h1 {
+        margin: 15px 0 8px;
+        font-size: 31px;
+        letter-spacing: -0.8px;
+      }
+
+      .tg-auth-heading p {
+        margin: 0;
+        color: #6c6873;
+        font-size: 10px;
+        line-height: 1.6;
+      }
+
+      .tg-auth-card form {
+        display: flex;
+        flex-direction: column;
+        gap: 13px;
+      }
+
+      .tg-auth-card .tg-primary-button {
+        margin-top: 6px;
+        min-height: 45px;
+      }
+
+      .tg-auth-note {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        margin-top: 20px;
+        color: #504c57;
+        font-size: 8px;
+        letter-spacing: 0.5px;
+      }
+
+      /* MOBILE */
+
+      @media (max-width: 1200px) {
+        .tg-stat-grid {
+          grid-template-columns: repeat(3, 1fr);
+        }
+
+        .tg-team-grid,
+        .tg-control-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+
+        .tg-match-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      @media (max-width: 850px) {
+        .tg-sidebar {
+          transform: translateX(-100%);
+          transition: transform 0.2s ease;
+          box-shadow: 20px 0 50px rgba(0,0,0,0.35);
+        }
+
+        .tg-sidebar.open {
+          transform: translateX(0);
+        }
+
+        .tg-sidebar-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 45;
+          background: rgba(0,0,0,0.65);
+        }
+
+        .tg-mobile-close {
+          display: grid;
+          place-items: center;
+          margin-left: auto;
+          color: #77737e;
+          border: 0;
+          background: transparent;
+        }
+
+        .tg-main {
+          margin-left: 0;
+        }
+
+        .tg-mobile-menu {
+          width: 39px;
+          height: 39px;
+          display: grid;
+          place-items: center;
+          color: #aaa6b1;
+          border: 1px solid rgba(255,255,255,0.08);
+          background: rgba(255,255,255,0.025);
+        }
+
+        .tg-topbar {
+          padding: 0 15px;
+        }
+
+        .tg-content {
+          padding: 24px 15px 50px;
+        }
+
+        .tg-live-indicator {
+          display: none;
+        }
+
+        .tg-dashboard-columns,
+        .tg-settings-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .tg-quick-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      @media (max-width: 620px) {
+        .tg-page-heading,
+        .tg-page-intro {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .tg-page-heading > .tg-primary-button,
+        .tg-page-intro > .tg-secondary-button {
+          width: 100%;
+        }
+
+        .tg-stat-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+
+        .tg-team-grid,
+        .tg-control-grid,
+        .tg-match-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .tg-form-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .tg-field-full {
+          grid-column: auto;
+        }
+
+        .tg-admin-row {
+          flex-wrap: wrap;
+        }
+
+        .tg-admin-row .tg-admin-info {
+          min-width: calc(100% - 60px);
+        }
+
+        .tg-invite-row {
+          align-items: flex-start;
+          flex-wrap: wrap;
+        }
+
+        .tg-invite-row .tg-secondary-button {
+          width: 100%;
+        }
+
+        .tg-link-box {
+          flex-direction: column;
+        }
+
+        .tg-link-box input {
+          min-height: 42px;
+        }
+
+        .tg-quick-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .tg-topbar-title h1 {
+          font-size: 16px;
+        }
+
+        .tg-auth-card {
+          padding: 21px;
+        }
+      }
+    `}</style>
   );
 }
-
-function QuickAction({
-  label,
-  icon,
-  onClick,
-}: {
-  label: string;
-  icon: React.ReactNode;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      className="tg-quick-action"
-      onClick={onClick}
-    >
-      {icon}
-      <span>{label}</span>
-      <ChevronRight size={16} />
-    </button>
-  );
-}
-
-function StatusBadge
