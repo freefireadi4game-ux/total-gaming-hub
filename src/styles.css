@@ -2131,3 +2131,394 @@ button {
     font-size: 26px;
   }
 }
+/* =========================================================
+   CURRENT TOURNAMENT — HERO CONTROL PANEL
+   ========================================================= */
+
+.tg-current-tournament {
+  position: relative;
+  z-index: 4;
+
+  margin-top: 42px;
+  padding: 26px 28px 22px;
+
+  border: 1px solid rgba(255,255,255,0.10);
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(20,15,35,0.68),
+      rgba(5,7,12,0.42)
+    );
+
+  backdrop-filter: blur(10px);
+
+  clip-path:
+    polygon(
+      0 0,
+      98% 0,
+      100% 14%,
+      100% 100%,
+      2% 100%,
+      0 86%
+    );
+
+  box-shadow:
+    0 25px 80px rgba(0,0,0,0.28);
+}
+
+.tg-current-tournament::before {
+  content: "";
+
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  width: 180px;
+  height: 2px;
+
+  background:
+    linear-gradient(
+      90deg,
+      var(--accent),
+      var(--cyan),
+      var(--yellow)
+    );
+}
+
+.tg-current-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 20px;
+}
+
+.tg-current-kicker {
+  display: block;
+
+  font-family: var(--font-mono);
+
+  font-size: 8px;
+
+  letter-spacing: 0.20em;
+
+  color: rgba(255,255,255,0.34);
+}
+
+.tg-current-top h2 {
+  margin: 8px 0 0;
+
+  font-family: var(--font-display);
+
+  font-size: 31px;
+
+  line-height: 1;
+
+  letter-spacing: 0.02em;
+}
+
+.tg-current-top p {
+  margin: 8px 0 0;
+
+  font-family: var(--font-mono);
+
+  font-size: 8px;
+
+  letter-spacing: 0.10em;
+
+  color: rgba(255,255,255,0.34);
+}
+
+.tg-current-live {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 9px 13px;
+
+  border: 1px solid rgba(36,230,156,0.25);
+
+  background: rgba(36,230,156,0.055);
+
+  color: #35e5a0;
+
+  font-family: var(--font-mono);
+
+  font-size: 9px;
+
+  letter-spacing: 0.12em;
+}
+
+.tg-current-live span {
+  width: 6px;
+  height: 6px;
+
+  border-radius: 50%;
+
+  background: #35e5a0;
+
+  box-shadow:
+    0 0 14px rgba(36,230,156,0.8);
+}
+
+.tg-current-stats {
+  display: grid;
+
+  grid-template-columns:
+    repeat(4, 1fr);
+
+  margin-top: 27px;
+
+  border-top:
+    1px solid rgba(255,255,255,0.07);
+
+  border-bottom:
+    1px solid rgba(255,255,255,0.07);
+}
+
+.tg-current-stats > div {
+  padding: 18px 18px 17px;
+
+  border-right:
+    1px solid rgba(255,255,255,0.07);
+}
+
+.tg-current-stats > div:first-child {
+  padding-left: 0;
+}
+
+.tg-current-stats > div:last-child {
+  border-right: none;
+}
+
+.tg-current-stats small {
+  display: block;
+
+  font-family: var(--font-mono);
+
+  font-size: 7px;
+
+  letter-spacing: 0.16em;
+
+  color: rgba(255,255,255,0.30);
+}
+
+.tg-current-stats strong {
+  display: block;
+
+  margin-top: 7px;
+
+  font-family: var(--font-display);
+
+  font-size: 37px;
+
+  line-height: 1;
+}
+
+.tg-current-stats .featured strong {
+  color: var(--cyan);
+
+  text-shadow:
+    0 0 25px rgba(50,190,255,0.18);
+}
+
+.tg-current-progress {
+  height: 3px;
+
+  margin-top: 22px;
+
+  overflow: hidden;
+
+  background: rgba(255,255,255,0.06);
+}
+
+.tg-current-progress span {
+  display: block;
+
+  width: 64%;
+  height: 100%;
+
+  background:
+    linear-gradient(
+      90deg,
+      var(--accent),
+      var(--cyan)
+    );
+}
+
+.tg-current-footer {
+  display: flex;
+  justify-content: space-between;
+
+  margin-top: 9px;
+
+  font-family: var(--font-mono);
+
+  font-size: 7px;
+
+  letter-spacing: 0.13em;
+
+  color: rgba(255,255,255,0.22);
+}
+
+
+/* =========================================================
+   REMOVE HERO PHOTO PANEL
+   ========================================================= */
+
+.tg-hero {
+  grid-template-columns: 1fr;
+
+  min-height: auto;
+
+  gap: 0;
+}
+
+.tg-hero-copy {
+  max-width: 1050px;
+}
+
+
+/* =========================================================
+   SINGLE BACKGROUND LOGO — MORE VISIBLE
+   ========================================================= */
+
+.tg-background-logo {
+  opacity: 0.16;
+
+  filter:
+    drop-shadow(0 0 55px rgba(145,50,255,0.18))
+    contrast(1.08);
+}
+
+
+/* =========================================================
+   BOTTOM MVP — SINGLE CARD
+   ========================================================= */
+
+.tg-bottom-grid {
+  grid-template-columns: 1fr;
+}
+
+.tg-mvp-card {
+  border-left: none;
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 900px) {
+
+  .tg-current-tournament {
+    margin-top: 30px;
+
+    padding: 21px 18px 18px;
+  }
+
+  .tg-current-top {
+    gap: 12px;
+  }
+
+  .tg-current-top h2 {
+    font-size: 25px;
+  }
+
+  .tg-current-top p {
+    font-size: 7px;
+
+    line-height: 1.6;
+  }
+
+  .tg-current-live {
+    padding: 7px 9px;
+
+    font-size: 8px;
+  }
+
+  .tg-current-stats {
+    grid-template-columns:
+      repeat(2, 1fr);
+
+    gap: 0;
+  }
+
+  .tg-current-stats > div,
+  .tg-current-stats > div:first-child {
+    padding: 15px 12px;
+  }
+
+  .tg-current-stats > div:nth-child(2) {
+    border-right: none;
+  }
+
+  .tg-current-stats > div:nth-child(-n+2) {
+    border-bottom:
+      1px solid rgba(255,255,255,0.07);
+  }
+
+  .tg-current-stats strong {
+    font-size: 31px;
+  }
+
+  .tg-current-progress {
+    margin-top: 18px;
+  }
+
+  .tg-background-logo {
+    width: 115vw;
+
+    top: 48%;
+
+    opacity: 0.125;
+  }
+
+  .tg-hero {
+    display: block;
+  }
+
+}
+
+
+/* =========================================================
+   SMALL PHONES
+   ========================================================= */
+
+@media (max-width: 480px) {
+
+  .tg-current-tournament {
+    margin-top: 25px;
+
+    padding:
+      19px 15px 17px;
+  }
+
+  .tg-current-top {
+    display: block;
+  }
+
+  .tg-current-live {
+    display: inline-flex;
+
+    margin-top: 13px;
+  }
+
+  .tg-current-top h2 {
+    font-size: 23px;
+  }
+
+  .tg-current-stats strong {
+    font-size: 29px;
+  }
+
+  .tg-current-stats small {
+    font-size: 6px;
+  }
+
+  .tg-current-footer {
+    font-size: 6px;
+  }
+
+}
