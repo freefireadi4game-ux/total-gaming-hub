@@ -1,6 +1,32 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
+import {
+  CalendarDays,
+  ChevronRight,
+  Crosshair,
+  Flame,
+  Gamepad2,
+  Menu,
+  Shield,
+  Star,
+  Trophy,
+  Users,
+  X,
+} from "lucide-react";
+
 import teamImage from "@/assets/total-gaming-team.jpg";
 import mvpImage from "@/assets/total-gaming-mvp.jpg";
+
+type Mode = "official" | "scrims";
+
+type Tournament = {
+  id: string;
+  name: string;
+  status: "LIVE" | "UPCOMING" | "ARCHIVED";
+  phase: string;
+  matches: number;
+  teams: number | string;
+};
 
 type Match = {
   id: string;
@@ -25,277 +51,741 @@ const placementPoints: Record<number, number> = {
 };
 
 const matches: Match[] = [
-  { id: "match-1", number: 1, map: "Bermuda", position: 1, kills: 10, mvp: "Player 1" },
-  { id: "match-2", number: 2, map: "Purgatory", position: 3, kills: 8, mvp: "Player 1" },
-  { id: "match-3", number: 3, map: "Alpine", position: 5, kills: 6, mvp: "Player 2" },
+  {
+    id: "match-1",
+    number: 1,
+    map: "Bermuda",
+    position: 1,
+    kills: 10,
+    mvp: "Player 1",
+  },
+  {
+    id: "match-2",
+    number: 2,
+    map: "Purgatory",
+    position: 3,
+    kills: 8,
+    mvp: "Player 1",
+  },
+  {
+    id: "match-3",
+    number: 3,
+    map: "Alpine",
+    position: 5,
+    kills: 6,
+    mvp: "Player 2",
+  },
 ];
 
-function getPoints(match: Match) {
+const officialTournaments: Tournament[] = [
+  {
+    id: "official-1",
+    name: "TEZ FFMIC 2026 FALL",
+    status: "LIVE",
+    phase: "PLAY-INS",
+    matches: 6,
+    teams: 18,
+  },
+  {
+    id: "official-2",
+    name: "TEZ FFMIC 2026 FALL",
+    status: "UPCOMING",
+    phase: "GROUP STAGE",
+    matches: 6,
+    teams: 18,
+  },
+  {
+    id: "official-3",
+    name: "TEZ FFMIC 2026 FALL",
+    status: "UPCOMING",
+    phase: "KNOCKOUTS",
+    matches: 12,
+    teams: 18,
+  },
+  {
+    id: "official-4",
+    name: "TEZ FFMIC 2026 SPRING",
+    status: "ARCHIVED",
+    phase: "GRAND FINALS",
+    matches: 12,
+    teams: 18,
+  },
+];
+
+const scrimTournaments: Tournament[] = [
+  {
+    id: "scrim-1",
+    name: "TG WEEKLY SCRIMS",
+    status: "LIVE",
+    phase: "WEEK 2",
+    matches: 6,
+    teams: 12,
+  },
+  {
+    id: "scrim-2",
+    name: "TG WEEKLY SCRIMS",
+    status: "UPCOMING",
+    phase: "WEEK 3",
+    matches: 6,
+    teams: 12,
+  },
+  {
+    id: "scrim-3",
+    name: "TG CUSTOM SCRIMS",
+    status: "UPCOMING",
+    phase: "WEEK 4",
+    matches: 6,
+    teams: "ANY",
+  },
+  {
+    id: "scrim-4",
+    name: "COMMUNITY SCRIMS",
+    status: "ARCHIVED",
+    phase: "WEEK 1",
+    matches: 6,
+    teams: "ANY",
+  },
+];
+
+function getMatchPoints(match: Match) {
   return match.kills + (placementPoints[match.position] ?? 0);
 }
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Total Gaming Fan Desk — Free Fire Stats" },
+      {
+        title: "Total Gaming Hub",
+      },
       {
         name: "description",
         content:
-          "Follow Total Gaming's Free Fire matches, tournament points and daily MVP performances.",
+          "Total Gaming Free Fire tournament, match and MVP dashboard.",
       },
-      { property: "og:title", content: "Total Gaming Fan Desk — Free Fire Stats" },
-      {
-        property: "og:description",
-        content:
-          "Follow Total Gaming's Free Fire matches, tournament points and daily MVP performances.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
+
   component: Dashboard,
 });
 
 function Dashboard() {
-  const totalKills = matches.reduce((total, match) => total + match.kills, 0);
-  const positionPoints = matches.reduce(
-    (total, match) => total + (placementPoints[match.position] ?? 0),
-    0,
-  );
-  const totalPoints = totalKills + positionPoints;
-  const averagePoints = (totalPoints / matches.length).toFixed(1);
+  const [mode, setMode] = useState<Mode>("official");
+  const [mobileMenu, setMobileMenu] = useState(false);
+
+  const tournaments =
+    mode === "official" ? officialTournaments : scrimTournaments;
+
+  const liveTournament =
+    tournaments.find((tournament) => tournament.status === "LIVE") ??
+    tournaments[0];
+
+  const stats = useMemo(() => {
+    const kills = matches.reduce((sum, match) => sum + match.kills, 0);
+
+    const placement = matches.reduce(
+      (sum, match) =>
+        sum + (placementPoints[match.position] ?? 0),
+      0,
+    );
+
+    return {
+      kills,
+      placement,
+      total: kills + placement,
+    };
+  }, []);
 
   return (
-    <div className="dashboard-bg relative min-h-screen overflow-hidden bg-ink font-body text-snow antialiased">
-      <div className="beam-cyan beam-float pointer-events-none absolute -left-16 -top-24 h-[520px] w-[360px] rounded-3xl" />
-      <div className="beam-lime beam-float-reverse pointer-events-none absolute -right-24 top-40 h-[620px] w-[320px] rounded-3xl" />
+    <div className="tg-dashboard">
+      {/* BACKGROUND */}
 
-      <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-        <a href="#top" className="flex items-center gap-3" aria-label="Total Gaming home">
-          <span className="grid size-9 place-items-center rounded-lg bg-gradient-to-br from-accent to-lime font-display text-lg text-ink">
-            T
-          </span>
-          <span className="leading-none">
-            <span className="block font-display text-lg tracking-wide">TOTAL GAMING</span>
-            <span className="block text-[10px] uppercase tracking-[0.3em] text-frost">
-              India · Free Fire
-            </span>
-          </span>
-        </a>
-        <nav
-          className="hidden items-center gap-7 text-sm text-frost md:flex"
-          aria-label="Dashboard sections"
-        >
-          <a href="#top" className="text-snow transition-colors hover:text-accent">
-            Dashboard
+      <div className="tg-background-logo">
+        <div className="tg-watermark">TG</div>
+        <div className="tg-orbit orbit-one" />
+        <div className="tg-orbit orbit-two" />
+      </div>
+
+      <div className="tg-background-grid" />
+
+      {/* HEADER */}
+
+      <header className="tg-header">
+        <div className="tg-header-inner">
+
+          <button
+            className="tg-mobile-menu"
+            onClick={() => setMobileMenu(!mobileMenu)}
+          >
+            {mobileMenu ? <X /> : <Menu />}
+          </button>
+
+          <a href="#top" className="tg-brand">
+
+            <div className="tg-brand-logo">
+              TG
+            </div>
+
+            <div>
+              <div className="tg-brand-name">
+                TOTAL GAMING <span>HUB</span>
+              </div>
+
+              <div className="tg-brand-sub">
+                PLAY · COMPETE · BELONG
+              </div>
+            </div>
+
           </a>
-          <a href="#matches" className="transition-colors hover:text-snow">
-            Matches
-          </a>
-          <a href="#mvp" className="transition-colors hover:text-snow">
-            MVPs
-          </a>
-          <a href="#tournament" className="transition-colors hover:text-snow">
-            Tournament
-          </a>
-        </nav>
-        <span className="rounded-full border border-accent/40 bg-accent/10 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-accent">
-          Live
-        </span>
+
+          <nav className="tg-navigation">
+
+            <a href="#top">Dashboard</a>
+            <a href="#tournaments">Tournaments</a>
+            <a href="#matches">Matches</a>
+            <a href="#mvp">MVP</a>
+
+          </nav>
+
+          <div className="tg-header-actions">
+
+            <button className="tg-icon-button">
+              <Flame size={18} />
+            </button>
+
+            <div className="tg-avatar">
+              A
+            </div>
+
+          </div>
+
+        </div>
+
+        {mobileMenu && (
+          <div className="tg-mobile-navigation">
+
+            <a href="#top" onClick={() => setMobileMenu(false)}>
+              Dashboard
+            </a>
+
+            <a
+              href="#tournaments"
+              onClick={() => setMobileMenu(false)}
+            >
+              Tournaments
+            </a>
+
+            <a href="#matches" onClick={() => setMobileMenu(false)}>
+              Matches
+            </a>
+
+            <a href="#mvp" onClick={() => setMobileMenu(false)}>
+              MVP
+            </a>
+
+          </div>
+        )}
       </header>
 
-      <main id="top" className="relative z-10">
-        <section className="reveal-up mx-auto grid max-w-6xl items-center gap-10 px-6 pt-6 lg:grid-cols-[1.2fr_1fr]">
-          <div>
-            <span className="inline-flex items-center gap-2 rounded-full border border-line bg-snow/5 px-3 py-1 text-[11px] uppercase tracking-[0.25em] text-frost">
-              <span className="size-1.5 rounded-full bg-lime shadow-[0_0_10px_2px] shadow-lime/60" />
-              Live tournament data · Day 1
-            </span>
-            <h1 className="mt-5 font-display text-[64px] leading-[0.92] tracking-tight sm:text-[84px]">
-              TOTAL GAMING
+      {/* MAIN */}
+
+      <main id="top">
+
+        {/* LIVE HERO */}
+
+        <section className="tg-container tg-hero">
+
+          <div className="tg-hero-content">
+
+            <div className="tg-badges">
+
+              <span className="tg-badge purple">
+                {mode === "official"
+                  ? "OFFICIAL TOURNAMENT"
+                  : "SCRIM TOURNAMENT"}
+              </span>
+
+              <span className="tg-badge live">
+                ● LIVE
+              </span>
+
+            </div>
+
+            <h1>
+              {liveTournament.name}
             </h1>
-            <p className="mt-3 max-w-md text-frost">
-              India&apos;s Free Fire squad, tracked match by match — kills, placement points and MVP
-              performances in one place.
+
+            <p className="tg-hero-info">
+              LIVE STANDINGS · {liveTournament.phase} ·{" "}
+              {liveTournament.matches} MATCHES
             </p>
 
-            <div className="mt-8 grid grid-cols-3 gap-3">
-              <Stat label="Today kills" value={totalKills.toString()} />
-              <Stat label="Best position" value="#1" />
-              <Stat label="Tournament pts" value={totalPoints.toString()} highlight />
+            {/* TOGGLE */}
+
+            <div className="tg-mode-toggle">
+
+              <button
+                className={
+                  mode === "scrims"
+                    ? "active scrims"
+                    : ""
+                }
+                onClick={() => setMode("scrims")}
+              >
+                <Gamepad2 size={21} />
+                SCRIMS
+              </button>
+
+              <button
+                className={
+                  mode === "official"
+                    ? "active official"
+                    : ""
+                }
+                onClick={() => setMode("official")}
+              >
+                <Trophy size={21} />
+                OFFICIAL
+              </button>
+
             </div>
+
+            {/* STATS */}
+
+            <div className="tg-stat-grid">
+
+              <Stat
+                icon={<Star />}
+                title="TOTAL POINTS"
+                value={stats.total}
+              />
+
+              <Stat
+                icon={<Trophy />}
+                title="CURRENT RANK"
+                value="#1"
+              />
+
+              <Stat
+                icon={<Crosshair />}
+                title="ELIMINATIONS"
+                value={stats.kills}
+              />
+
+              <Stat
+                icon={<Shield />}
+                title="PLACEMENT PTS"
+                value={stats.placement}
+              />
+
+            </div>
+
           </div>
 
-          <div className="relative">
+          <div className="tg-hero-image">
+
             <img
               src={teamImage}
-              alt="Total Gaming players competing together"
-              width={1080}
-              height={1280}
-              className="aspect-[4/5] w-full rounded-2xl object-cover object-center ring-1 ring-line"
+              alt="Total Gaming"
             />
-            <div className="absolute -bottom-5 -left-5 rounded-xl border border-accent/30 bg-accent/10 px-4 py-3 backdrop-blur-md">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-frost">Season rank</p>
-              <p className="font-display text-2xl text-accent">#1</p>
+
+            <div className="tg-image-overlay" />
+
+            {/* animated logo */}
+
+            <div className="tg-animated-logo">
+
+              <div className="tg-logo-core">
+                TG
+              </div>
+
+              <div className="tg-logo-ring" />
+
             </div>
+
           </div>
+
         </section>
+
+        {/* TOURNAMENT FOLDERS */}
+
+        <section
+          id="tournaments"
+          className="tg-container tg-section"
+        >
+
+          <div className="tg-section-heading">
+
+            <div>
+
+              <div className="tg-section-title">
+                <Trophy />
+                <h2>
+                  {mode === "official"
+                    ? "OFFICIAL TOURNAMENTS"
+                    : "SCRIMS TOURNAMENTS"}
+                </h2>
+              </div>
+
+              <p>
+                {mode === "official"
+                  ? "Ongoing & upcoming official events"
+                  : "Practice · Improvement · Consistency"}
+              </p>
+
+            </div>
+
+            <button className="tg-view-all">
+              View All
+              <ChevronRight size={16} />
+            </button>
+
+          </div>
+
+          <div className="tg-tournament-grid">
+
+            {tournaments.map((tournament) => (
+              <TournamentCard
+                key={tournament.id}
+                tournament={tournament}
+              />
+            ))}
+
+          </div>
+
+        </section>
+
+        {/* MATCH HISTORY */}
 
         <section
           id="matches"
-          className="reveal-up mx-auto max-w-6xl scroll-mt-8 px-6 pt-16 [animation-delay:120ms]"
+          className="tg-container tg-section"
         >
-          <div className="mb-5 flex items-end justify-between">
+
+          <div className="tg-section-heading">
+
             <div>
-              <h2 className="font-display text-3xl tracking-wide">DAILY MATCH FEED</h2>
-              <p className="text-sm text-frost">Every match, every kill, auto-tallied.</p>
+
+              <div className="tg-section-title blue">
+                <CalendarDays />
+                <h2>MATCH HISTORY</h2>
+              </div>
+
+              <p>
+                Every match · every kill · automatically calculated
+              </p>
+
             </div>
-            <span className="text-xs uppercase tracking-[0.2em] text-frost">
-              {matches.length} matches
+
+            <span className="tg-match-count">
+              {matches.length} MATCHES
             </span>
+
           </div>
 
-          <div className="overflow-hidden rounded-2xl border border-line bg-snow/[0.03]">
-            <div className="grid grid-cols-[1.4fr_1fr_1fr_1fr_1.2fr] gap-2 border-b border-line bg-snow/[0.04] px-5 py-3 text-[10px] uppercase tracking-[0.2em] text-frost max-[640px]:grid-cols-[1.5fr_0.7fr_0.7fr_0.8fr]">
-              <span>Match</span>
-              <span>Kills</span>
-              <span>Position</span>
-              <span>Points</span>
-              <span className="max-[640px]:hidden">Match MVP</span>
+          <div className="tg-match-table">
+
+            <div className="tg-table-header">
+              <span>MATCH</span>
+              <span>KILLS</span>
+              <span>POSITION</span>
+              <span>POINTS</span>
+              <span>MVP</span>
             </div>
+
             {[...matches].reverse().map((match) => (
               <div
                 key={match.id}
-                className="grid grid-cols-[1.4fr_1fr_1fr_1fr_1.2fr] gap-2 border-b border-line/70 px-5 py-4 transition-colors last:border-b-0 hover:bg-snow/[0.04] max-[640px]:grid-cols-[1.5fr_0.7fr_0.7fr_0.8fr]"
+                className="tg-table-row"
               >
+
                 <div>
-                  <p className="font-semibold">Match {match.number}</p>
-                  <p className="text-xs text-frost">{match.map}</p>
+                  <strong>
+                    MATCH {match.number}
+                  </strong>
+
+                  <small>
+                    {match.map}
+                  </small>
                 </div>
-                <p className="font-mono text-lg">{match.kills}</p>
-                <p className="font-mono text-lg">#{match.position}</p>
-                <p className="font-mono text-lg text-accent">{getPoints(match)}</p>
-                <p className="text-sm text-snow max-[640px]:hidden">{match.mvp}</p>
+
+                <strong>
+                  {match.kills}
+                </strong>
+
+                <strong>
+                  #{match.position}
+                </strong>
+
+                <strong className="points">
+                  {getMatchPoints(match)}
+                </strong>
+
+                <span>
+                  {match.mvp}
+                </span>
+
               </div>
             ))}
+
           </div>
-          <p className="mt-3 text-xs text-frost">
-            Points = kills + placement points · Sample match data from the uploaded team structure
-          </p>
+
         </section>
 
-        <section
-          id="tournament"
-          className="reveal-up mx-auto grid max-w-6xl scroll-mt-8 gap-5 px-6 py-14 lg:grid-cols-[1.5fr_1fr] [animation-delay:220ms]"
-        >
-          <div className="rounded-2xl border border-line bg-snow/[0.03] p-6">
-            <div className="mb-5 flex items-center justify-between gap-4">
+        {/* BOTTOM DATA */}
+
+        <section className="tg-container tg-bottom-grid">
+
+          <div className="tg-score-card">
+
+            <div className="tg-card-header">
+
               <div>
-                <p className="text-[10px] uppercase tracking-[0.25em] text-frost">
-                  Ongoing tournament
-                </p>
-                <h2 className="mt-1 font-display text-3xl tracking-wide">FFMIC FALL 2026</h2>
+                <small>
+                  CURRENT TOURNAMENT
+                </small>
+
+                <h2>
+                  {liveTournament.name}
+                </h2>
               </div>
-              <span className="rounded-full bg-lime/15 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-lime">
-                Live
+
+              <span className="tg-live-dot">
+                LIVE
+              </span>
+
+            </div>
+
+            <div className="tg-three-metrics">
+
+              <Metric
+                label="TOTAL KILLS"
+                value={stats.kills}
+              />
+
+              <Metric
+                label="PLACEMENT PTS"
+                value={stats.placement}
+              />
+
+              <Metric
+                label="TOTAL SCORE"
+                value={stats.total}
+                highlight
+              />
+
+            </div>
+
+            <div className="tg-progress">
+              <div />
+            </div>
+
+            <div className="tg-progress-text">
+              <span>
+                {liveTournament.matches} MATCHES
+              </span>
+
+              <span>
+                LIVE DATA
               </span>
             </div>
-            <div className="grid grid-cols-3 gap-4">
-              <Metric label="Total kills" value={totalKills.toString()} />
-              <Metric label="Kills × 1" value={totalKills.toString()} />
-              <Metric label="Position pts" value={positionPoints.toString()} />
-            </div>
-            <div className="mt-6 flex items-center justify-between rounded-xl border border-lime/30 bg-lime/10 px-5 py-4">
-              <p className="text-sm uppercase tracking-[0.2em] text-lime">Total score</p>
-              <p className="font-mono text-4xl font-bold text-lime">{totalPoints}</p>
-            </div>
-            <div className="mt-4 flex items-center justify-between text-xs text-frost">
-              <span>{matches.length} matches recorded</span>
-              <span>{averagePoints} avg / match</span>
-            </div>
+
           </div>
+
+          {/* MVP */}
 
           <div
             id="mvp"
-            className="relative scroll-mt-8 overflow-hidden rounded-2xl border border-accent/30 bg-accent/10 p-6"
+            className="tg-mvp-card"
           >
-            <p className="text-[10px] uppercase tracking-[0.3em] text-accent">Tournament MVP</p>
-            <div className="mt-4 flex items-center gap-4">
+
+            <small>
+              DAILY MVP · DAY 1
+            </small>
+
+            <div className="tg-mvp-player">
+
               <img
                 src={mvpImage}
-                alt="Total Gaming player portrait"
-                width={512}
-                height={512}
-                loading="lazy"
-                className="size-20 shrink-0 rounded-xl object-cover ring-1 ring-line"
+                alt="Daily MVP"
               />
+
               <div>
-                <p className="font-display text-3xl tracking-wide">PLAYER 1</p>
-                <p className="text-sm text-frost">Rusher · 9 tournament kills</p>
+
+                <h3>
+                  PLAYER 1
+                </h3>
+
+                <p>
+                  Rusher · Top Performer
+                </p>
+
               </div>
+
             </div>
-            <div className="mt-5 grid grid-cols-2 gap-3 text-center">
-              <div className="rounded-lg bg-snow/5 py-3">
-                <p className="font-mono text-2xl font-bold text-snow">9</p>
-                <p className="text-[10px] uppercase tracking-[0.15em] text-frost">Kills</p>
-              </div>
-              <div className="rounded-lg bg-snow/5 py-3">
-                <p className="font-mono text-2xl font-bold text-snow">3</p>
-                <p className="text-[10px] uppercase tracking-[0.15em] text-frost">Matches</p>
-              </div>
+
+            <div className="tg-mvp-stats">
+
+              <Metric
+                label="KILLS"
+                value={9}
+              />
+
+              <Metric
+                label="MATCHES"
+                value={3}
+              />
+
             </div>
-            <div className="mt-5 border-t border-line pt-4">
-              <p className="text-[10px] uppercase tracking-[0.3em] text-lime">Daily MVP · Day 1</p>
-              <div className="mt-2 flex items-end justify-between gap-3">
-                <div>
-                  <p className="font-semibold text-snow">PLAYER 1</p>
-                  <p className="text-xs text-frost">Top rusher across today&apos;s matches</p>
-                </div>
-                <p className="font-mono text-xl text-lime">9 kills</p>
-              </div>
-            </div>
+
           </div>
+
         </section>
+
       </main>
 
-      <footer className="relative z-10 mx-auto flex max-w-6xl flex-wrap justify-between gap-3 border-t border-line px-6 py-5 text-[10px] uppercase tracking-[0.2em] text-frost">
-        <span>Total Gaming · Fan dashboard</span>
-        <span>Live-style sample data</span>
+      {/* FOOTER */}
+
+      <footer className="tg-footer">
+
+        <div className="tg-container tg-footer-inner">
+
+          <div className="tg-brand">
+
+            <div className="tg-brand-logo">
+              TG
+            </div>
+
+            <span>
+              TOTAL GAMING HUB · 2026
+            </span>
+
+          </div>
+
+          <span>
+            PLAY · COMPETE · BELONG
+          </span>
+
+        </div>
+
       </footer>
+
     </div>
   );
 }
 
 function Stat({
+  icon,
+  title,
+  value,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  value: string | number;
+}) {
+  return (
+    <div className="tg-stat">
+
+      <div className="tg-stat-icon">
+        {icon}
+      </div>
+
+      <small>
+        {title}
+      </small>
+
+      <strong>
+        {value}
+      </strong>
+
+    </div>
+  );
+}
+
+function Metric({
   label,
   value,
   highlight = false,
 }: {
   label: string;
-  value: string;
+  value: string | number;
   highlight?: boolean;
 }) {
   return (
-    <div
-      className={`rounded-xl border p-4 backdrop-blur-sm ${highlight ? "border-lime/30 bg-lime/10" : "border-line bg-snow/[0.04]"}`}
-    >
-      <p
-        className={`text-[10px] uppercase tracking-[0.2em] ${highlight ? "text-lime" : "text-frost"}`}
-      >
+    <div className="tg-metric">
+
+      <small>
         {label}
-      </p>
-      <p className={`mt-1 font-mono text-4xl font-bold ${highlight ? "text-lime" : "text-snow"}`}>
+      </small>
+
+      <strong className={highlight ? "highlight" : ""}>
         {value}
-      </p>
+      </strong>
+
     </div>
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function TournamentCard({
+  tournament,
+}: {
+  tournament: Tournament;
+}) {
+  const statusClass =
+    tournament.status === "LIVE"
+      ? "live"
+      : tournament.status === "UPCOMING"
+        ? "upcoming"
+        : "archived";
+
   return (
-    <div>
-      <p className="text-[10px] uppercase tracking-[0.2em] text-frost">{label}</p>
-      <p className="mt-1 font-mono text-3xl font-bold">{value}</p>
-    </div>
+    <article className="tg-tournament-card">
+
+      <div className="tg-tournament-top">
+
+        <span className={`tg-status ${statusClass}`}>
+          {tournament.status}
+        </span>
+
+        <ChevronRight
+          size={19}
+          className="tg-card-arrow"
+        />
+
+      </div>
+
+      <h3>
+        {tournament.name}
+      </h3>
+
+      <div className="tg-card-tags">
+
+        <span>
+          {tournament.phase}
+        </span>
+
+        <span>
+          {tournament.matches} MATCHES
+        </span>
+
+      </div>
+
+      <div className="tg-card-bottom">
+
+        <span>
+          <Users size={14} />
+          {tournament.teams} TEAMS
+        </span>
+
+        <span>
+          {tournament.status === "LIVE"
+            ? "LIVE NOW"
+            : tournament.status === "ARCHIVED"
+              ? "COMPLETED"
+              : "UPCOMING"}
+        </span>
+
+      </div>
+
+    </article>
   );
 }
