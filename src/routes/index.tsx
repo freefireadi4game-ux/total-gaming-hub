@@ -413,22 +413,26 @@ function Dashboard() {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#05070d] text-white">
-      {/* Animated TG logo background */}
-      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-        <div className="absolute left-1/2 top-[38%] h-[650px] w-[650px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-600/[0.06] blur-[130px]" />
+    
+      {/* TG animated background */}
+<div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+  <div className="absolute left-1/2 top-1/2 h-[700px] w-[700px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-600/[0.10] blur-[140px]" />
 
-        <div className="tg-floating-logo absolute left-1/2 top-[42%] -translate-x-1/2">
-          <img
-            src="/iqoo-tg-logo.png"
-            alt=""
-            className="h-[360px] w-[360px] object-contain opacity-[0.045] md:h-[520px] md:w-[520px]"
-          />
-        </div>
+  <div className="tg-logo-background absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+    <img
+      src="/iqoo-tg-logo.png"
+      alt=""
+      aria-hidden="true"
+      className="h-[420px] w-[420px] object-contain opacity-[0.13] sm:h-[560px] sm:w-[560px] lg:h-[680px] lg:w-[680px]"
+    />
+  </div>
 
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.018)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.018)_1px,transparent_1px)] bg-[size:55px_55px]" />
+  <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.018)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.018)_1px,transparent_1px)] bg-[size:55px_55px]" />
 
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#05070d_75%)]" />
-      </div>
+  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#05070d_82%)]" />
+</div>
+
+        
 
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-white/[0.07] bg-[#05070d]/85 backdrop-blur-2xl">
