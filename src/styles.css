@@ -2562,3 +2562,166 @@ button {
     transform: translate(-50%, -50%) scale(1.025);
   }
 }
+/* =========================================================
+   TOTAL GAMING HUB — BACKGROUND LOGO VISIBILITY FIX
+   ========================================================= */
+
+.tg-background-layer {
+  isolation: isolate;
+}
+
+.tg-logo-background {
+  z-index: 1;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.tg-logo-background img {
+  display: block;
+
+  /* Brighter logo */
+  opacity: 0.28;
+
+  filter:
+    brightness(1.75)
+    saturate(1.35)
+    contrast(1.12)
+    drop-shadow(0 0 35px rgba(168, 70, 255, 0.30))
+    drop-shadow(0 0 90px rgba(91, 55, 255, 0.18));
+
+  mix-blend-mode: screen;
+
+  transform: rotate(-7deg);
+
+  animation: tgLogoFloat 8s ease-in-out infinite;
+}
+
+@keyframes tgLogoFloat {
+  0%,
+  100% {
+    transform: rotate(-7deg) scale(1);
+  }
+
+  50% {
+    transform: rotate(-7deg) scale(1.025);
+  }
+}
+
+/* =========================================================
+   KEEP MAIN CONTENT ABOVE BACKGROUND
+   ========================================================= */
+
+main {
+  position: relative;
+  z-index: 10;
+}
+
+/* =========================================================
+   GLASS PANELS — BACKGROUND LOGO MUST REMAIN VISIBLE
+   ========================================================= */
+
+/* Main panels */
+main .bg-white\/\[0\.035\],
+main .bg-white\/\[0\.025\],
+main .bg-white\/\[0\.02\] {
+  background-color: rgba(255, 255, 255, 0.018) !important;
+}
+
+/* Smaller glass elements */
+main .bg-white\/5 {
+  background-color: rgba(255, 255, 255, 0.025) !important;
+}
+
+/* =========================================================
+   HERO — DON'T PUT AN OPAQUE BLACK WALL OVER THE LOGO
+   ========================================================= */
+
+main section:first-child
+  .bg-gradient-to-r {
+  background-image:
+    linear-gradient(
+      90deg,
+      rgba(8, 11, 19, 0.58),
+      rgba(8, 11, 19, 0.38),
+      rgba(8, 11, 19, 0.18)
+    ) !important;
+}
+
+/* =========================================================
+   HERO LOGO — KEEP IT BRIGHT
+   ========================================================= */
+
+main section:first-child img[src="/iqoo-tg-logo.png"] {
+  opacity: 0.88 !important;
+
+  filter:
+    brightness(1.65)
+    saturate(1.3)
+    drop-shadow(0 0 25px rgba(168, 70, 255, 0.32));
+}
+
+/* =========================================================
+   META PILLS
+   ========================================================= */
+
+main .bg-black\/20 {
+  background-color: rgba(0, 0, 0, 0.16) !important;
+}
+
+/* =========================================================
+   EVENT / STAGE / TABLE PANELS
+   ========================================================= */
+
+main .rounded-2xl.border {
+  background-color: rgba(8, 10, 18, 0.20);
+  backdrop-filter: blur(8px);
+}
+
+/* Keep active tournament card visible */
+main .border-purple-500\/40 {
+  background-color: rgba(168, 70, 255, 0.09) !important;
+}
+
+/* =========================================================
+   STATS CARDS — GLASS EFFECT
+   ========================================================= */
+
+main .group.relative.overflow-hidden.rounded-2xl.border {
+  background-color: rgba(10, 12, 20, 0.22) !important;
+  backdrop-filter: blur(7px);
+}
+
+/* Leader card slightly brighter */
+main .group.relative.overflow-hidden.rounded-2xl.border.border-purple-500\/30 {
+  background:
+    linear-gradient(
+      135deg,
+      rgba(126, 45, 255, 0.12),
+      rgba(255, 255, 255, 0.018)
+    ) !important;
+}
+
+/* =========================================================
+   MOBILE — KEEP LOGO CENTERED AND VISIBLE
+   ========================================================= */
+
+@media (max-width: 639px) {
+  .tg-logo-background img {
+    width: 430px;
+    height: 430px;
+
+    opacity: 0.25;
+
+    filter:
+      brightness(1.8)
+      saturate(1.35)
+      contrast(1.1)
+      drop-shadow(0 0 30px rgba(168, 70, 255, 0.30))
+      drop-shadow(0 0 70px rgba(91, 55, 255, 0.16));
+  }
+
+  main .rounded-2xl.border {
+    background-color: rgba(8, 10, 18, 0.16);
+    backdrop-filter: blur(5px);
+  }
+}
