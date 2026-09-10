@@ -237,7 +237,7 @@ export async function getTournaments(
 
   return (data ?? [])
     .filter(
-      (row) =>
+      (row: Record<string, unknown>) =>
         normalizeMode(row["type"]) === mode,
     )
     .map(mapTournament);
