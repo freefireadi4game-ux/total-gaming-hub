@@ -2522,3 +2522,43 @@ button {
   }
 
 }
+.tg-logo-background {
+  transform-style: preserve-3d;
+  perspective: 1200px;
+  animation: tg-logo-float 8s ease-in-out infinite;
+}
+
+.tg-logo-background img {
+  transform-style: preserve-3d;
+  animation: tg-logo-spin 16s linear infinite;
+  filter:
+    drop-shadow(0 0 35px rgba(139, 92, 246, 0.18))
+    drop-shadow(0 0 90px rgba(99, 102, 241, 0.10));
+}
+
+@keyframes tg-logo-spin {
+  0% {
+    transform: rotateY(0deg) rotateX(2deg);
+  }
+
+  50% {
+    transform: rotateY(180deg) rotateX(-2deg);
+  }
+
+  100% {
+    transform: rotateY(360deg) rotateX(2deg);
+  }
+}
+
+@keyframes tg-logo-float {
+  0%,
+  100% {
+    margin-top: 0;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  50% {
+    margin-top: -18px;
+    transform: translate(-50%, -50%) scale(1.025);
+  }
+}
