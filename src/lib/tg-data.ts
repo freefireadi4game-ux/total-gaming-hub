@@ -90,17 +90,11 @@ function num(value: unknown): number {
   return Number(value ?? 0);
 }
 
-function nullableText(
-  value: unknown,
-): string | null {
-  return value == null || value === ""
-    ? null
-    : String(value);
+function nullableText(value: unknown): string | null {
+  return value == null || value === "" ? null : String(value);
 }
 
-function normalizeMode(
-  value: unknown,
-): CircuitMode | null {
+function normalizeMode(value: unknown): CircuitMode | null {
   const v = text(value).toLowerCase().trim();
 
   if (v === "official") return "official";
@@ -111,9 +105,7 @@ function normalizeMode(
   return null;
 }
 
-function mapTournament(
-  row: Record<string, unknown>,
-): Tournament {
+function mapTournament(row: Record<string, unknown>): Tournament {
   return {
     id: text(row["id"]),
     name: text(row["name"]),
@@ -132,9 +124,7 @@ function mapTournament(
   };
 }
 
-function mapMatch(
-  row: Record<string, unknown>,
-): Match {
+function mapMatch(row: Record<string, unknown>): Match {
   return {
     id: text(row["id"]),
     tournamentId: text(row["tournament_id"]),
@@ -147,16 +137,12 @@ function mapMatch(
     totalKills: num(row["total_kills"]),
     streamUrl: nullableText(row["stream_url"]),
     roomId: nullableText(row["room_id"]),
-    roomPassword: nullableText(
-      row["room_password"],
-    ),
+    roomPassword: nullableText(row["room_password"]),
     notes: nullableText(row["notes"]),
   };
 }
 
-function mapTeam(
-  row: Record<string, unknown>,
-): Team {
+function mapTeam(row: Record<string, unknown>): Team {
   return {
     id: text(row["id"]),
     name: text(row["name"]),
@@ -170,9 +156,7 @@ function mapTeam(
   };
 }
 
-function mapPlayer(
-  row: Record<string, unknown>,
-): Player {
+function mapPlayer(row: Record<string, unknown>): Player {
   return {
     id: text(row["id"]),
     name: text(row["name"]),
@@ -187,9 +171,7 @@ function mapPlayer(
   };
 }
 
-function mapMatchResult(
-  row: Record<string, unknown>,
-): MatchResult {
+function mapMatchResult(row: Record<string, unknown>): MatchResult {
   return {
     id: text(row["id"]),
     matchId: text(row["match_id"]),
@@ -201,9 +183,7 @@ function mapMatchResult(
   };
 }
 
-function mapPlayerMatchStat(
-  row: Record<string, unknown>,
-): PlayerMatchStat {
+function mapPlayerMatchStat(row: Record<string, unknown>): PlayerMatchStat {
   return {
     id: text(row["id"]),
     matchId: text(row["match_id"]),
@@ -212,17 +192,12 @@ function mapPlayerMatchStat(
     kills: num(row["kills"]),
     damage: num(row["damage"]),
     assists: num(row["assists"]),
-    placement:
-      row["placement"] == null
-        ? null
-        : num(row["placement"]),
+    placement: row["placement"] == null ? null : num(row["placement"]),
     points: num(row["points"]),
   };
 }
 
-export async function getTournaments(
-  mode: CircuitMode,
-): Promise<Tournament[]> {
+export async function getTournaments(mode: CircuitMode): Promise<Tournament[]> {
   const { data, error } = await supabase
     .from("tournaments")
     .select("*")
@@ -236,43 +211,28 @@ export async function getTournaments(
   if (error) throw error;
 
   return (data ?? [])
-    .filter(
-      (row: Record<string, unknown>) =>
-        normalizeMode(row["type"]) === mode,
-    )
+    .filter((row: Record<string, unknown>) => normalizeMode(row["type"]) === mode)
     .map(mapTournament);
 }
 
-export async function getCurrentTournament(
-  mode: CircuitMode,
-) {
-  const tournaments =
-    await getTournaments(mode);
+export async function getCurrentTournament(mode: CircuitMode) {
+  const tournaments = await getTournaments(mode);
 
   return (
-    tournaments.find(
-      (t) => t.isCurrent,
-    ) ??
-    tournaments.find(
-      (t) => t.status === "LIVE",
-    ) ??
+    tournaments.find((t) => t.isCurrent) ??
+    tournaments.find((t) => t.status === "LIVE") ??
     tournaments[0] ??
     null
   );
 }
 
-export async function getMatches(
-  tournamentId: string,
-): Promise<Match[]> {
+export async function getMatches(tournamentId: string): Promise<Match[]> {
   if (!tournamentId) return [];
 
   const { data, error } = await supabase
     .from("matches")
     .select("*")
-    .eq(
-      "tournament_id",
-      tournamentId,
-    )
+    .eq("tournament_id", tournamentId)
     .order("match_number", {
       ascending: true,
     });
@@ -283,12 +243,9 @@ export async function getMatches(
 }
 
 export async function getTeams(): Promise<Team[]> {
-  const { data, error } = await supabase
-    .from("teams")
-    .select("*")
-    .order("name", {
-      ascending: true,
-    });
+  const { data, error } = await supabase.from("teams").select("*").order("name", {
+    ascending: true,
+  });
 
   if (error) throw error;
 
@@ -311,9 +268,7 @@ export async function getPlayers(): Promise<Player[]> {
   return (data ?? []).map(mapPlayer);
 }
 
-export async function getMatchResults(
-  matchIds: string[],
-): Promise<MatchResult[]> {
+export async function getMatchResults(matchIds: string[]): Promise<MatchResult[]> {
   if (matchIds.length === 0) return [];
 
   const { data, error } = await supabase
@@ -329,9 +284,7 @@ export async function getMatchResults(
   return (data ?? []).map(mapMatchResult);
 }
 
-export async function getPlayerMatchStats(
-  matchIds: string[],
-): Promise<PlayerMatchStat[]> {
+export async function getPlayerMatchStats(matchIds: string[]): Promise<PlayerMatchStat[]> {
   if (matchIds.length === 0) return [];
 
   const { data, error } = await supabase
@@ -341,25 +294,15 @@ export async function getPlayerMatchStats(
 
   if (error) throw error;
 
-  return (data ?? []).map(
-    mapPlayerMatchStat,
-  );
+  return (data ?? []).map(mapPlayerMatchStat);
 }
 
-export async function getTournamentData(
-  tournamentId: string,
-) {
-  const matches =
-    await getMatches(tournamentId);
+export async function getTournamentData(tournamentId: string) {
+  const matches = await getMatches(tournamentId);
 
-  const matchIds = matches.map(
-    (match) => match.id,
-  );
+  const matchIds = matches.map((match) => match.id);
 
-  const [
-    matchResults,
-    playerMatchStats,
-  ] = await Promise.all([
+  const [matchResults, playerMatchStats] = await Promise.all([
     getMatchResults(matchIds),
     getPlayerMatchStats(matchIds),
   ]);
