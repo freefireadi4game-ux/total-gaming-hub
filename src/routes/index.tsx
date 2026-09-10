@@ -1,1391 +1,1288 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
-  Activity,
-  BarChart3,
   CalendarDays,
-  ChevronDown,
   ChevronRight,
   Crosshair,
   Flame,
   Gamepad2,
   Menu,
-  Play,
   Shield,
-  Target,
+  Star,
   Trophy,
   Users,
   X,
-  Zap,
 } from "lucide-react";
 
-import {
-  getPlayers,
-  getTournamentData,
-  getTournaments,
-  type CircuitMode,
-  type Match,
-  type Player,
-  type PlayerMatchStat,
-  type Tournament,
-  type MatchResult,
-} from "@/lib/tg-data";
+import mvpImage from "@/assets/total-gaming-mvp.jpg";
+
+type Mode = "official" | "scrims";
+
+type Tournament = {
+  id: string;
+  name: string;
+  status: "LIVE" | "UPCOMING" | "ARCHIVED";
+  phase: string;
+  matches: number;
+  teams: number | string;
+};
+
+type Match = {
+  id: string;
+  number: number;
+  map: string;
+  position: number;
+  kills: number;
+  mvp: string;
+};
+
+const placementPoints: Record<number, number> = {
+  1: 12,
+  2: 9,
+  3: 8,
+  4: 7,
+  5: 6,
+  6: 5,
+  7: 4,
+  8: 3,
+  9: 2,
+  10: 1,
+};
+
+const matches: Match[] = [
+  {
+    id: "match-1",
+    number: 1,
+    map: "Bermuda",
+    position: 1,
+    kills: 10,
+    mvp: "Player 1",
+  },
+  {
+    id: "match-2",
+    number: 2,
+    map: "Purgatory",
+    position: 3,
+    kills: 8,
+    mvp: "Player 1",
+  },
+  {
+    id: "match-3",
+    number: 3,
+    map: "Alpine",
+    position: 5,
+    kills: 6,
+    mvp: "Player 2",
+  },
+];
+
+const officialTournaments: Tournament[] = [
+  {
+    id: "official-1",
+    name: "TEZ FFMIC 2026 FALL",
+    status: "LIVE",
+    phase: "PLAY-INS",
+    matches: 6,
+    teams: 18,
+  },
+  {
+    id: "official-2",
+    name: "TEZ FFMIC 2026 FALL",
+    status: "UPCOMING",
+    phase: "GS - WEEK 1",
+    matches: 6,
+    teams: 18,
+  },
+  {
+    id: "official-3",
+    name: "TEZ FFMIC 2026 FALL",
+    status: "UPCOMING",
+    phase: "GS - WEEK 2",
+    matches: 6,
+    teams: 18,
+  },
+  {
+    id: "official-4",
+    name: "TEZ FFMIC 2026 FALL",
+    status: "UPCOMING",
+    phase: "KO - WEEK 1",
+    matches: 12,
+    teams: 18,
+  },
+  {
+    id: "official-5",
+    name: "TEZ FFMIC 2026 FALL",
+    status: "UPCOMING",
+    phase: "KO - WEEK 2 - DAY 1",
+    matches: 6,
+    teams: 18,
+  },
+  {
+    id: "official-6",
+    name: "TEZ FFMIC 2026 SPRING",
+    status: "ARCHIVED",
+    phase: "GRAND FINALS",
+    matches: 12,
+    teams: 18,
+  },
+];
+
+const scrimTournaments: Tournament[] = [
+  {
+    id: "scrim-1",
+    name: "TG WEEKLY SCRIMS",
+    status: "LIVE",
+    phase: "WEEK 2",
+    matches: 6,
+    teams: 12,
+  },
+  {
+    id: "scrim-2",
+    name: "TG WEEKLY SCRIMS",
+    status: "UPCOMING",
+    phase: "WEEK 3",
+    matches: 6,
+    teams: 12,
+  },
+  {
+    id: "scrim-3",
+    name: "TG CUSTOM SCRIMS",
+    status: "UPCOMING",
+    phase: "WEEK 4",
+    matches: 6,
+    teams: "ANY",
+  },
+  {
+    id: "scrim-4",
+    name: "COMMUNITY SCRIMS",
+    status: "ARCHIVED",
+    phase: "WEEK 1",
+    matches: 6,
+    teams: "ANY",
+  },
+];
+
+const officialFolders = [
+  {
+    id: "play-ins",
+    label: "PLAY-INS",
+    tournamentId: "official-1",
+  },
+  {
+    id: "gs-week-1",
+    label: "GS — WEEK 1",
+    tournamentId: "official-2",
+  },
+  {
+    id: "gs-week-2",
+    label: "GS — WEEK 2",
+    tournamentId: "official-3",
+  },
+  {
+    id: "ko-week-1",
+    label: "KO — WEEK 1",
+    tournamentId: "official-4",
+  },
+  {
+    id: "ko-week-2",
+    label: "KO — WEEK 2 · DAY 1",
+    tournamentId: "official-5",
+  },
+];
+
+const scrimFolders = [
+  {
+    id: "week-1",
+    label: "WEEK 1",
+    tournamentId: "scrim-4",
+  },
+  {
+    id: "week-2",
+    label: "WEEK 2",
+    tournamentId: "scrim-1",
+  },
+  {
+    id: "week-3",
+    label: "WEEK 3",
+    tournamentId: "scrim-2",
+  },
+  {
+    id: "week-4",
+    label: "WEEK 4",
+    tournamentId: "scrim-3",
+  },
+];
+
+function getMatchPoints(match: Match) {
+  return match.kills + (placementPoints[match.position] ?? 0);
+}
 
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      {
+        title: "Total Gaming Hub",
+      },
+      {
+        name: "description",
+        content:
+          "Total Gaming Free Fire tournament, match and MVP dashboard.",
+      },
+    ],
+  }),
+
   component: Dashboard,
 });
 
-type Stage = {
-  id: string;
-  label: string;
-  shortLabel: string;
-  tournamentId: string;
-};
-
-type MatchView = Match & {
-  result?: MatchResult;
-};
-
-type FragEntry = {
-  id: string;
-  name: string;
-  team: string;
-  avatar: string | null;
-  kills: number;
-  matches: number;
-  points: number;
-};
-
 function Dashboard() {
-  const [mode, setMode] = useState<CircuitMode>("official");
-  const [mobileNav, setMobileNav] = useState(false);
+  const [mode, setMode] = useState<Mode>("official");
+  const [mobileMenu, setMobileMenu] = useState(false);
+  const [selectedFolder, setSelectedFolder] = useState("play-ins");
 
-  const [tournaments, setTournaments] = useState<Tournament[]>([]);
-  const [players, setPlayers] = useState<Player[]>([]);
+  const tournaments =
+    mode === "official"
+      ? officialTournaments
+      : scrimTournaments;
 
-  const [selectedTournamentId, setSelectedTournamentId] = useState<
-    string | null
-  >(null);
+  const folders =
+    mode === "official"
+      ? officialFolders
+      : scrimFolders;
 
-  const [selectedStage, setSelectedStage] = useState<string>("all");
-
-  const [matches, setMatches] = useState<Match[]>([]);
-  const [results, setResults] = useState<MatchResult[]>([]);
-  const [playerStats, setPlayerStats] = useState<PlayerMatchStat[]>([]);
-
-  const [loadingEvents, setLoadingEvents] = useState(true);
-  const [loadingTournament, setLoadingTournament] = useState(false);
-
-  const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
-  const [showAllEvents, setShowAllEvents] = useState(false);
-
-  const [eventMenuOpen, setEventMenuOpen] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-
-    async function loadEvents() {
-      setLoadingEvents(true);
-
-      try {
-        const data = await getTournaments(mode);
-
-        if (!active) return;
-
-        setTournaments(data);
-
-        const current =
-          data.find((t) => t.isCurrent) ??
-          data.find((t) => t.status === "LIVE") ??
-          data[0] ??
-          null;
-
-        setSelectedTournamentId(current?.id ?? null);
-        setSelectedStage("all");
-      } catch (error) {
-        console.error("Tournament loading error:", error);
-        setTournaments([]);
-        setSelectedTournamentId(null);
-      } finally {
-        if (active) setLoadingEvents(false);
-      }
-    }
-
-    void loadEvents();
-
-    return () => {
-      active = false;
-    };
-  }, [mode]);
-
-  useEffect(() => {
-    let active = true;
-
-    async function loadTournament() {
-      if (!selectedTournamentId) {
-        setMatches([]);
-        setResults([]);
-        setPlayerStats([]);
-        return;
-      }
-
-      setLoadingTournament(true);
-
-      try {
-        const data = await getTournamentData(selectedTournamentId);
-
-        if (!active) return;
-
-        setMatches(data.matches);
-        setResults(data.matchResults);
-        setPlayerStats(data.playerMatchStats);
-      } catch (error) {
-        console.error("Tournament data error:", error);
-        setMatches([]);
-        setResults([]);
-        setPlayerStats([]);
-      } finally {
-        if (active) setLoadingTournament(false);
-      }
-    }
-
-    void loadTournament();
-
-    return () => {
-      active = false;
-    };
-  }, [selectedTournamentId]);
-
-  useEffect(() => {
-    let active = true;
-
-    async function loadPlayerDirectory() {
-      try {
-        const data = await getPlayers();
-
-        if (active) setPlayers(data);
-      } catch (error) {
-        console.error("Players loading error:", error);
-      }
-    }
-
-    void loadPlayerDirectory();
-
-    return () => {
-      active = false;
-    };
-  }, []);
+  const liveTournament =
+    tournaments.find(
+      (tournament) => tournament.status === "LIVE",
+    ) ?? tournaments[0];
 
   const selectedTournament = useMemo(() => {
+    const folder =
+      folders.find(
+        (item) => item.id === selectedFolder,
+      ) ?? folders[0];
+
     return (
-      tournaments.find((t) => t.id === selectedTournamentId) ??
-      tournaments.find((t) => t.isCurrent) ??
-      tournaments.find((t) => t.status === "LIVE") ??
-      tournaments[0] ??
-      null
+      tournaments.find(
+        (item) => item.id === folder?.tournamentId,
+      ) ?? liveTournament
     );
-  }, [tournaments, selectedTournamentId]);
+  }, [
+    folders,
+    selectedFolder,
+    tournaments,
+    liveTournament,
+  ]);
 
-  /*
-   * The database currently stores stage/phase on tournaments.
-   * If an event is split into multiple tournament records,
-   * each record naturally becomes a selectable stage.
-   */
-  const stages = useMemo<Stage[]>(() => {
-    if (!selectedTournament) return [];
+  const stats = useMemo(() => {
+    const kills = matches.reduce(
+      (sum, match) => sum + match.kills,
+      0,
+    );
 
-    const sameEvent = tournaments.filter((t) => {
-      const normalizedSelected = selectedTournament.name
-        .toLowerCase()
-        .replace(/\s+(stage|week|day)\s*\d+/gi, "")
-        .trim();
-
-      const normalizedCurrent = t.name
-        .toLowerCase()
-        .replace(/\s+(stage|week|day)\s*\d+/gi, "")
-        .trim();
-
-      return (
-        normalizedCurrent === normalizedSelected ||
-        t.id === selectedTournament.id
-      );
-    });
-
-    const source = sameEvent.length > 1 ? sameEvent : [selectedTournament];
-
-    return source.map((t, index) => ({
-      id: t.id,
-      tournamentId: t.id,
-      label:
-        t.phase ||
-        (source.length > 1 ? `Stage ${index + 1}` : "Overall Stage"),
-      shortLabel:
-        t.phase ||
-        (source.length > 1 ? `S${index + 1}` : "OVERALL"),
-    }));
-  }, [selectedTournament, tournaments]);
-
-  const activeTournament =
-    selectedStage !== "all"
-      ? tournaments.find((t) => t.id === selectedStage) ??
-        selectedTournament
-      : selectedTournament;
-
-  const activeMatches = useMemo(() => {
-    if (!selectedTournament) return [];
-
-    if (
-      selectedStage !== "all" &&
-      activeTournament &&
-      activeTournament.id !== selectedTournament.id
-    ) {
-      return matches;
-    }
-
-    return matches;
-  }, [matches, selectedStage, selectedTournament, activeTournament]);
-
-  const matchResultsByMatch = useMemo(() => {
-    const map = new Map<string, MatchResult[]>();
-
-    for (const result of results) {
-      const current = map.get(result.matchId) ?? [];
-      current.push(result);
-      map.set(result.matchId, current);
-    }
-
-    return map;
-  }, [results]);
-
-  const teamResults = useMemo(() => {
-    const totals = new Map<
-      string,
-      {
-        team: string;
-        points: number;
-        kills: number;
-        placement: number;
-        matches: number;
-      }
-    >();
-
-    for (const result of results) {
-      const key = result.teamId ?? result.teamName ?? result.id;
-
-      const current = totals.get(key) ?? {
-        team: result.teamName || "Unknown Team",
-        points: 0,
-        kills: 0,
-        placement: 0,
-        matches: 0,
-      };
-
-      current.points += Number(result.points ?? 0);
-      current.kills += Number(result.kills ?? 0);
-      current.placement += Math.max(
-        0,
-        Number(result.points ?? 0) - Number(result.kills ?? 0)
-      );
-      current.matches += 1;
-
-      totals.set(key, current);
-    }
-
-    return [...totals.values()].sort((a, b) => b.points - a.points);
-  }, [results]);
-
-  const topTeam = teamResults[0] ?? null;
-
-  const selectedTeamRank = topTeam ? 1 : null;
-
-  const selectedTeamResult = topTeam;
-
-  const stageStats = useMemo(() => {
-    const selectedMatchIds = new Set(activeMatches.map((m) => m.id));
-
-    let kills = 0;
-    let placementPoints = 0;
-    let totalPoints = 0;
-
-    for (const result of results) {
-      if (!selectedMatchIds.has(result.matchId)) continue;
-
-      const k = Number(result.kills ?? 0);
-      const p = Number(result.points ?? 0);
-
-      kills += k;
-      totalPoints += p;
-      placementPoints += Math.max(0, p - k);
-    }
-
-    if (selectedTeamResult) {
-      return {
-        kills: selectedTeamResult.kills,
-        placementPoints: selectedTeamResult.placement,
-        totalPoints: selectedTeamResult.points,
-      };
-    }
+    const placement = matches.reduce(
+      (sum, match) =>
+        sum + (placementPoints[match.position] ?? 0),
+      0,
+    );
 
     return {
       kills,
-      placementPoints,
-      totalPoints,
+      placement,
+      total: kills + placement,
     };
-  }, [activeMatches, results, selectedTeamResult]);
+  }, []);
 
-  const fraggers = useMemo<FragEntry[]>(() => {
-    const playerMap = new Map<string, FragEntry>();
+  const averagePoints =
+    matches.length > 0
+      ? Math.round(
+          (stats.total / matches.length) * 10,
+        ) / 10
+      : 0;
 
-    for (const stat of playerStats) {
-      const player = players.find((p) => p.id === stat.playerId);
+  function changeMode(nextMode: Mode) {
+    setMode(nextMode);
 
-      const existing = playerMap.get(stat.playerId) ?? {
-        id: stat.playerId,
-        name: player?.name ?? "Unknown Player",
-        team: player?.teamName ?? "Unknown Team",
-        avatar: player?.avatarUrl ?? null,
-        kills: 0,
-        matches: 0,
-        points: 0,
-      };
-
-      existing.kills += Number(stat.kills ?? 0);
-      existing.points += Number(stat.points ?? 0);
-      existing.matches += 1;
-
-      playerMap.set(stat.playerId, existing);
-    }
-
-    if (playerMap.size === 0) {
-      for (const player of players) {
-        playerMap.set(player.id, {
-          id: player.id,
-          name: player.name,
-          team: player.teamName ?? "Unknown Team",
-          avatar: player.avatarUrl,
-          kills: Number(player.kills ?? 0),
-          matches: Number(player.matches ?? 0),
-          points: 0,
-        });
-      }
-    }
-
-    return [...playerMap.values()]
-      .sort((a, b) => b.kills - a.kills)
-      .slice(0, 10);
-  }, [playerStats, players]);
-
-  const modalPlayers = useMemo(() => {
-    if (!selectedMatch) return [];
-
-    const stats = playerStats.filter(
-      (stat) => stat.matchId === selectedMatch.id
+    setSelectedFolder(
+      nextMode === "official"
+        ? "play-ins"
+        : "week-2",
     );
-
-    return stats
-      .map((stat) => {
-        const player = players.find((p) => p.id === stat.playerId);
-
-        return {
-          stat,
-          player,
-        };
-      })
-      .sort((a, b) => b.stat.kills - a.stat.kills);
-  }, [selectedMatch, playerStats, players]);
-
-  const visibleTournaments = showAllEvents
-    ? tournaments
-    : tournaments.slice(0, 6);
-
-  const changeMode = (next: CircuitMode) => {
-    setMode(next);
-    setSelectedTournamentId(null);
-    setSelectedStage("all");
-    setEventMenuOpen(false);
-  };
-
-  const chooseTournament = (id: string) => {
-    setSelectedTournamentId(id);
-    setSelectedStage("all");
-    setEventMenuOpen(false);
-  };
+  }
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#05070d] text-white">
-    
-      {/* TG animated background */}
-<div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-  <div className="absolute left-1/2 top-1/2 h-[700px] w-[700px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-600/[0.10] blur-[140px]" />
+    <div className="tg-dashboard">
 
-  <div className="tg-logo-background absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-    <img
-      src="/iqoo-tg-logo.png"
-      alt=""
-      aria-hidden="true"
-      className="h-[420px] w-[420px] object-contain opacity-[0.13] sm:h-[560px] sm:w-[560px] lg:h-[680px] lg:w-[680px]"
-    />
-  </div>
+      {/* =====================================================
+          BACKGROUND LOGO
+          CENTERED + BRIGHT + BEHIND ALL CONTENT
+      ===================================================== */}
 
-  <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.018)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.018)_1px,transparent_1px)] bg-[size:55px_55px]" />
+      <div
+        className="tg-background-logo"
+        aria-hidden="true"
+        style={{
+          position: "fixed",
+          inset: "0",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          pointerEvents: "none",
+          zIndex: 0,
+          overflow: "hidden",
+        }}
+      >
+        <img
+          src="/iqoo-tg-logo.png"
+          alt=""
+          style={{
+            width: "min(72vw, 760px)",
+            height: "auto",
+            opacity: 0.24,
+            filter:
+              "brightness(2.1) saturate(1.35) contrast(1.15) drop-shadow(0 0 35px rgba(120,70,255,.55)) drop-shadow(0 0 80px rgba(40,100,255,.28))",
+            transform: "translateY(3vh)",
+          }}
+        />
+      </div>
 
-  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#05070d_82%)]" />
-</div>
+      <div
+        className="tg-background-grid"
+        aria-hidden="true"
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: "none",
+        }}
+      />
 
-        
+      {/* =====================================================
+          GLOBAL STYLE OVERRIDES
+      ===================================================== */}
 
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-white/[0.07] bg-[#05070d]/85 backdrop-blur-2xl">
-        <div className="mx-auto flex h-[72px] max-w-[1500px] items-center justify-between px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3">
-            <button
-              className="mr-1 rounded-xl border border-white/10 bg-white/5 p-2 md:hidden"
-              onClick={() => setMobileNav((v) => !v)}
-            >
-              {mobileNav ? <X size={19} /> : <Menu size={19} />}
-            </button>
+      <style>{`
+        .tg-dashboard {
+          position: relative;
+          isolation: isolate;
+        }
 
-            <div className="relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-white/[0.05]">
+        .tg-dashboard > *:not(.tg-background-logo):not(.tg-background-grid) {
+          position: relative;
+          z-index: 2;
+        }
+
+        .tg-header,
+        .tg-container,
+        .tg-section,
+        .tg-performance,
+        .tg-circuit-section,
+        .tg-stage-section,
+        .tg-mvp-section,
+        .tg-footer {
+          background-color: rgba(7, 8, 14, 0.58) !important;
+          backdrop-filter: blur(5px);
+          -webkit-backdrop-filter: blur(5px);
+        }
+
+        .tg-stat-grid {
+          display: grid !important;
+          grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          gap: 18px !important;
+        }
+
+        .tg-stat {
+          background: rgba(12, 13, 21, 0.64) !important;
+          backdrop-filter: blur(7px);
+          -webkit-backdrop-filter: blur(7px);
+        }
+
+        .tg-stat.accent {
+          background:
+            linear-gradient(
+              135deg,
+              rgba(55, 18, 95, 0.68),
+              rgba(12, 13, 21, 0.62)
+            ) !important;
+        }
+
+        .tg-circuit-switch {
+          display: flex !important;
+          align-items: center;
+          width: fit-content !important;
+          min-width: 0 !important;
+          height: 52px !important;
+          padding: 4px !important;
+          border-radius: 16px !important;
+          background: rgba(18, 18, 27, 0.64) !important;
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+        }
+
+        .tg-circuit-switch button {
+          height: 42px !important;
+          min-height: 42px !important;
+          padding: 0 22px !important;
+          border-radius: 12px !important;
+        }
+
+        .tg-stage-section {
+          display: none !important;
+        }
+
+        .tg-tournament-grid {
+          display: flex !important;
+          overflow-x: auto !important;
+          overflow-y: hidden !important;
+          gap: 18px !important;
+          padding: 8px 4px 20px !important;
+          scroll-snap-type: x mandatory;
+          scrollbar-width: none;
+        }
+
+        .tg-tournament-grid::-webkit-scrollbar {
+          display: none;
+        }
+
+        .tg-tournament-card {
+          flex: 0 0 min(340px, 82vw) !important;
+          scroll-snap-align: start;
+          transition:
+            transform .35s ease,
+            opacity .35s ease,
+            border-color .35s ease,
+            box-shadow .35s ease;
+          background: rgba(13, 13, 22, 0.64) !important;
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+        }
+
+        .tg-tournament-card:hover {
+          transform: translateY(-7px);
+        }
+
+        .tg-tournament-card.selected {
+          box-shadow:
+            0 0 0 1px rgba(150, 80, 255, .55),
+            0 18px 50px rgba(70, 20, 130, .22);
+        }
+
+        @media (max-width: 700px) {
+          .tg-stat-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 12px !important;
+          }
+
+          .tg-stat {
+            min-height: 145px !important;
+          }
+
+          .tg-circuit-switch {
+            width: 100% !important;
+            justify-content: center;
+          }
+
+          .tg-circuit-switch button {
+            flex: 1 !important;
+            padding: 0 12px !important;
+          }
+
+          .tg-tournament-card {
+            flex-basis: 82vw !important;
+          }
+
+          .tg-background-logo img {
+            width: 105vw !important;
+            opacity: .19 !important;
+          }
+        }
+
+        @media (min-width: 701px) {
+          .tg-tournament-grid {
+            display: grid !important;
+            grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+            overflow: visible !important;
+          }
+
+          .tg-tournament-card {
+            flex-basis: auto !important;
+            width: 100% !important;
+          }
+        }
+      `}</style>
+
+      {/* =====================================================
+          HEADER
+      ===================================================== */}
+
+      <header className="tg-header">
+        <div className="tg-header-inner">
+
+          <button
+            className="tg-mobile-menu"
+            onClick={() =>
+              setMobileMenu(!mobileMenu)
+            }
+            aria-label="Menu"
+          >
+            {mobileMenu ? (
+              <X size={25} />
+            ) : (
+              <Menu size={25} />
+            )}
+          </button>
+
+          <a
+            href="#top"
+            className="tg-brand"
+          >
+            <div className="tg-brand-logo">
               <img
                 src="/iqoo-tg-logo.png"
                 alt="Total Gaming"
-                className="h-full w-full object-contain p-1.5"
+                style={{
+                  filter:
+                    "brightness(1.45) saturate(1.25) drop-shadow(0 0 12px rgba(110,70,255,.45))",
+                }}
               />
             </div>
 
-            <div className="hidden sm:block">
-              <div className="text-[15px] font-black tracking-tight">
-                TOTAL GAMING
+            <div>
+              <div className="tg-brand-name">
+                TOTAL GAMING{" "}
+                <span>HUB</span>
               </div>
-              <div className="text-[8px] font-bold tracking-[0.35em] text-purple-400">
-                COMPETITIVE HUB
+
+              <div className="tg-brand-sub">
+                PLAY · COMPETE · BELONG
               </div>
             </div>
-          </div>
+          </a>
 
-          <nav className="hidden items-center gap-8 md:flex">
-            <a
-              href="#dashboard"
-              className="text-[12px] font-bold text-white"
-            >
-              DASHBOARD
+          <nav className="tg-navigation">
+            <a href="#top">
+              Dashboard
             </a>
-            <a
-              href="#events"
-              className="text-[12px] font-bold text-white/45 transition hover:text-white"
-            >
-              EVENTS
+
+            <a href="#tournaments">
+              Events
             </a>
-            <a
-              href="#matches"
-              className="text-[12px] font-bold text-white/45 transition hover:text-white"
-            >
-              MATCHES
+
+            <a href="#matches">
+              Matches
             </a>
-            <a
-              href="#fraggers"
-              className="text-[12px] font-bold text-white/45 transition hover:text-white"
-            >
-              TOP FRAGGERS
+
+            <a href="#mvp">
+              MVP
             </a>
           </nav>
 
-          <div className="flex items-center gap-2">
-            <div className="hidden items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 sm:flex">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-400" />
-              <span className="text-[9px] font-black tracking-wider text-white/55">
-                LIVE DATA
-              </span>
+          <div className="tg-header-actions">
+
+            <button
+              className="tg-icon-button"
+              aria-label="Highlights"
+            >
+              <Flame size={18} />
+            </button>
+
+            <div className="tg-avatar">
+              A
             </div>
 
-            <div className="flex h-9 w-9 items-center justify-center rounded-full border border-purple-500/30 bg-purple-500/10 text-xs font-black text-purple-300">
-              TG
-            </div>
           </div>
         </div>
 
-        {mobileNav && (
-          <div className="border-t border-white/[0.07] bg-[#080b13] px-5 py-4 md:hidden">
-            <div className="flex flex-col gap-4">
-              <a href="#dashboard" onClick={() => setMobileNav(false)}>
-                DASHBOARD
-              </a>
-              <a href="#events" onClick={() => setMobileNav(false)}>
-                EVENTS
-              </a>
-              <a href="#matches" onClick={() => setMobileNav(false)}>
-                MATCHES
-              </a>
-              <a href="#fraggers" onClick={() => setMobileNav(false)}>
-                TOP FRAGGERS
-              </a>
-            </div>
+        {mobileMenu && (
+          <div className="tg-mobile-navigation">
+
+            <a
+              href="#top"
+              onClick={() =>
+                setMobileMenu(false)
+              }
+            >
+              Dashboard
+            </a>
+
+            <a
+              href="#tournaments"
+              onClick={() =>
+                setMobileMenu(false)
+              }
+            >
+              Events
+            </a>
+
+            <a
+              href="#matches"
+              onClick={() =>
+                setMobileMenu(false)
+              }
+            >
+              Matches
+            </a>
+
+            <a
+              href="#mvp"
+              onClick={() =>
+                setMobileMenu(false)
+              }
+            >
+              MVP
+            </a>
+
           </div>
         )}
       </header>
 
-      <main id="dashboard" className="relative z-10">
-        {/* Current tournament hero */}
-        <section className="mx-auto max-w-[1500px] px-4 pb-7 pt-8 sm:px-6 lg:px-8 lg:pt-10">
-          <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.035] shadow-2xl">
-            {activeTournament?.bannerUrl && (
-              <img
-                src={activeTournament.bannerUrl}
-                alt=""
-                className="absolute inset-0 h-full w-full object-cover opacity-20"
-              />
+      <main id="top">
+
+        {/* =====================================================
+            HERO
+        ===================================================== */}
+
+        <section
+          className="tg-hero tg-container"
+          style={{
+            backgroundColor:
+              "rgba(7, 8, 14, 0.42)",
+            backdropFilter: "blur(3px)",
+            WebkitBackdropFilter:
+              "blur(3px)",
+          }}
+        >
+
+          <div className="tg-hero-copy">
+
+            <div className="tg-eyebrow">
+              <span className="tg-live-marker" />
+              LIVE COMPETITION FEED
+            </div>
+
+            <div className="tg-title-kicker">
+              {mode === "official"
+                ? "OFFICIAL CIRCUIT"
+                : "COMMUNITY CIRCUIT"}
+            </div>
+
+            <h1>
+              {liveTournament.name}
+            </h1>
+
+            <p className="tg-hero-description">
+              Real-time tournament intelligence,
+              match results and competitive
+              performance tracking.
+            </p>
+
+            <div className="tg-hero-meta">
+
+              <div>
+                <span>STAGE</span>
+                <strong>
+                  {liveTournament.phase}
+                </strong>
+              </div>
+
+              <div>
+                <span>MATCHES</span>
+                <strong>
+                  {liveTournament.matches}
+                </strong>
+              </div>
+
+              <div>
+                <span>TEAMS</span>
+                <strong>
+                  {liveTournament.teams}
+                </strong>
+              </div>
+
+            </div>
+
+          </div>
+
+        </section>
+
+        {/* =====================================================
+            CURRENT TOURNAMENT / 4 STAT CARDS
+        ===================================================== */}
+
+        <section
+          className="tg-container tg-performance"
+          style={{
+            backgroundColor:
+              "rgba(8, 9, 15, 0.56)",
+            backdropFilter: "blur(5px)",
+            WebkitBackdropFilter:
+              "blur(5px)",
+          }}
+        >
+
+          <div className="tg-performance-head">
+
+            <div>
+
+              <span className="tg-section-label">
+                <span />
+                CURRENT TOURNAMENT
+              </span>
+
+              <h2>
+                {selectedTournament.name}
+              </h2>
+
+              <p className="tg-performance-subtitle">
+                {selectedTournament.phase}
+                {" · "}
+                {selectedTournament.matches}
+                {" MATCHES · "}
+                {selectedTournament.teams}
+                {" TEAMS"}
+              </p>
+
+            </div>
+
+            <div className="tg-selected-tag">
+              <span className="tg-live-marker" />
+              {selectedTournament.status}
+            </div>
+
+          </div>
+
+          <div className="tg-stat-grid">
+
+            <Stat
+              icon={<Star />}
+              title="TOTAL SCORE"
+              value={stats.total}
+              accent
+            />
+
+            <Stat
+              icon={<Trophy />}
+              title="CURRENT RANK"
+              value="#1"
+            />
+
+            <Stat
+              icon={<Crosshair />}
+              title="ELIMINATIONS"
+              value={stats.kills}
+            />
+
+            <Stat
+              icon={<Shield />}
+              title="PLACEMENT PTS"
+              value={stats.placement}
+            />
+
+          </div>
+
+          <div className="tg-performance-footer">
+
+            <div>
+              <span>AVERAGE / MATCH</span>
+              <strong>
+                {averagePoints}
+              </strong>
+            </div>
+
+            <div>
+              <span>PLAYED</span>
+              <strong>
+                {matches.length}/{selectedTournament.matches}
+              </strong>
+            </div>
+
+            <div>
+              <span>STATUS</span>
+              <strong>
+                {selectedTournament.status}
+              </strong>
+            </div>
+
+          </div>
+
+        </section>
+
+        {/* =====================================================
+            OFFICIAL / SCRIMS THIN TOGGLE
+        ===================================================== */}
+
+        <section
+          className="tg-container tg-circuit-section"
+          style={{
+            backgroundColor:
+              "rgba(8, 9, 15, 0.50)",
+            backdropFilter: "blur(5px)",
+            WebkitBackdropFilter:
+              "blur(5px)",
+          }}
+        >
+
+          <div className="tg-circuit-heading">
+
+            <div>
+
+              <span className="tg-section-label">
+                <span />
+                COMPETITION MODE
+              </span>
+
+              <h2>
+                SELECT CIRCUIT
+              </h2>
+
+            </div>
+
+            <div className="tg-circuit-count">
+              {tournaments.length} EVENTS
+            </div>
+
+          </div>
+
+          <div className="tg-circuit-switch">
+
+            <button
+              className={
+                mode === "official"
+                  ? "active"
+                  : ""
+              }
+              onClick={() =>
+                changeMode("official")
+              }
+            >
+              <Trophy size={18} />
+              <span>OFFICIAL</span>
+            </button>
+
+            <button
+              className={
+                mode === "scrims"
+                  ? "active"
+                  : ""
+              }
+              onClick={() =>
+                changeMode("scrims")
+              }
+            >
+              <Gamepad2 size={18} />
+              <span>SCRIMS</span>
+            </button>
+
+          </div>
+
+        </section>
+
+        {/* =====================================================
+            TOURNAMENTS
+            HORIZONTAL SCROLL + ANIMATION
+        ===================================================== */}
+
+        <section
+          id="tournaments"
+          className="tg-container tg-section"
+          style={{
+            backgroundColor:
+              "rgba(7, 8, 14, 0.46)",
+            backdropFilter: "blur(4px)",
+            WebkitBackdropFilter:
+              "blur(4px)",
+          }}
+        >
+
+          <div className="tg-section-heading">
+
+            <div>
+
+              <span className="tg-section-label">
+                <span />
+                COMPETITIVE CALENDAR
+              </span>
+
+              <h2>
+                {mode === "official"
+                  ? "OFFICIAL EVENTS"
+                  : "SCRIM EVENTS"}
+              </h2>
+
+            </div>
+
+            <div className="tg-heading-icon">
+              <CalendarDays size={24} />
+            </div>
+
+          </div>
+
+          <div className="tg-tournament-grid">
+
+            {tournaments.map(
+              (tournament, index) => (
+
+                <TournamentCard
+                  key={tournament.id}
+                  tournament={tournament}
+                  index={index}
+                  selected={
+                    tournament.id ===
+                    selectedTournament.id
+                  }
+                  onClick={() => {
+
+                    const folder =
+                      folders.find(
+                        (item) =>
+                          item.tournamentId ===
+                          tournament.id,
+                      );
+
+                    if (folder) {
+                      setSelectedFolder(
+                        folder.id,
+                      );
+                    }
+
+                  }}
+                />
+
+              ),
             )}
 
-            <div className="absolute inset-0 bg-gradient-to-r from-[#080b13] via-[#080b13]/95 to-[#080b13]/60" />
-
-            <div className="relative grid min-h-[290px] items-center gap-8 p-6 sm:p-8 lg:grid-cols-[1fr_auto] lg:p-10">
-              <div>
-                <div className="mb-5 flex flex-wrap items-center gap-3">
-                  <span className="inline-flex items-center gap-2 rounded-full border border-red-500/20 bg-red-500/10 px-3 py-1.5 text-[9px] font-black tracking-[0.18em] text-red-300">
-                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-400" />
-                    {activeTournament?.status === "LIVE"
-                      ? "LIVE NOW"
-                      : "CURRENT TOURNAMENT"}
-                  </span>
-
-                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[9px] font-black tracking-[0.15em] text-white/45">
-                    {mode === "official" ? "OFFICIAL CIRCUIT" : "SCRIMS"}
-                  </span>
-                </div>
-
-                <p className="mb-2 text-[10px] font-black tracking-[0.3em] text-purple-400">
-                  CURRENT COMPETITION
-                </p>
-
-                <h1 className="max-w-4xl text-3xl font-black tracking-[-0.04em] sm:text-5xl lg:text-6xl">
-                  {loadingEvents
-                    ? "LOADING..."
-                    : activeTournament?.name || "NO ACTIVE EVENT"}
-                </h1>
-
-                <p className="mt-3 max-w-2xl text-sm leading-6 text-white/40">
-                  {activeTournament?.description ||
-                    "Follow live competitive results, match performance and player statistics."}
-                </p>
-
-                <div className="mt-6 flex flex-wrap gap-2">
-                  <MetaPill
-                    icon={<Trophy size={13} />}
-                    label="STAGE"
-                    value={activeTournament?.phase || "—"}
-                  />
-
-                  <MetaPill
-                    icon={<Users size={13} />}
-                    label="TEAMS"
-                    value={String(activeTournament?.teams ?? 0)}
-                  />
-
-                  <MetaPill
-                    icon={<Gamepad2 size={13} />}
-                    label="MATCHES"
-                    value={String(activeTournament?.matches ?? 0)}
-                  />
-                </div>
-              </div>
-
-              <div className="hidden lg:flex lg:justify-end">
-                <div className="relative flex h-44 w-44 items-center justify-center rounded-full border border-purple-500/20 bg-purple-500/[0.04]">
-                  <div className="absolute inset-4 animate-pulse rounded-full border border-purple-500/10" />
-
-                  <img
-                    src="/iqoo-tg-logo.png"
-                    alt=""
-                    className="h-28 w-28 object-contain opacity-80"
-                  />
-                </div>
-              </div>
-            </div>
           </div>
+
         </section>
 
-        {/* Main controls */}
-        <section className="mx-auto max-w-[1500px] px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
-            {/* Circuit switch */}
-            <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-2">
-              <div className="grid grid-cols-2 gap-1">
-                <button
-                  onClick={() => changeMode("official")}
-                  className={`group relative flex min-h-[86px] flex-col items-center justify-center gap-2 rounded-xl transition ${
-                    mode === "official"
-                      ? "bg-gradient-to-br from-purple-600/25 to-blue-600/10 text-white shadow-lg shadow-purple-900/10"
-                      : "text-white/35 hover:bg-white/5 hover:text-white"
-                  }`}
-                >
-                  <Trophy
-                    size={20}
-                    className={
-                      mode === "official"
-                        ? "text-purple-400"
-                        : "text-white/30"
-                    }
-                  />
-                  <span className="text-[10px] font-black tracking-[0.18em]">
-                    OFFICIAL
-                  </span>
+        {/* =====================================================
+            MATCH HISTORY
+        ===================================================== */}
 
-                  {mode === "official" && (
-                    <span className="absolute bottom-2 h-0.5 w-7 rounded-full bg-purple-400" />
-                  )}
-                </button>
-
-                <button
-                  onClick={() => changeMode("scrims")}
-                  className={`group relative flex min-h-[86px] flex-col items-center justify-center gap-2 rounded-xl transition ${
-                    mode === "scrims"
-                      ? "bg-gradient-to-br from-purple-600/25 to-blue-600/10 text-white shadow-lg shadow-purple-900/10"
-                      : "text-white/35 hover:bg-white/5 hover:text-white"
-                  }`}
-                >
-                  <Gamepad2
-                    size={20}
-                    className={
-                      mode === "scrims"
-                        ? "text-purple-400"
-                        : "text-white/30"
-                    }
-                  />
-                  <span className="text-[10px] font-black tracking-[0.18em]">
-                    SCRIMS
-                  </span>
-
-                  {mode === "scrims" && (
-                    <span className="absolute bottom-2 h-0.5 w-7 rounded-full bg-purple-400" />
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Event selector */}
-            <div className="relative rounded-2xl border border-white/10 bg-white/[0.025] p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <div>
-                  <p className="text-[9px] font-black tracking-[0.25em] text-white/30">
-                    {mode === "official"
-                      ? "OFFICIAL EVENTS"
-                      : "SCRIM EVENTS"}
-                  </p>
-                  <p className="mt-1 text-xs font-bold text-white/60">
-                    Select competition
-                  </p>
-                </div>
-
-                <button
-                  onClick={() => setEventMenuOpen((v) => !v)}
-                  className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[10px] font-black"
-                >
-                  {selectedTournament?.name || "SELECT EVENT"}
-                  <ChevronDown size={14} />
-                </button>
-              </div>
-
-              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                {visibleTournaments.map((tournament) => (
-                  <button
-                    key={tournament.id}
-                    onClick={() => chooseTournament(tournament.id)}
-                    className={`min-w-[180px] rounded-xl border px-4 py-3 text-left transition ${
-                      selectedTournament?.id === tournament.id
-                        ? "border-purple-500/40 bg-purple-500/10"
-                        : "border-white/5 bg-white/[0.02] hover:border-white/15 hover:bg-white/[0.05]"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span
-                        className={`h-1.5 w-1.5 rounded-full ${
-                          tournament.status === "LIVE"
-                            ? "animate-pulse bg-red-400"
-                            : "bg-white/20"
-                        }`}
-                      />
-
-                      <span className="text-[8px] font-black text-white/25">
-                        {tournament.phase || "EVENT"}
-                      </span>
-                    </div>
-
-                    <p className="mt-2 truncate text-xs font-black">
-                      {tournament.name}
-                    </p>
-
-                    <p className="mt-1 text-[9px] text-white/30">
-                      {tournament.teams} TEAMS · {tournament.matches} MATCHES
-                    </p>
-                  </button>
-                ))}
-              </div>
-
-              {tournaments.length > 6 && (
-                <button
-                  onClick={() => setShowAllEvents((v) => !v)}
-                  className="mt-3 text-[9px] font-black tracking-widest text-purple-400 hover:text-purple-300"
-                >
-                  {showAllEvents ? "SHOW LESS" : "VIEW ALL EVENTS"}
-                </button>
-              )}
-
-              {eventMenuOpen && (
-                <div className="absolute right-4 top-[72px] z-40 w-[280px] overflow-hidden rounded-2xl border border-white/10 bg-[#0b0f18] p-2 shadow-2xl">
-                  {tournaments.map((tournament) => (
-                    <button
-                      key={tournament.id}
-                      onClick={() => chooseTournament(tournament.id)}
-                      className="flex w-full items-center justify-between rounded-xl px-3 py-3 text-left transition hover:bg-white/5"
-                    >
-                      <div>
-                        <p className="text-xs font-bold">
-                          {tournament.name}
-                        </p>
-                        <p className="mt-1 text-[9px] text-white/30">
-                          {tournament.phase || "EVENT"}
-                        </p>
-                      </div>
-
-                      {tournament.status === "LIVE" && (
-                        <span className="text-[8px] font-black text-red-400">
-                          LIVE
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
-
-        {/* Compact stage selector */}
-        <section className="mx-auto max-w-[1500px] px-4 pt-5 sm:px-6 lg:px-8">
-          <div className="rounded-2xl border border-white/10 bg-white/[0.025] px-3 py-3">
-            <div className="flex items-center gap-4 overflow-x-auto scrollbar-hide">
-              <div className="flex shrink-0 items-center gap-2 border-r border-white/10 pr-4">
-                <CalendarDays size={14} className="text-purple-400" />
-                <span className="text-[9px] font-black tracking-[0.2em] text-white/35">
-                  STAGE
-                </span>
-              </div>
-
-              <button
-                onClick={() => setSelectedStage("all")}
-                className={`shrink-0 rounded-lg px-4 py-2 text-[9px] font-black transition ${
-                  selectedStage === "all"
-                    ? "bg-white text-black"
-                    : "bg-white/5 text-white/40 hover:text-white"
-                }`}
-              >
-                OVERALL
-              </button>
-
-              {stages.map((stage, index) => (
-                <button
-                  key={stage.id}
-                  onClick={() => setSelectedStage(stage.tournamentId)}
-                  className={`shrink-0 rounded-lg px-4 py-2 text-[9px] font-black transition ${
-                    selectedStage === stage.tournamentId
-                      ? "bg-purple-500 text-white shadow-lg shadow-purple-500/20"
-                      : "bg-white/5 text-white/40 hover:text-white"
-                  }`}
-                >
-                  {stage.label || `STAGE ${index + 1}`}
-                </button>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Stats */}
-        <section className="mx-auto max-w-[1500px] px-4 pb-7 pt-5 sm:px-6 lg:px-8">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <BigStat
-              label="TOTAL POINTS"
-              value={stageStats.totalPoints}
-              icon={<Trophy size={20} />}
-              description={
-                selectedTeamRank
-                  ? "Current leading result"
-                  : "Tournament points"
-              }
-              highlight
-            />
-
-            <BigStat
-              label="CURRENT RANK"
-              value={selectedTeamRank ? `#${selectedTeamRank}` : "—"}
-              icon={<BarChart3 size={20} />}
-              description={
-                selectedTeamRank === 1
-                  ? "Qualified / leading position"
-                  : "Rank unavailable"
-              }
-            />
-
-            <BigStat
-              label="ELIMINATIONS"
-              value={stageStats.kills}
-              icon={<Crosshair size={20} />}
-              description="Total kills"
-            />
-
-            <BigStat
-              label="PLACEMENT POINTS"
-              value={stageStats.placementPoints}
-              icon={<Shield size={20} />}
-              description="Position points"
-            />
-          </div>
-        </section>
-
-        {/* Match history */}
         <section
           id="matches"
-          className="mx-auto max-w-[1500px] px-4 pb-10 sm:px-6 lg:px-8"
+          className="tg-container tg-section"
+          style={{
+            backgroundColor:
+              "rgba(7, 8, 14, 0.48)",
+            backdropFilter: "blur(4px)",
+            WebkitBackdropFilter:
+              "blur(4px)",
+          }}
         >
-          <SectionTitle
-            eyebrow="COMPETITIVE RECORD"
-            title="MATCH HISTORY"
-            right={`${activeMatches.length} MATCHES`}
-          />
 
-          <div className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.025]">
-            <div className="hidden grid-cols-[90px_1fr_130px_110px_110px_130px] border-b border-white/10 bg-white/[0.025] px-5 py-3 text-[8px] font-black tracking-[0.18em] text-white/25 md:grid">
-              <span>MATCH</span>
-              <span>MAP / STATUS</span>
-              <span>POSITION</span>
-              <span>KILLS</span>
-              <span>POINTS</span>
-              <span className="text-right">DETAILS</span>
-            </div>
+          <div className="tg-section-heading">
 
-            {loadingTournament ? (
-              <LoadingRows />
-            ) : activeMatches.length > 0 ? (
-              <div>
-                {[...activeMatches].reverse().map((match, index) => {
-                  const result =
-                    matchResultsByMatch.get(match.id)?.[0] ?? undefined;
-
-                  return (
-                    <MatchHistoryRow
-                      key={match.id}
-                      match={match}
-                      result={result}
-                      index={index}
-                      onOpen={() => setSelectedMatch(match)}
-                    />
-                  );
-                })}
-              </div>
-            ) : (
-              <EmptyBox text="NO MATCH DATA AVAILABLE FOR THIS STAGE" />
-            )}
-          </div>
-        </section>
-
-        {/* Top fraggers */}
-        <section
-          id="fraggers"
-          className="mx-auto max-w-[1500px] px-4 pb-14 sm:px-6 lg:px-8"
-        >
-          <SectionTitle
-            eyebrow="PLAYER PERFORMANCE"
-            title="TOP FRAGGERS"
-            right="TOP 10"
-          />
-
-          <div className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.025]">
-            <div className="hidden grid-cols-[70px_1fr_180px_120px_120px] border-b border-white/10 bg-white/[0.025] px-5 py-3 text-[8px] font-black tracking-[0.18em] text-white/25 md:grid">
-              <span>RANK</span>
-              <span>PLAYER</span>
-              <span>TEAM</span>
-              <span>MATCHES</span>
-              <span>KILLS</span>
-            </div>
-
-            {fraggers.length > 0 ? (
-              fraggers.map((player, index) => (
-                <FragRow
-                  key={player.id}
-                  player={player}
-                  rank={index + 1}
-                />
-              ))
-            ) : (
-              <EmptyBox text="NO PLAYER STATISTICS AVAILABLE" />
-            )}
-          </div>
-        </section>
-
-        {/* Footer */}
-        <footer className="border-t border-white/[0.07] bg-black/20">
-          <div className="mx-auto flex max-w-[1500px] flex-col gap-3 px-4 py-7 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
             <div>
-              <p className="text-sm font-black">TOTAL GAMING HUB</p>
-              <p className="mt-1 text-[9px] font-bold tracking-[0.2em] text-white/25">
-                PLAY · COMPETE · BELONG
-              </p>
+
+              <span className="tg-section-label">
+                <span />
+                PERFORMANCE LOG
+              </span>
+
+              <h2>
+                MATCH HISTORY
+              </h2>
+
             </div>
 
-            <p className="text-[9px] font-bold text-white/20">
-              COMPETITIVE ESPORTS PLATFORM
-            </p>
+            <div className="tg-match-count">
+              {matches.length} MATCHES
+            </div>
+
           </div>
+
+          <div className="tg-match-table">
+
+            <div className="tg-match-header">
+              <span>MATCH</span>
+              <span>KILLS</span>
+              <span>POSITION</span>
+              <span>POINTS</span>
+            </div>
+
+            {[...matches]
+              .reverse()
+              .map((match) => (
+
+                <div
+                  className="tg-match-row"
+                  key={match.id}
+                >
+
+                  <div>
+
+                    <strong>
+                      MATCH {match.number}
+                    </strong>
+
+                    <span>
+                      {match.map}
+                    </span>
+
+                  </div>
+
+                  <strong>
+                    {match.kills}
+                  </strong>
+
+                  <strong>
+                    #{match.position}
+                  </strong>
+
+                  <strong className="tg-match-points">
+                    {getMatchPoints(match)}
+                  </strong>
+
+                </div>
+
+              ))}
+
+          </div>
+
+        </section>
+
+        {/* =====================================================
+            MVP
+        ===================================================== */}
+
+        <section
+          id="mvp"
+          className="tg-container tg-mvp-section"
+          style={{
+            backgroundColor:
+              "rgba(7, 8, 14, 0.48)",
+            backdropFilter: "blur(4px)",
+            WebkitBackdropFilter:
+              "blur(4px)",
+          }}
+        >
+
+          <div className="tg-section-heading">
+
+            <div>
+
+              <span className="tg-section-label">
+                <span />
+                PLAYER PERFORMANCE
+              </span>
+
+              <h2>
+                DAILY MVP
+              </h2>
+
+            </div>
+
+            <span className="tg-mvp-day">
+              DAY 01
+            </span>
+
+          </div>
+
+          <div className="tg-mvp-card">
+
+            <div className="tg-mvp-image">
+              <img
+                src={mvpImage}
+                alt="Daily MVP"
+              />
+            </div>
+
+            <div className="tg-mvp-info">
+
+              <span className="tg-mvp-role">
+                RUSHER · TOP PERFORMER
+              </span>
+
+              <h3>
+                PLAYER 1
+              </h3>
+
+              <p>
+                Leading the current
+                tournament performance.
+              </p>
+
+            </div>
+
+            <div className="tg-mvp-stats">
+
+              <div>
+                <span>KILLS</span>
+                <strong>9</strong>
+              </div>
+
+              <div>
+                <span>MATCHES</span>
+                <strong>3</strong>
+              </div>
+
+              <div>
+                <span>K/D</span>
+                <strong>3.0</strong>
+              </div>
+
+            </div>
+
+          </div>
+
+        </section>
+
+        {/* =====================================================
+            FOOTER
+        ===================================================== */}
+
+        <footer
+          className="tg-footer tg-container"
+          style={{
+            backgroundColor:
+              "rgba(7, 8, 14, 0.52)",
+            backdropFilter: "blur(4px)",
+            WebkitBackdropFilter:
+              "blur(4px)",
+          }}
+        >
+
+          <div className="tg-footer-brand">
+            TOTAL GAMING HUB
+          </div>
+
+          <div className="tg-footer-line" />
+
+          <div className="tg-footer-meta">
+            PLAY · COMPETE · BELONG
+          </div>
+
         </footer>
+
       </main>
 
-      {/* Full stats modal */}
-      {selectedMatch && (
-        <MatchStatsModal
-          match={selectedMatch}
-          players={modalPlayers}
-          onClose={() => setSelectedMatch(null)}
-        />
-      )}
     </div>
   );
 }
 
-function BigStat({
-  label,
-  value,
+/* =========================================================
+   STAT COMPONENT
+========================================================= */
+
+function Stat({
   icon,
-  description,
-  highlight = false,
-}: {
-  label: string;
-  value: string | number;
-  icon: React.ReactNode;
-  description: string;
-  highlight?: boolean;
-}) {
-  return (
-    <div
-      className={`group relative overflow-hidden rounded-2xl border p-5 transition duration-300 hover:-translate-y-1 ${
-        highlight
-          ? "border-purple-500/30 bg-gradient-to-br from-purple-600/15 to-white/[0.025]"
-          : "border-white/10 bg-white/[0.025]"
-      }`}
-    >
-      <div className="flex items-start justify-between">
-        <span
-          className={`flex h-10 w-10 items-center justify-center rounded-xl ${
-            highlight
-              ? "bg-purple-500/15 text-purple-400"
-              : "bg-white/5 text-white/40"
-          }`}
-        >
-          {icon}
-        </span>
-
-        {highlight && (
-          <span className="text-[8px] font-black tracking-widest text-purple-400">
-            LEADER
-          </span>
-        )}
-      </div>
-
-      <p className="mt-5 text-[9px] font-black tracking-[0.2em] text-white/30">
-        {label}
-      </p>
-
-      <p className="mt-1 text-4xl font-black tracking-[-0.04em]">
-        {value}
-      </p>
-
-      <p className="mt-2 text-[10px] font-medium text-white/30">
-        {description}
-      </p>
-
-      <div
-        className={`absolute -bottom-10 -right-10 h-28 w-28 rounded-full blur-3xl transition group-hover:scale-125 ${
-          highlight ? "bg-purple-600/15" : "bg-white/5"
-        }`}
-      />
-    </div>
-  );
-}
-
-function MetaPill({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-black/20 px-3 py-2">
-      <span className="text-purple-400">{icon}</span>
-      <div>
-        <span className="block text-[7px] font-black tracking-widest text-white/25">
-          {label}
-        </span>
-        <span className="block text-[10px] font-black text-white/70">
-          {value}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function SectionTitle({
-  eyebrow,
   title,
-  right,
+  value,
+  accent = false,
 }: {
-  eyebrow: string;
+  icon: ReactNode;
   title: string;
-  right?: string;
+  value: string | number;
+  accent?: boolean;
 }) {
-  return (
-    <div className="flex items-end justify-between gap-4">
-      <div>
-        <div className="flex items-center gap-2">
-          <span className="h-1.5 w-1.5 rounded-full bg-purple-400" />
-          <p className="text-[9px] font-black tracking-[0.25em] text-purple-400">
-            {eyebrow}
-          </p>
-        </div>
-
-        <h2 className="mt-2 text-2xl font-black tracking-[-0.03em] sm:text-3xl">
-          {title}
-        </h2>
-      </div>
-
-      {right && (
-        <span className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[8px] font-black tracking-widest text-white/35">
-          {right}
-        </span>
-      )}
-    </div>
-  );
-}
-
-function MatchHistoryRow({
-  match,
-  result,
-  index,
-  onOpen,
-}: {
-  match: Match;
-  result?: MatchResult;
-  index: number;
-  onOpen: () => void;
-}) {
-  const kills = Number(result?.kills ?? match.totalKills ?? 0);
-  const points = Number(result?.points ?? 0);
-  const position = result?.position ?? null;
-
   return (
     <div
-      className="group grid items-center gap-3 border-b border-white/[0.06] px-4 py-4 transition last:border-b-0 hover:bg-white/[0.035] md:grid-cols-[90px_1fr_130px_110px_110px_130px] md:px-5"
+      className={
+        accent
+          ? "tg-stat accent"
+          : "tg-stat"
+      }
       style={{
-        animationDelay: `${index * 35}ms`,
+        backgroundColor:
+          "rgba(12, 13, 21, 0.62)",
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter:
+          "blur(8px)",
       }}
     >
-      <div>
-        <span className="text-[8px] font-black tracking-widest text-purple-400">
-          MATCH
-        </span>
-        <p className="mt-1 text-sm font-black">
-          #{match.number}
-        </p>
+
+      <div className="tg-stat-icon">
+        {icon}
       </div>
 
-      <div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-black">
-            {match.map || "UNKNOWN MAP"}
-          </span>
+      <span className="tg-stat-title">
+        {title}
+      </span>
 
-          {match.status === "LIVE" && (
-            <span className="rounded-md bg-red-500/10 px-2 py-1 text-[7px] font-black text-red-400">
-              LIVE
-            </span>
-          )}
-        </div>
+      <strong className="tg-stat-value">
+        {value}
+      </strong>
 
-        <p className="mt-1 text-[9px] text-white/25">
-          {match.teams || 0} TEAMS
-          {match.matchTime ? ` · ${match.matchTime}` : ""}
-        </p>
-      </div>
-
-      <div className="mt-3 flex justify-between md:mt-0 md:block">
-        <span className="text-[8px] font-black text-white/25 md:hidden">
-          POSITION
-        </span>
-
-        <span className="text-sm font-black">
-          {position ? `#${position}` : "—"}
-        </span>
-      </div>
-
-      <div className="flex justify-between md:block">
-        <span className="text-[8px] font-black text-white/25 md:hidden">
-          KILLS
-        </span>
-
-        <span className="text-sm font-black text-red-300">
-          {kills}
-        </span>
-      </div>
-
-      <div className="flex justify-between md:block">
-        <span className="text-[8px] font-black text-white/25 md:hidden">
-          POINTS
-        </span>
-
-        <span className="text-sm font-black text-purple-300">
-          {points}
-        </span>
-      </div>
-
-      <div className="mt-3 md:mt-0 md:text-right">
-        <button
-          onClick={onOpen}
-          className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[8px] font-black tracking-wider text-white/55 transition hover:border-purple-500/30 hover:bg-purple-500/10 hover:text-white"
-        >
-          FULL STATS
-          <ChevronRight size={12} />
-        </button>
-      </div>
     </div>
   );
 }
 
-function FragRow({
-  player,
-  rank,
+/* =========================================================
+   TOURNAMENT CARD
+========================================================= */
+
+function TournamentCard({
+  tournament,
+  index,
+  selected,
+  onClick,
 }: {
-  player: FragEntry;
-  rank: number;
+  tournament: Tournament;
+  index: number;
+  selected: boolean;
+  onClick: () => void;
 }) {
-  const rankClass =
-    rank === 1
-      ? "bg-yellow-500/15 text-yellow-300 border-yellow-500/20"
-      : rank === 2
-        ? "bg-white/10 text-white border-white/10"
-        : rank === 3
-          ? "bg-orange-500/10 text-orange-300 border-orange-500/20"
-          : "bg-white/5 text-white/35 border-white/5";
+  const statusClass =
+    tournament.status.toLowerCase();
 
   return (
-    <div className="grid items-center gap-3 border-b border-white/[0.06] px-4 py-4 transition last:border-b-0 hover:bg-white/[0.035] md:grid-cols-[70px_1fr_180px_120px_120px] md:px-5">
-      <div className="flex">
+    <button
+      className={
+        selected
+          ? "tg-tournament-card selected"
+          : "tg-tournament-card"
+      }
+      onClick={onClick}
+      style={{
+        background:
+          "rgba(13, 13, 22, 0.62)",
+        backdropFilter: "blur(9px)",
+        WebkitBackdropFilter:
+          "blur(9px)",
+      }}
+    >
+
+      <div className="tg-card-top">
+
         <span
-          className={`flex h-8 w-8 items-center justify-center rounded-lg border text-[10px] font-black ${rankClass}`}
+          className={`tg-tournament-status ${statusClass}`}
         >
-          {String(rank).padStart(2, "0")}
-        </span>
-      </div>
-
-      <div className="flex items-center gap-3">
-        <div className="h-10 w-10 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-white/5">
-          {player.avatar ? (
-            <img
-              src={player.avatar}
-              alt=""
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-xs font-black text-purple-300">
-              {player.name.charAt(0).toUpperCase()}
-            </div>
-          )}
-        </div>
-
-        <div className="min-w-0">
-          <p className="truncate text-sm font-black">
-            {player.name}
-          </p>
-
-          <p className="mt-1 text-[8px] font-bold tracking-wider text-white/25">
-            {player.matches} MATCHES
-          </p>
-        </div>
-      </div>
-
-      <div className="hidden md:block">
-        <span className="text-xs font-bold text-white/45">
-          {player.team}
-        </span>
-      </div>
-
-      <div className="flex justify-between md:block">
-        <span className="text-[8px] text-white/25 md:hidden">
-          MATCHES
-        </span>
-        <span className="text-sm font-black">
-          {player.matches}
-        </span>
-      </div>
-
-      <div className="flex items-center justify-between md:block md:text-right">
-        <span className="flex items-center gap-1 text-[8px] text-white/25 md:hidden">
-          <Crosshair size={10} />
-          KILLS
+          {tournament.status}
         </span>
 
-        <span className="text-base font-black text-red-300">
-          {player.kills}
+        <span className="tg-card-index">
+          {String(index + 1).padStart(2, "0")}
         </span>
+
       </div>
-    </div>
-  );
-}
 
-function MatchStatsModal({
-  match,
-  players,
-  onClose,
-}: {
-  match: Match;
-  players: {
-    stat: PlayerMatchStat;
-    player?: Player;
-  }[];
-  onClose: () => void;
-}) {
-  return (
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 p-4 backdrop-blur-md"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
-      <div className="w-full max-w-[760px] overflow-hidden rounded-3xl border border-white/10 bg-[#0a0e17] shadow-2xl shadow-black/50">
-        <div className="flex items-center justify-between border-b border-white/10 px-5 py-4 sm:px-6">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="rounded-md bg-purple-500/10 px-2 py-1 text-[8px] font-black tracking-widest text-purple-400">
-                FULL STATS
-              </span>
+      <div className="tg-card-content">
 
-              <span className="text-[9px] font-bold text-white/25">
-                MATCH #{match.number}
-              </span>
-            </div>
+        <span className="tg-card-phase">
+          {tournament.phase}
+        </span>
 
-            <h3 className="mt-2 text-xl font-black">
-              {match.map || "MATCH"}
-            </h3>
-          </div>
+        <h3>
+          {tournament.name}
+        </h3>
 
-          <button
-            onClick={onClose}
-            className="rounded-xl border border-white/10 bg-white/5 p-2.5 text-white/50 transition hover:bg-white/10 hover:text-white"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        <div className="grid max-h-[70vh] gap-3 overflow-y-auto p-4 sm:grid-cols-2 sm:p-6">
-          {players.length > 0 ? (
-            players.map(({ stat, player }) => (
-              <div
-                key={stat.id}
-                className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.025] p-3"
-              >
-                <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-white/5">
-                  {player?.avatarUrl ? (
-                    <img
-                      src={player.avatarUrl}
-                      alt=""
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center text-sm font-black text-purple-300">
-                      {player?.name?.charAt(0).toUpperCase() || "?"}
-                    </div>
-                  )}
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-black">
-                    {player?.name || "Unknown Player"}
-                  </p>
-
-                  <p className="mt-1 truncate text-[8px] font-bold uppercase tracking-wider text-white/25">
-                    {player?.role || "PLAYER"}
-                  </p>
-
-                  <div className="mt-2 flex gap-3 text-[9px] font-bold">
-                    <span className="text-red-300">
-                      {stat.kills} KILLS
-                    </span>
-
-                    <span className="text-white/35">
-                      {stat.damage} DMG
-                    </span>
-
-                    <span className="text-white/35">
-                      {stat.assists} AST
-                    </span>
-                  </div>
-                </div>
-
-                <div className="text-right">
-                  <p className="text-[7px] font-black tracking-widest text-white/25">
-                    POINTS
-                  </p>
-
-                  <p className="mt-1 text-lg font-black text-purple-300">
-                    {stat.points}
-                  </p>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="col-span-full py-10 text-center">
-              <Activity className="mx-auto text-white/15" size={30} />
-
-              <p className="mt-3 text-[10px] font-black tracking-widest text-white/25">
-                NO INDIVIDUAL STATS AVAILABLE
-              </p>
-            </div>
-          )}
-        </div>
-
-        <div className="border-t border-white/10 bg-white/[0.02] px-5 py-3 sm:px-6">
-          <div className="flex items-center justify-between text-[9px] font-bold text-white/25">
-            <span>{match.teams} TEAMS</span>
-            <span>{match.totalKills} TOTAL KILLS</span>
-            <span>{match.status || "COMPLETED"}</span>
-          </div>
-        </div>
       </div>
-    </div>
-  );
-}
 
-function LoadingRows() {
-  return (
-    <div className="space-y-2 p-3">
-      {[1, 2, 3, 4].map((item) => (
-        <div
-          key={item}
-          className="h-16 animate-pulse rounded-xl bg-white/[0.035]"
-        />
-      ))}
-    </div>
-  );
-}
+      <div className="tg-card-footer">
 
-function EmptyBox({ text }: { text: string }) {
-  return (
-    <div className="flex min-h-[180px] flex-col items-center justify-center px-5 text-center">
-      <Target size={30} className="text-white/10" />
+        <span>
+          <CalendarDays size={15} />
+          {tournament.matches} MATCHES
+        </span>
 
-      <p className="mt-3 text-[9px] font-black tracking-[0.2em] text-white/20">
-        {text}
-      </p>
-    </div>
+        <span>
+          <Users size={15} />
+          {tournament.teams} TEAMS
+        </span>
+
+        <ChevronRight size={18} />
+
+      </div>
+
+    </button>
   );
 }
