@@ -1,18 +1,26 @@
-import { createClient } from "@supabase/supabase-js";
+import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabasePublishableKey =
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+type UntypedSupabaseClient = {
+  from: (table: string) => QueryBuilder;
+};
 
-if (!supabaseUrl) {
-  throw new Error("Missing VITE_SUPABASE_URL");
-}
+type SupabaseResponse = {
+  data: Record<string, unknown>[] | null;
+  error: unknown;
+};
 
-if (!supabasePublishableKey) {
-  throw new Error("Missing VITE_SUPABASE_PUBLISHABLE_KEY");
-}
+type QueryBuilder = PromiseLike<SupabaseResponse> & {
+  insert: (values: Record<string, unknown>) => QueryBuilder;
+  update: (values: Record<string, unknown>) => QueryBuilder;
+  delete: () => QueryBuilder;
+  select: (columns?: string) => QueryBuilder;
+  eq: (column: string, value: unknown) => QueryBuilder;
+  in: (column: string, values: string[]) => QueryBuilder;
+  order: (column: string, options?: { ascending?: boolean }) => QueryBuilder;
+  single: () => Promise<{
+    data: Record<string, unknown> | null;
+    error: unknown;
+  }>;
+};
 
-export const supabase = createClient(
-  supabaseUrl,
-  supabasePublishableKey
-);
+export const supabase = cloudSupabase as unknown as UntypedSupabaseClient;

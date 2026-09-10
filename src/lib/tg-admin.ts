@@ -39,10 +39,7 @@ export async function createTournament(input: {
   return data;
 }
 
-export async function updateTournament(
-  id: string,
-  updates: Record<string, unknown>,
-) {
+export async function updateTournament(id: string, updates: Record<string, unknown>) {
   const { data, error } = await supabase
     .from("tournaments")
     .update(updates)
@@ -54,13 +51,8 @@ export async function updateTournament(
   return data;
 }
 
-export async function deleteTournament(
-  id: string,
-) {
-  const { error } = await supabase
-    .from("tournaments")
-    .delete()
-    .eq("id", id);
+export async function deleteTournament(id: string) {
+  const { error } = await supabase.from("tournaments").delete().eq("id", id);
 
   if (error) throw error;
 }
@@ -94,10 +86,7 @@ export async function createTeam(input: {
   return data;
 }
 
-export async function updateTeam(
-  id: string,
-  updates: Record<string, unknown>,
-) {
+export async function updateTeam(id: string, updates: Record<string, unknown>) {
   const { data, error } = await supabase
     .from("teams")
     .update(updates)
@@ -110,10 +99,7 @@ export async function updateTeam(
 }
 
 export async function deleteTeam(id: string) {
-  const { error } = await supabase
-    .from("teams")
-    .delete()
-    .eq("id", id);
+  const { error } = await supabase.from("teams").delete().eq("id", id);
 
   if (error) throw error;
 }
@@ -149,10 +135,7 @@ export async function createPlayer(input: {
   return data;
 }
 
-export async function updatePlayer(
-  id: string,
-  updates: Record<string, unknown>,
-) {
+export async function updatePlayer(id: string, updates: Record<string, unknown>) {
   const { data, error } = await supabase
     .from("players")
     .update(updates)
@@ -164,13 +147,8 @@ export async function updatePlayer(
   return data;
 }
 
-export async function deletePlayer(
-  id: string,
-) {
-  const { error } = await supabase
-    .from("players")
-    .delete()
-    .eq("id", id);
+export async function deletePlayer(id: string) {
+  const { error } = await supabase.from("players").delete().eq("id", id);
 
   if (error) throw error;
 }
@@ -212,10 +190,7 @@ export async function createMatch(input: {
   return data;
 }
 
-export async function updateMatch(
-  id: string,
-  updates: Record<string, unknown>,
-) {
+export async function updateMatch(id: string, updates: Record<string, unknown>) {
   const { data, error } = await supabase
     .from("matches")
     .update(updates)
@@ -227,13 +202,8 @@ export async function updateMatch(
   return data;
 }
 
-export async function deleteMatch(
-  id: string,
-) {
-  const { error } = await supabase
-    .from("matches")
-    .delete()
-    .eq("id", id);
+export async function deleteMatch(id: string) {
+  const { error } = await supabase.from("matches").delete().eq("id", id);
 
   if (error) throw error;
 }

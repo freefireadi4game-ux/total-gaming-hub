@@ -458,11 +458,7 @@ function Badge({
   children: React.ReactNode;
   type?: "default" | "live" | "warning" | "success" | "danger" | "blue";
 }) {
-  return (
-    <span className={`tg-badge tg-badge-${type}`}>
-      {children}
-    </span>
-  );
+  return <span className={`tg-badge tg-badge-${type}`}>{children}</span>;
 }
 
 function IconButton({
@@ -475,12 +471,7 @@ function IconButton({
   onClick?: () => void;
 }) {
   return (
-    <button
-      className="tg-icon-button"
-      title={title}
-      onClick={onClick}
-      type="button"
-    >
+    <button className="tg-icon-button" title={title} onClick={onClick} type="button">
       {children}
     </button>
   );
@@ -575,10 +566,7 @@ function Modal({
 }) {
   return (
     <div className="tg-modal-backdrop" onMouseDown={onClose}>
-      <div
-        className="tg-modal"
-        onMouseDown={(event) => event.stopPropagation()}
-      >
+      <div className="tg-modal" onMouseDown={(event) => event.stopPropagation()}>
         <div className="tg-modal-header">
           <h2>{title}</h2>
 
@@ -640,10 +628,7 @@ function SelectField({
     <label className="tg-field">
       <span>{label}</span>
 
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-      >
+      <select value={value} onChange={(event) => onChange(event.target.value)}>
         {children}
       </select>
     </label>
@@ -654,11 +639,7 @@ function SelectField({
    LOGIN
    ========================================================= */
 
-function LoginScreen({
-  onLogin,
-}: {
-  onLogin: (email: string, password: string) => void;
-}) {
+function LoginScreen({ onLogin }: { onLogin: (email: string, password: string) => void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -695,10 +676,7 @@ function LoginScreen({
 
           <h1>ADMIN CONTROL</h1>
 
-          <p>
-            Sign in to manage tournaments, matches, teams, players and
-            platform content.
-          </p>
+          <p>Sign in to manage tournaments, matches, teams, players and platform content.</p>
         </div>
 
         <form onSubmit={submit}>
@@ -742,11 +720,7 @@ function LoginScreen({
 function SetupScreen({
   onComplete,
 }: {
-  onComplete: (
-    name: string,
-    email: string,
-    password: string
-  ) => void;
+  onComplete: (name: string, email: string, password: string) => void;
 }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -796,19 +770,11 @@ function SetupScreen({
 
           <h1>CREATE OWNER</h1>
 
-          <p>
-            This screen is shown only before the first admin account is
-            created.
-          </p>
+          <p>This screen is shown only before the first admin account is created.</p>
         </div>
 
         <form onSubmit={submit}>
-          <Field
-            label="YOUR NAME"
-            value={name}
-            onChange={setName}
-            placeholder="Owner name"
-          />
+          <Field label="YOUR NAME" value={name} onChange={setName} placeholder="Owner name" />
 
           <Field
             label="EMAIL"
@@ -934,9 +900,7 @@ function Sidebar({
 
   return (
     <>
-      {mobileOpen && (
-        <div className="tg-sidebar-overlay" onClick={onClose} />
-      )}
+      {mobileOpen && <div className="tg-sidebar-overlay" onClick={onClose} />}
 
       <aside className={`tg-sidebar ${mobileOpen ? "open" : ""}`}>
         <div className="tg-sidebar-brand">
@@ -949,11 +913,7 @@ function Sidebar({
             <span>HUB CONTROL</span>
           </div>
 
-          <button
-            className="tg-mobile-close"
-            onClick={onClose}
-            type="button"
-          >
+          <button className="tg-mobile-close" onClick={onClose} type="button">
             <X size={20} />
           </button>
         </div>
@@ -969,9 +929,7 @@ function Sidebar({
             return (
               <button
                 key={item.id}
-                className={`tg-nav-item ${
-                  section === item.id ? "active" : ""
-                }`}
+                className={`tg-nav-item ${section === item.id ? "active" : ""}`}
                 onClick={() => {
                   setSection(item.id);
                   onClose();
@@ -981,9 +939,7 @@ function Sidebar({
                 {item.icon}
                 <span>{item.label}</span>
 
-                {section === item.id && (
-                  <ChevronRight size={15} className="tg-nav-arrow" />
-                )}
+                {section === item.id && <ChevronRight size={15} className="tg-nav-arrow" />}
               </button>
             );
           })}
@@ -991,9 +947,7 @@ function Sidebar({
 
         <div className="tg-sidebar-bottom">
           <div className="tg-admin-mini">
-            <div className="tg-admin-avatar">
-              {currentAdmin.name.charAt(0).toUpperCase()}
-            </div>
+            <div className="tg-admin-avatar">{currentAdmin.name.charAt(0).toUpperCase()}</div>
 
             <div className="tg-admin-mini-info">
               <strong>{currentAdmin.name}</strong>
@@ -1001,11 +955,7 @@ function Sidebar({
             </div>
           </div>
 
-          <button
-            className="tg-logout-button"
-            onClick={onLogout}
-            type="button"
-          >
+          <button className="tg-logout-button" onClick={onLogout} type="button">
             <LogOut size={17} />
             Sign out
           </button>
@@ -1032,11 +982,7 @@ function Topbar({
 }) {
   return (
     <header className="tg-topbar">
-      <button
-        className="tg-mobile-menu"
-        onClick={onMenu}
-        type="button"
-      >
+      <button className="tg-mobile-menu" onClick={onMenu} type="button">
         <Menu size={23} />
       </button>
 
@@ -1084,17 +1030,11 @@ function Dashboard({
   activities: ActivityItem[];
   onNavigate: (section: Section) => void;
 }) {
-  const liveTournaments = tournaments.filter(
-    (item) => item.status === "LIVE"
-  ).length;
+  const liveTournaments = tournaments.filter((item) => item.status === "LIVE").length;
 
-  const liveMatches = matches.filter(
-    (item) => item.status === "LIVE"
-  ).length;
+  const liveMatches = matches.filter((item) => item.status === "LIVE").length;
 
-  const upcomingMatches = matches.filter(
-    (item) => item.status === "UPCOMING"
-  ).length;
+  const upcomingMatches = matches.filter((item) => item.status === "UPCOMING").length;
 
   return (
     <div className="tg-page">
@@ -1102,15 +1042,10 @@ function Dashboard({
         <div>
           <Badge type="live">LIVE CONTROL</Badge>
           <h2>Command Center</h2>
-          <p>
-            Manage the entire Total Gaming Hub from one place.
-          </p>
+          <p>Manage the entire Total Gaming Hub from one place.</p>
         </div>
 
-        <button
-          className="tg-secondary-button"
-          onClick={() => onNavigate("matches")}
-        >
+        <button className="tg-secondary-button" onClick={() => onNavigate("matches")}>
           <Gamepad2 size={17} />
           Open Live Scores
         </button>
@@ -1124,11 +1059,7 @@ function Dashboard({
           accent
         />
 
-        <StatCard
-          label="LIVE MATCHES"
-          value={liveMatches}
-          icon={<Activity size={24} />}
-        />
+        <StatCard label="LIVE MATCHES" value={liveMatches} icon={<Activity size={24} />} />
 
         <StatCard
           label="UPCOMING MATCHES"
@@ -1136,11 +1067,7 @@ function Dashboard({
           icon={<CalendarDays size={24} />}
         />
 
-        <StatCard
-          label="TOTAL TEAMS"
-          value={teams.length}
-          icon={<Users size={24} />}
-        />
+        <StatCard label="TOTAL TEAMS" value={teams.length} icon={<Users size={24} />} />
 
         <StatCard
           label="TOTAL PLAYERS"
@@ -1148,11 +1075,7 @@ function Dashboard({
           icon={<CircleUserRound size={24} />}
         />
 
-        <StatCard
-          label="ADMINS"
-          value={admins.length}
-          icon={<ShieldCheck size={24} />}
-        />
+        <StatCard label="ADMINS" value={admins.length} icon={<ShieldCheck size={24} />} />
       </div>
 
       <div className="tg-dashboard-columns">
@@ -1160,10 +1083,7 @@ function Dashboard({
           title="LIVE TOURNAMENTS"
           icon={<Trophy size={18} />}
           action={
-            <button
-              className="tg-text-button"
-              onClick={() => onNavigate("tournaments")}
-            >
+            <button className="tg-text-button" onClick={() => onNavigate("tournaments")}>
               VIEW ALL
               <ChevronRight size={15} />
             </button>
@@ -1180,8 +1100,7 @@ function Dashboard({
                 <div className="tg-list-content">
                   <strong>{tournament.name}</strong>
                   <span>
-                    {tournament.stage} · {tournament.teams} TEAMS ·{" "}
-                    {tournament.matches} MATCHES
+                    {tournament.stage} · {tournament.teams} TEAMS · {tournament.matches} MATCHES
                   </span>
                 </div>
 
@@ -1201,10 +1120,7 @@ function Dashboard({
           title="RECENT ACTIVITY"
           icon={<Activity size={18} />}
           action={
-            <button
-              className="tg-text-button"
-              onClick={() => onNavigate("activity")}
-            >
+            <button className="tg-text-button" onClick={() => onNavigate("activity")}>
               FULL LOG
               <ChevronRight size={15} />
             </button>
@@ -1225,47 +1141,32 @@ function Dashboard({
           ))}
 
           {activities.length === 0 && (
-            <EmptyState
-              title="No activity"
-              description="Admin actions will appear here."
-            />
+            <EmptyState title="No activity" description="Admin actions will appear here." />
           )}
         </Panel>
       </div>
 
       <Panel title="QUICK ACTIONS" icon={<Zap size={18} />}>
         <div className="tg-quick-grid">
-          <button
-            className="tg-quick-action"
-            onClick={() => onNavigate("tournaments")}
-          >
+          <button className="tg-quick-action" onClick={() => onNavigate("tournaments")}>
             <Trophy size={20} />
             <span>Create Tournament</span>
             <ChevronRight size={16} />
           </button>
 
-          <button
-            className="tg-quick-action"
-            onClick={() => onNavigate("matches")}
-          >
+          <button className="tg-quick-action" onClick={() => onNavigate("matches")}>
             <Gamepad2 size={20} />
             <span>Manage Scores</span>
             <ChevronRight size={16} />
           </button>
 
-          <button
-            className="tg-quick-action"
-            onClick={() => onNavigate("teams")}
-          >
+          <button className="tg-quick-action" onClick={() => onNavigate("teams")}>
             <Users size={20} />
             <span>Add Team</span>
             <ChevronRight size={16} />
           </button>
 
-          <button
-            className="tg-quick-action"
-            onClick={() => onNavigate("admins")}
-          >
+          <button className="tg-quick-action" onClick={() => onNavigate("admins")}>
             <UserPlus size={20} />
             <span>Invite Admin</span>
             <ChevronRight size={16} />
@@ -1304,9 +1205,7 @@ function TournamentsPage({
   const [description, setDescription] = useState("");
 
   const filtered = tournaments.filter((item) =>
-    `${item.name} ${item.stage} ${item.type}`
-      .toLowerCase()
-      .includes(search.toLowerCase())
+    `${item.name} ${item.stage} ${item.type}`.toLowerCase().includes(search.toLowerCase()),
   );
 
   function resetForm() {
@@ -1360,8 +1259,8 @@ function TournamentsPage({
                 endDate,
                 description,
               }
-            : item
-        )
+            : item,
+        ),
       );
 
       log("Tournament updated", `${name} was updated.`);
@@ -1394,9 +1293,7 @@ function TournamentsPage({
 
     if (!window.confirm(`Delete ${item.name}?`)) return;
 
-    setTournaments((current) =>
-      current.filter((x) => x.id !== id)
-    );
+    setTournaments((current) => current.filter((x) => x.id !== id));
 
     log("Tournament deleted", `${item.name} was deleted.`);
   }
@@ -1425,9 +1322,7 @@ function TournamentsPage({
           />
         </div>
 
-        <div className="tg-toolbar-count">
-          {filtered.length} EVENTS
-        </div>
+        <div className="tg-toolbar-count">{filtered.length} EVENTS</div>
       </div>
 
       <div className="tg-table-wrap">
@@ -1456,11 +1351,7 @@ function TournamentsPage({
                 </td>
 
                 <td>
-                  <Badge
-                    type={item.type === "OFFICIAL" ? "warning" : "blue"}
-                  >
-                    {item.type}
-                  </Badge>
+                  <Badge type={item.type === "OFFICIAL" ? "warning" : "blue"}>{item.type}</Badge>
                 </td>
 
                 <td>
@@ -1469,8 +1360,8 @@ function TournamentsPage({
                       item.status === "LIVE"
                         ? "live"
                         : item.status === "COMPLETED"
-                        ? "success"
-                        : "default"
+                          ? "success"
+                          : "default"
                     }
                   >
                     {item.status}
@@ -1489,17 +1380,11 @@ function TournamentsPage({
 
                 <td>
                   <div className="tg-row-actions">
-                    <IconButton
-                      title="Edit"
-                      onClick={() => openEdit(item)}
-                    >
+                    <IconButton title="Edit" onClick={() => openEdit(item)}>
                       <Edit3 size={16} />
                     </IconButton>
 
-                    <IconButton
-                      title="Delete"
-                      onClick={() => remove(item.id)}
-                    >
+                    <IconButton title="Delete" onClick={() => remove(item.id)}>
                       <Trash2 size={16} />
                     </IconButton>
                   </div>
@@ -1555,9 +1440,7 @@ function TournamentsPage({
             <SelectField
               label="TYPE"
               value={type}
-              onChange={(value) =>
-                setType(value as "OFFICIAL" | "SCRIM")
-              }
+              onChange={(value) => setType(value as "OFFICIAL" | "SCRIM")}
             >
               <option value="OFFICIAL">OFFICIAL</option>
               <option value="SCRIM">SCRIM</option>
@@ -1566,9 +1449,7 @@ function TournamentsPage({
             <SelectField
               label="STATUS"
               value={status}
-              onChange={(value) =>
-                setStatus(value as TournamentStatus)
-              }
+              onChange={(value) => setStatus(value as TournamentStatus)}
             >
               <option value="LIVE">LIVE</option>
               <option value="UPCOMING">UPCOMING</option>
@@ -1576,48 +1457,21 @@ function TournamentsPage({
               <option value="ARCHIVED">ARCHIVED</option>
             </SelectField>
 
-            <Field
-              label="STAGE"
-              value={stage}
-              onChange={setStage}
-              placeholder="PLAY-INS"
-            />
+            <Field label="STAGE" value={stage} onChange={setStage} placeholder="PLAY-INS" />
 
-            <Field
-              label="MATCHES"
-              value={matches}
-              onChange={setMatches}
-              type="number"
-            />
+            <Field label="MATCHES" value={matches} onChange={setMatches} type="number" />
 
-            <Field
-              label="TEAMS"
-              value={teams}
-              onChange={setTeams}
-              type="number"
-            />
+            <Field label="TEAMS" value={teams} onChange={setTeams} type="number" />
 
-            <Field
-              label="START DATE"
-              value={startDate}
-              onChange={setStartDate}
-              type="date"
-            />
+            <Field label="START DATE" value={startDate} onChange={setStartDate} type="date" />
 
-            <Field
-              label="END DATE"
-              value={endDate}
-              onChange={setEndDate}
-              type="date"
-            />
+            <Field label="END DATE" value={endDate} onChange={setEndDate} type="date" />
 
             <label className="tg-field tg-field-full">
               <span>DESCRIPTION</span>
               <textarea
                 value={description}
-                onChange={(event) =>
-                  setDescription(event.target.value)
-                }
+                onChange={(event) => setDescription(event.target.value)}
                 placeholder="Tournament description"
               />
             </label>
@@ -1674,9 +1528,7 @@ function MatchesPage({
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Match | null>(null);
 
-  const [tournamentId, setTournamentId] = useState(
-    tournaments[0]?.id || ""
-  );
+  const [tournamentId, setTournamentId] = useState(tournaments[0]?.id || "");
   const [matchNumber, setMatchNumber] = useState("1");
   const [map, setMap] = useState("Bermuda");
   const [status, setStatus] = useState<MatchStatus>("UPCOMING");
@@ -1711,9 +1563,7 @@ function MatchesPage({
   }
 
   function save() {
-    const tournament = tournaments.find(
-      (x) => x.id === tournamentId
-    );
+    const tournament = tournaments.find((x) => x.id === tournamentId);
 
     if (!tournament) return;
 
@@ -1732,14 +1582,11 @@ function MatchesPage({
                 teams: Number(teams) || 0,
                 totalKills: Number(totalKills) || 0,
               }
-            : item
-        )
+            : item,
+        ),
       );
 
-      log(
-        "Match updated",
-        `Match ${matchNumber} of ${tournament.name} was updated.`
-      );
+      log("Match updated", `Match ${matchNumber} of ${tournament.name} was updated.`);
     } else {
       const item: Match = {
         id: makeId("match"),
@@ -1755,10 +1602,7 @@ function MatchesPage({
 
       setMatches((current) => [item, ...current]);
 
-      log(
-        "Match created",
-        `Match ${matchNumber} of ${tournament.name} was created.`
-      );
+      log("Match created", `Match ${matchNumber} of ${tournament.name} was created.`);
     }
 
     setShowModal(false);
@@ -1799,9 +1643,7 @@ function MatchesPage({
 
       <div className="tg-match-grid">
         {matches.map((match) => {
-          const tournament = tournaments.find(
-            (x) => x.id === match.tournamentId
-          );
+          const tournament = tournaments.find((x) => x.id === match.tournamentId);
 
           return (
             <div className="tg-match-card" key={match.id}>
@@ -1811,8 +1653,8 @@ function MatchesPage({
                     match.status === "LIVE"
                       ? "live"
                       : match.status === "COMPLETED"
-                      ? "success"
-                      : "blue"
+                        ? "success"
+                        : "blue"
                   }
                 >
                   {match.status}
@@ -1848,18 +1690,12 @@ function MatchesPage({
               </div>
 
               <div className="tg-card-actions">
-                <button
-                  className="tg-secondary-button"
-                  onClick={() => edit(match)}
-                >
+                <button className="tg-secondary-button" onClick={() => edit(match)}>
                   <Edit3 size={16} />
                   EDIT
                 </button>
 
-                <button
-                  className="tg-danger-button"
-                  onClick={() => deleteMatch(match.id)}
-                >
+                <button className="tg-danger-button" onClick={() => deleteMatch(match.id)}>
                   <Trash2 size={16} />
                 </button>
               </div>
@@ -1902,11 +1738,7 @@ function MatchesPage({
           }
         >
           <div className="tg-form-grid">
-            <SelectField
-              label="TOURNAMENT"
-              value={tournamentId}
-              onChange={setTournamentId}
-            >
+            <SelectField label="TOURNAMENT" value={tournamentId} onChange={setTournamentId}>
               {tournaments.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.name} — {item.stage}
@@ -1921,11 +1753,7 @@ function MatchesPage({
               type="number"
             />
 
-            <SelectField
-              label="MAP"
-              value={map}
-              onChange={setMap}
-            >
+            <SelectField label="MAP" value={map} onChange={setMap}>
               <option value="Bermuda">Bermuda</option>
               <option value="Purgatory">Purgatory</option>
               <option value="Alpine">Alpine</option>
@@ -1936,42 +1764,20 @@ function MatchesPage({
             <SelectField
               label="STATUS"
               value={status}
-              onChange={(value) =>
-                setStatus(value as MatchStatus)
-              }
+              onChange={(value) => setStatus(value as MatchStatus)}
             >
               <option value="LIVE">LIVE</option>
               <option value="UPCOMING">UPCOMING</option>
               <option value="COMPLETED">COMPLETED</option>
             </SelectField>
 
-            <Field
-              label="DATE"
-              value={date}
-              onChange={setDate}
-              type="date"
-            />
+            <Field label="DATE" value={date} onChange={setDate} type="date" />
 
-            <Field
-              label="TIME"
-              value={time}
-              onChange={setTime}
-              type="time"
-            />
+            <Field label="TIME" value={time} onChange={setTime} type="time" />
 
-            <Field
-              label="TEAMS"
-              value={teams}
-              onChange={setTeams}
-              type="number"
-            />
+            <Field label="TEAMS" value={teams} onChange={setTeams} type="number" />
 
-            <Field
-              label="TOTAL KILLS"
-              value={totalKills}
-              onChange={setTotalKills}
-              type="number"
-            />
+            <Field label="TOTAL KILLS" value={totalKills} onChange={setTotalKills} type="number" />
           </div>
         </Modal>
       )}
@@ -2001,14 +1807,10 @@ function TeamsPage({
   const [logo, setLogo] = useState("");
   const [manager, setManager] = useState("");
   const [players, setPlayers] = useState("4");
-  const [status, setStatus] = useState<"ACTIVE" | "INACTIVE">(
-    "ACTIVE"
-  );
+  const [status, setStatus] = useState<"ACTIVE" | "INACTIVE">("ACTIVE");
 
   const filtered = teams.filter((team) =>
-    `${team.name} ${team.shortName} ${team.manager}`
-      .toLowerCase()
-      .includes(search.toLowerCase())
+    `${team.name} ${team.shortName} ${team.manager}`.toLowerCase().includes(search.toLowerCase()),
   );
 
   function reset() {
@@ -2048,8 +1850,8 @@ function TeamsPage({
                 players: Number(players) || 0,
                 status,
               }
-            : team
-        )
+            : team,
+        ),
       );
 
       log("Team updated", `${name} was updated.`);
@@ -2115,26 +1917,18 @@ function TeamsPage({
           />
         </div>
 
-        <div className="tg-toolbar-count">
-          {filtered.length} TEAMS
-        </div>
+        <div className="tg-toolbar-count">{filtered.length} TEAMS</div>
       </div>
 
       <div className="tg-team-grid">
         {filtered.map((team) => (
           <div className="tg-team-card" key={team.id}>
             <div className="tg-team-logo">
-              {team.logo ? (
-                <img src={team.logo} alt={team.name} />
-              ) : (
-                <Users size={29} />
-              )}
+              {team.logo ? <img src={team.logo} alt={team.name} /> : <Users size={29} />}
             </div>
 
             <div className="tg-team-main">
-              <Badge type={team.status === "ACTIVE" ? "success" : "default"}>
-                {team.status}
-              </Badge>
+              <Badge type={team.status === "ACTIVE" ? "success" : "default"}>{team.status}</Badge>
 
               <h3>{team.name}</h3>
               <span>{team.shortName}</span>
@@ -2153,18 +1947,12 @@ function TeamsPage({
             </div>
 
             <div className="tg-card-actions">
-              <button
-                className="tg-secondary-button"
-                onClick={() => openEdit(team)}
-              >
+              <button className="tg-secondary-button" onClick={() => openEdit(team)}>
                 <Edit3 size={16} />
                 EDIT
               </button>
 
-              <button
-                className="tg-danger-button"
-                onClick={() => remove(team.id)}
-              >
+              <button className="tg-danger-button" onClick={() => remove(team.id)}>
                 <Trash2 size={16} />
               </button>
             </div>
@@ -2210,26 +1998,11 @@ function TeamsPage({
           }
         >
           <div className="tg-form-grid">
-            <Field
-              label="TEAM NAME"
-              value={name}
-              onChange={setName}
-              placeholder="TOTAL GAMING"
-            />
+            <Field label="TEAM NAME" value={name} onChange={setName} placeholder="TOTAL GAMING" />
 
-            <Field
-              label="SHORT NAME"
-              value={shortName}
-              onChange={setShortName}
-              placeholder="TG"
-            />
+            <Field label="SHORT NAME" value={shortName} onChange={setShortName} placeholder="TG" />
 
-            <Field
-              label="LOGO URL"
-              value={logo}
-              onChange={setLogo}
-              placeholder="/team-logo.png"
-            />
+            <Field label="LOGO URL" value={logo} onChange={setLogo} placeholder="/team-logo.png" />
 
             <Field
               label="MANAGER"
@@ -2238,19 +2011,12 @@ function TeamsPage({
               placeholder="Manager name"
             />
 
-            <Field
-              label="PLAYER COUNT"
-              value={players}
-              onChange={setPlayers}
-              type="number"
-            />
+            <Field label="PLAYER COUNT" value={players} onChange={setPlayers} type="number" />
 
             <SelectField
               label="STATUS"
               value={status}
-              onChange={(value) =>
-                setStatus(value as "ACTIVE" | "INACTIVE")
-              }
+              onChange={(value) => setStatus(value as "ACTIVE" | "INACTIVE")}
             >
               <option value="ACTIVE">ACTIVE</option>
               <option value="INACTIVE">INACTIVE</option>
@@ -2286,14 +2052,10 @@ function PlayersPage({
   const [role, setRole] = useState("RUSHER");
   const [kills, setKills] = useState("0");
   const [matches, setMatches] = useState("0");
-  const [status, setStatus] = useState<"ACTIVE" | "BENCHED">(
-    "ACTIVE"
-  );
+  const [status, setStatus] = useState<"ACTIVE" | "BENCHED">("ACTIVE");
 
   const filtered = players.filter((player) =>
-    `${player.name} ${player.team} ${player.role}`
-      .toLowerCase()
-      .includes(search.toLowerCase())
+    `${player.name} ${player.team} ${player.role}`.toLowerCase().includes(search.toLowerCase()),
   );
 
   function reset() {
@@ -2333,8 +2095,8 @@ function PlayersPage({
                 matches: Number(matches) || 0,
                 status,
               }
-            : player
-        )
+            : player,
+        ),
       );
 
       log("Player updated", `${name} was updated.`);
@@ -2365,9 +2127,7 @@ function PlayersPage({
 
     if (!window.confirm(`Delete ${player.name}?`)) return;
 
-    setPlayers((current) =>
-      current.filter((x) => x.id !== id)
-    );
+    setPlayers((current) => current.filter((x) => x.id !== id));
 
     log("Player deleted", `${player.name} was deleted.`);
   }
@@ -2402,9 +2162,7 @@ function PlayersPage({
           />
         </div>
 
-        <div className="tg-toolbar-count">
-          {filtered.length} PLAYERS
-        </div>
+        <div className="tg-toolbar-count">{filtered.length} PLAYERS</div>
       </div>
 
       <div className="tg-table-wrap">
@@ -2426,9 +2184,7 @@ function PlayersPage({
               <tr key={player.id}>
                 <td>
                   <div className="tg-player-cell">
-                    <div className="tg-player-avatar">
-                      {player.name.charAt(0).toUpperCase()}
-                    </div>
+                    <div className="tg-player-avatar">{player.name.charAt(0).toUpperCase()}</div>
 
                     <strong>{player.name}</strong>
                   </div>
@@ -2436,36 +2192,22 @@ function PlayersPage({
 
                 <td>{player.team || "-"}</td>
                 <td>{player.role}</td>
-                <td className="tg-number-highlight">
-                  {player.kills}
-                </td>
+                <td className="tg-number-highlight">{player.kills}</td>
                 <td>{player.matches}</td>
 
                 <td>
-                  <Badge
-                    type={
-                      player.status === "ACTIVE"
-                        ? "success"
-                        : "default"
-                    }
-                  >
+                  <Badge type={player.status === "ACTIVE" ? "success" : "default"}>
                     {player.status}
                   </Badge>
                 </td>
 
                 <td>
                   <div className="tg-row-actions">
-                    <IconButton
-                      title="Edit"
-                      onClick={() => openEdit(player)}
-                    >
+                    <IconButton title="Edit" onClick={() => openEdit(player)}>
                       <Edit3 size={16} />
                     </IconButton>
 
-                    <IconButton
-                      title="Delete"
-                      onClick={() => remove(player.id)}
-                    >
+                    <IconButton title="Delete" onClick={() => remove(player.id)}>
                       <Trash2 size={16} />
                     </IconButton>
                   </div>
@@ -2476,10 +2218,7 @@ function PlayersPage({
         </table>
 
         {filtered.length === 0 && (
-          <EmptyState
-            title="No players found"
-            description="Add your first player."
-          />
+          <EmptyState title="No players found" description="Add your first player." />
         )}
       </div>
 
@@ -2510,18 +2249,9 @@ function PlayersPage({
           }
         >
           <div className="tg-form-grid">
-            <Field
-              label="PLAYER NAME"
-              value={name}
-              onChange={setName}
-              placeholder="Player name"
-            />
+            <Field label="PLAYER NAME" value={name} onChange={setName} placeholder="Player name" />
 
-            <SelectField
-              label="TEAM"
-              value={team}
-              onChange={setTeam}
-            >
+            <SelectField label="TEAM" value={team} onChange={setTeam}>
               <option value="">No team</option>
               {teams.map((item) => (
                 <option key={item.id} value={item.name}>
@@ -2530,11 +2260,7 @@ function PlayersPage({
               ))}
             </SelectField>
 
-            <SelectField
-              label="ROLE"
-              value={role}
-              onChange={setRole}
-            >
+            <SelectField label="ROLE" value={role} onChange={setRole}>
               <option value="RUSHER">RUSHER</option>
               <option value="IGL">IGL</option>
               <option value="SUPPORT">SUPPORT</option>
@@ -2546,27 +2272,15 @@ function PlayersPage({
             <SelectField
               label="STATUS"
               value={status}
-              onChange={(value) =>
-                setStatus(value as "ACTIVE" | "BENCHED")
-              }
+              onChange={(value) => setStatus(value as "ACTIVE" | "BENCHED")}
             >
               <option value="ACTIVE">ACTIVE</option>
               <option value="BENCHED">BENCHED</option>
             </SelectField>
 
-            <Field
-              label="TOTAL KILLS"
-              value={kills}
-              onChange={setKills}
-              type="number"
-            />
+            <Field label="TOTAL KILLS" value={kills} onChange={setKills} type="number" />
 
-            <Field
-              label="MATCHES PLAYED"
-              value={matches}
-              onChange={setMatches}
-              type="number"
-            />
+            <Field label="MATCHES PLAYED" value={matches} onChange={setMatches} type="number" />
           </div>
         </Modal>
       )}
@@ -2587,27 +2301,17 @@ function OfficialPage({
   setTournaments: React.Dispatch<React.SetStateAction<Tournament[]>>;
   log: (action: string, description: string) => void;
 }) {
-  const official = tournaments.filter(
-    (item) => item.type === "OFFICIAL"
-  );
+  const official = tournaments.filter((item) => item.type === "OFFICIAL");
 
-  function changeStatus(
-    id: string,
-    status: TournamentStatus
-  ) {
+  function changeStatus(id: string, status: TournamentStatus) {
     setTournaments((current) =>
-      current.map((item) =>
-        item.id === id ? { ...item, status } : item
-      )
+      current.map((item) => (item.id === id ? { ...item, status } : item)),
     );
 
     const item = tournaments.find((x) => x.id === id);
 
     if (item) {
-      log(
-        "Official status changed",
-        `${item.name} changed to ${status}.`
-      );
+      log("Official status changed", `${item.name} changed to ${status}.`);
     }
   }
 
@@ -2625,11 +2329,7 @@ function OfficialPage({
             <div className="tg-control-card-top">
               <Badge
                 type={
-                  item.status === "LIVE"
-                    ? "live"
-                    : item.status === "UPCOMING"
-                    ? "blue"
-                    : "default"
+                  item.status === "LIVE" ? "live" : item.status === "UPCOMING" ? "blue" : "default"
                 }
               >
                 {item.status}
@@ -2653,14 +2353,10 @@ function OfficialPage({
             </div>
 
             <div className="tg-status-buttons">
-              {(
-                ["LIVE", "UPCOMING", "COMPLETED", "ARCHIVED"] as const
-              ).map((status) => (
+              {(["LIVE", "UPCOMING", "COMPLETED", "ARCHIVED"] as const).map((status) => (
                 <button
                   key={status}
-                  className={
-                    item.status === status ? "selected" : ""
-                  }
+                  className={item.status === status ? "selected" : ""}
                   onClick={() => changeStatus(item.id, status)}
                   type="button"
                 >
@@ -2688,9 +2384,7 @@ function ScrimsPage({
   setTournaments: React.Dispatch<React.SetStateAction<Tournament[]>>;
   log: (action: string, description: string) => void;
 }) {
-  const scrims = tournaments.filter(
-    (item) => item.type === "SCRIM"
-  );
+  const scrims = tournaments.filter((item) => item.type === "SCRIM");
 
   const [showModal, setShowModal] = useState(false);
   const [name, setName] = useState("");
@@ -2732,9 +2426,7 @@ function ScrimsPage({
 
     if (!window.confirm(`Delete ${item.name}?`)) return;
 
-    setTournaments((current) =>
-      current.filter((x) => x.id !== id)
-    );
+    setTournaments((current) => current.filter((x) => x.id !== id));
 
     log("Scrim deleted", `${item.name} was deleted.`);
   }
@@ -2746,10 +2438,7 @@ function ScrimsPage({
         title="SCRIMS"
         description="Create and control private or community scrim events."
         button={
-          <button
-            className="tg-primary-button"
-            onClick={() => setShowModal(true)}
-          >
+          <button className="tg-primary-button" onClick={() => setShowModal(true)}>
             <Plus size={18} />
             NEW SCRIM
           </button>
@@ -2780,10 +2469,7 @@ function ScrimsPage({
               </div>
             </div>
 
-            <button
-              className="tg-danger-button tg-full-button"
-              onClick={() => remove(item.id)}
-            >
+            <button className="tg-danger-button tg-full-button" onClick={() => remove(item.id)}>
               <Trash2 size={16} />
               DELETE SCRIM
             </button>
@@ -2791,10 +2477,7 @@ function ScrimsPage({
         ))}
 
         {scrims.length === 0 && (
-          <EmptyState
-            title="No scrims"
-            description="Create a scrim event from the button above."
-          />
+          <EmptyState title="No scrims" description="Create a scrim event from the button above." />
         )}
       </div>
 
@@ -2804,17 +2487,11 @@ function ScrimsPage({
           onClose={() => setShowModal(false)}
           footer={
             <>
-              <button
-                className="tg-secondary-button"
-                onClick={() => setShowModal(false)}
-              >
+              <button className="tg-secondary-button" onClick={() => setShowModal(false)}>
                 CANCEL
               </button>
 
-              <button
-                className="tg-primary-button"
-                onClick={createScrim}
-              >
+              <button className="tg-primary-button" onClick={createScrim}>
                 <Plus size={17} />
                 CREATE
               </button>
@@ -2829,26 +2506,11 @@ function ScrimsPage({
               placeholder="TG COMMUNITY SCRIM"
             />
 
-            <Field
-              label="STAGE"
-              value={stage}
-              onChange={setStage}
-              placeholder="SCRIM"
-            />
+            <Field label="STAGE" value={stage} onChange={setStage} placeholder="SCRIM" />
 
-            <Field
-              label="TEAMS"
-              value={teams}
-              onChange={setTeams}
-              type="number"
-            />
+            <Field label="TEAMS" value={teams} onChange={setTeams} type="number" />
 
-            <Field
-              label="MATCHES"
-              value={matches}
-              onChange={setMatches}
-              type="number"
-            />
+            <Field label="MATCHES" value={matches} onChange={setMatches} type="number" />
           </div>
         </Modal>
       )}
@@ -3005,15 +2667,12 @@ function AdminsPage({
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<AdminRole>("admin");
 
-  const [generatedInvite, setGeneratedInvite] =
-    useState<string | null>(null);
+  const [generatedInvite, setGeneratedInvite] = useState<string | null>(null);
 
   function createInvite() {
     if (!inviteEmail.trim()) return;
 
-    const token = crypto.randomUUID
-      ? crypto.randomUUID()
-      : makeId("token");
+    const token = crypto.randomUUID ? crypto.randomUUID() : makeId("token");
 
     const invite: Invite = {
       id: makeId("invite"),
@@ -3021,9 +2680,7 @@ function AdminsPage({
       email: inviteEmail.trim(),
       role: inviteRole,
       createdAt: now(),
-      expiresAt: new Date(
-        Date.now() + 24 * 60 * 60 * 1000
-      ).toISOString(),
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       used: false,
     };
 
@@ -3033,30 +2690,18 @@ function AdminsPage({
 
     setGeneratedInvite(link);
 
-    log(
-      "Admin invite created",
-      `Invite generated for ${invite.email}.`
-    );
+    log("Admin invite created", `Invite generated for ${invite.email}.`);
   }
 
   function toggleAdmin(id: string) {
     setAdmins((current) =>
-      current.map((admin) =>
-        admin.id === id
-          ? { ...admin, active: !admin.active }
-          : admin
-      )
+      current.map((admin) => (admin.id === id ? { ...admin, active: !admin.active } : admin)),
     );
 
     const admin = admins.find((x) => x.id === id);
 
     if (admin) {
-      log(
-        "Admin status changed",
-        `${admin.email} was ${
-          admin.active ? "disabled" : "enabled"
-        }.`
-      );
+      log("Admin status changed", `${admin.email} was ${admin.active ? "disabled" : "enabled"}.`);
     }
   }
 
@@ -3072,9 +2717,7 @@ function AdminsPage({
 
     if (!window.confirm(`Remove ${admin.email} as admin?`)) return;
 
-    setAdmins((current) =>
-      current.filter((x) => x.id !== id)
-    );
+    setAdmins((current) => current.filter((x) => x.id !== id));
 
     log("Admin removed", `${admin.email} was removed.`);
   }
@@ -3116,10 +2759,7 @@ function AdminsPage({
 
         <div>
           <strong>ADMIN ACCESS</strong>
-          <p>
-            Owner controls who can access the admin panel and what
-            each role can manage.
-          </p>
+          <p>Owner controls who can access the admin panel and what each role can manage.</p>
         </div>
       </div>
 
@@ -3127,26 +2767,16 @@ function AdminsPage({
         <div className="tg-admin-list">
           {admins.map((admin) => (
             <div className="tg-admin-row" key={admin.id}>
-              <div className="tg-admin-avatar large">
-                {admin.name.charAt(0).toUpperCase()}
-              </div>
+              <div className="tg-admin-avatar large">{admin.name.charAt(0).toUpperCase()}</div>
 
               <div className="tg-admin-info">
                 <strong>{admin.name}</strong>
                 <span>{admin.email}</span>
-                <small>
-                  Created {formatDate(admin.createdAt)}
-                </small>
+                <small>Created {formatDate(admin.createdAt)}</small>
               </div>
 
               <Badge
-                type={
-                  admin.role === "owner"
-                    ? "warning"
-                    : admin.role === "admin"
-                    ? "live"
-                    : "blue"
-                }
+                type={admin.role === "owner" ? "warning" : admin.role === "admin" ? "live" : "blue"}
               >
                 {roleLabel(admin.role)}
               </Badge>
@@ -3161,17 +2791,10 @@ function AdminsPage({
                     title={admin.active ? "Disable" : "Enable"}
                     onClick={() => toggleAdmin(admin.id)}
                   >
-                    {admin.active ? (
-                      <Lock size={16} />
-                    ) : (
-                      <ShieldCheck size={16} />
-                    )}
+                    {admin.active ? <Lock size={16} /> : <ShieldCheck size={16} />}
                   </IconButton>
 
-                  <IconButton
-                    title="Remove admin"
-                    onClick={() => deleteAdmin(admin.id)}
-                  >
+                  <IconButton title="Remove admin" onClick={() => deleteAdmin(admin.id)}>
                     <Trash2 size={16} />
                   </IconButton>
                 </div>
@@ -3180,10 +2803,7 @@ function AdminsPage({
           ))}
 
           {admins.length === 0 && (
-            <EmptyState
-              title="No admins"
-              description="The first owner account will appear here."
-            />
+            <EmptyState title="No admins" description="The first owner account will appear here." />
           )}
         </div>
       </Panel>
@@ -3201,8 +2821,7 @@ function AdminsPage({
                 <div>
                   <strong>{invite.email}</strong>
                   <span>
-                    {roleLabel(invite.role)} · Expires{" "}
-                    {formatDate(invite.expiresAt)}
+                    {roleLabel(invite.role)} · Expires {formatDate(invite.expiresAt)}
                   </span>
                 </div>
 
@@ -3235,18 +2854,12 @@ function AdminsPage({
           onClose={() => setShowInvite(false)}
           footer={
             <>
-              <button
-                className="tg-secondary-button"
-                onClick={() => setShowInvite(false)}
-              >
+              <button className="tg-secondary-button" onClick={() => setShowInvite(false)}>
                 CLOSE
               </button>
 
               {!generatedInvite && (
-                <button
-                  className="tg-primary-button"
-                  onClick={createInvite}
-                >
+                <button className="tg-primary-button" onClick={createInvite}>
                   <Link2 size={17} />
                   GENERATE LINK
                 </button>
@@ -3267,9 +2880,7 @@ function AdminsPage({
               <SelectField
                 label="ROLE"
                 value={inviteRole}
-                onChange={(value) =>
-                  setInviteRole(value as AdminRole)
-                }
+                onChange={(value) => setInviteRole(value as AdminRole)}
               >
                 <option value="admin">ADMIN</option>
                 <option value="editor">EDITOR</option>
@@ -3285,17 +2896,14 @@ function AdminsPage({
               <h3>INVITE READY</h3>
 
               <p>
-                Send this link to the person. They can open it and
-                complete their admin account setup.
+                Send this link to the person. They can open it and complete their admin account
+                setup.
               </p>
 
               <div className="tg-link-box">
                 <input value={generatedInvite} readOnly />
 
-                <button
-                  className="tg-primary-button"
-                  onClick={copyInvite}
-                >
+                <button className="tg-primary-button" onClick={copyInvite}>
                   <Copy size={16} />
                   COPY
                 </button>
@@ -3303,8 +2911,8 @@ function AdminsPage({
 
               <div className="tg-invite-warning">
                 <Lock size={15} />
-                This demo stores invite state locally. Production
-                authentication should validate the token server-side.
+                This demo stores invite state locally. Production authentication should validate the
+                token server-side.
               </div>
             </div>
           )}
@@ -3318,17 +2926,11 @@ function AdminsPage({
    ACTIVITY
    ========================================================= */
 
-function ActivityPage({
-  activities,
-}: {
-  activities: ActivityItem[];
-}) {
+function ActivityPage({ activities }: { activities: ActivityItem[] }) {
   const [search, setSearch] = useState("");
 
   const filtered = activities.filter((item) =>
-    `${item.action} ${item.description} ${item.admin}`
-      .toLowerCase()
-      .includes(search.toLowerCase())
+    `${item.action} ${item.description} ${item.admin}`.toLowerCase().includes(search.toLowerCase()),
   );
 
   return (
@@ -3362,8 +2964,7 @@ function ActivityPage({
                 <strong>{item.action}</strong>
                 <p>{item.description}</p>
                 <span>
-                  {item.admin} ·{" "}
-                  {new Date(item.createdAt).toLocaleString("en-IN")}
+                  {item.admin} · {new Date(item.createdAt).toLocaleString("en-IN")}
                 </span>
               </div>
             </div>
@@ -3402,10 +3003,7 @@ function SettingsPage({
       [key]: next,
     }));
 
-    log(
-      "Setting changed",
-      `${String(key)} was ${next ? "enabled" : "disabled"}.`
-    );
+    log("Setting changed", `${String(key)} was ${next ? "enabled" : "disabled"}.`);
   }
 
   return (
@@ -3512,11 +3110,7 @@ function PlaceholderPage({
 }) {
   return (
     <div className="tg-page">
-      <PageHeading
-        eyebrow={eyebrow}
-        title={title}
-        description={description}
-      />
+      <PageHeading eyebrow={eyebrow} title={title} description={description} />
 
       <div className="tg-placeholder">
         <div className="tg-placeholder-icon">
@@ -3526,8 +3120,7 @@ function PlaceholderPage({
         <h3>CONTROL MODULE</h3>
 
         <p>
-          This module is connected to the admin navigation and ready
-          for your project data layer.
+          This module is connected to the admin navigation and ready for your project data layer.
         </p>
       </div>
     </div>
@@ -3540,47 +3133,43 @@ function PlaceholderPage({
 
 export default function Admin() {
   const [initialized, setInitialized] = useState<boolean>(() =>
-    readStorage(STORAGE.initialized, false)
+    readStorage(STORAGE.initialized, false),
   );
 
   const [sessionId, setSessionId] = useState<string | null>(() =>
-    readStorage<string | null>(STORAGE.session, null)
+    readStorage<string | null>(STORAGE.session, null),
   );
 
   const [admins, setAdmins] = useState<AdminUser[]>(() =>
-    readStorage(STORAGE.admins, DEFAULT_ADMINS)
+    readStorage(STORAGE.admins, DEFAULT_ADMINS),
   );
 
-  const [invites, setInvites] = useState<Invite[]>(() =>
-    readStorage(STORAGE.invites, [])
-  );
+  const [invites, setInvites] = useState<Invite[]>(() => readStorage(STORAGE.invites, []));
 
-  const [tournaments, setTournaments] = useState<Tournament[]>(
-    () => readStorage(STORAGE.tournaments, DEFAULT_TOURNAMENTS)
+  const [tournaments, setTournaments] = useState<Tournament[]>(() =>
+    readStorage(STORAGE.tournaments, DEFAULT_TOURNAMENTS),
   );
 
   const [matches, setMatches] = useState<Match[]>(() =>
-    readStorage(STORAGE.matches, DEFAULT_MATCHES)
+    readStorage(STORAGE.matches, DEFAULT_MATCHES),
   );
 
-  const [teams, setTeams] = useState<Team[]>(() =>
-    readStorage(STORAGE.teams, DEFAULT_TEAMS)
-  );
+  const [teams, setTeams] = useState<Team[]>(() => readStorage(STORAGE.teams, DEFAULT_TEAMS));
 
   const [players, setPlayers] = useState<Player[]>(() =>
-    readStorage(STORAGE.players, DEFAULT_PLAYERS)
+    readStorage(STORAGE.players, DEFAULT_PLAYERS),
   );
 
   const [content, setContent] = useState<SiteContent>(() =>
-    readStorage(STORAGE.content, DEFAULT_CONTENT)
+    readStorage(STORAGE.content, DEFAULT_CONTENT),
   );
 
   const [settings, setSettings] = useState<SiteSettings>(() =>
-    readStorage(STORAGE.settings, DEFAULT_SETTINGS)
+    readStorage(STORAGE.settings, DEFAULT_SETTINGS),
   );
 
-  const [activities, setActivities] = useState<ActivityItem[]>(
-    () => readStorage(STORAGE.activity, [])
+  const [activities, setActivities] = useState<ActivityItem[]>(() =>
+    readStorage(STORAGE.activity, []),
   );
 
   const [section, setSection] = useState<Section>("dashboard");
@@ -3663,11 +3252,7 @@ export default function Admin() {
      INITIAL OWNER CREATION
      ======================================================= */
 
-  function createOwner(
-    name: string,
-    email: string,
-    password: string
-  ) {
+  function createOwner(name: string, email: string, password: string) {
     /*
       Demo password storage.
 
@@ -3715,15 +3300,13 @@ export default function Admin() {
      ======================================================= */
 
   function login(email: string, password: string) {
-    const storedAdmins = readStorage<
-      (AdminUser & { password?: string })[]
-    >(STORAGE.admins, []);
+    const storedAdmins = readStorage<(AdminUser & { password?: string })[]>(STORAGE.admins, []);
 
     const admin = storedAdmins.find(
       (item) =>
         item.email.toLowerCase() === email.toLowerCase() &&
         item.password === password &&
-        item.active
+        item.active,
     );
 
     if (!admin) {
@@ -3732,9 +3315,7 @@ export default function Admin() {
     }
 
     const updated = storedAdmins.map((item) =>
-      item.id === admin.id
-        ? { ...item, lastLogin: now() }
-        : item
+      item.id === admin.id ? { ...item, lastLogin: now() } : item,
     );
 
     setAdmins(updated);
@@ -3761,10 +3342,7 @@ export default function Admin() {
 
   function logout() {
     if (currentAdmin) {
-      log(
-        "Admin logout",
-        `${currentAdmin.email} signed out.`
-      );
+      log("Admin logout", `${currentAdmin.email} signed out.`);
     }
 
     localStorage.removeItem(STORAGE.session);
@@ -3803,6 +3381,8 @@ export default function Admin() {
     );
   }
 
+  const authenticatedAdmin = currentAdmin;
+
   /* =======================================================
      PAGE
      ======================================================= */
@@ -3824,11 +3404,7 @@ export default function Admin() {
 
       case "tournaments":
         return (
-          <TournamentsPage
-            tournaments={tournaments}
-            setTournaments={setTournaments}
-            log={log}
-          />
+          <TournamentsPage tournaments={tournaments} setTournaments={setTournaments} log={log} />
         );
 
       case "matches":
@@ -3842,50 +3418,19 @@ export default function Admin() {
         );
 
       case "teams":
-        return (
-          <TeamsPage
-            teams={teams}
-            setTeams={setTeams}
-            log={log}
-          />
-        );
+        return <TeamsPage teams={teams} setTeams={setTeams} log={log} />;
 
       case "players":
-        return (
-          <PlayersPage
-            players={players}
-            setPlayers={setPlayers}
-            teams={teams}
-            log={log}
-          />
-        );
+        return <PlayersPage players={players} setPlayers={setPlayers} teams={teams} log={log} />;
 
       case "official":
-        return (
-          <OfficialPage
-            tournaments={tournaments}
-            setTournaments={setTournaments}
-            log={log}
-          />
-        );
+        return <OfficialPage tournaments={tournaments} setTournaments={setTournaments} log={log} />;
 
       case "scrims":
-        return (
-          <ScrimsPage
-            tournaments={tournaments}
-            setTournaments={setTournaments}
-            log={log}
-          />
-        );
+        return <ScrimsPage tournaments={tournaments} setTournaments={setTournaments} log={log} />;
 
       case "content":
-        return (
-          <ContentPage
-            content={content}
-            setContent={setContent}
-            log={log}
-          />
-        );
+        return <ContentPage content={content} setContent={setContent} log={log} />;
 
       case "admins":
         return (
@@ -3894,7 +3439,7 @@ export default function Admin() {
             setAdmins={setAdmins}
             invites={invites}
             setInvites={setInvites}
-            currentAdmin={currentAdmin}
+            currentAdmin={authenticatedAdmin}
             log={log}
           />
         );
@@ -3903,13 +3448,7 @@ export default function Admin() {
         return <ActivityPage activities={activities} />;
 
       case "settings":
-        return (
-          <SettingsPage
-            settings={settings}
-            setSettings={setSettings}
-            log={log}
-          />
-        );
+        return <SettingsPage settings={settings} setSettings={setSettings} log={log} />;
 
       default:
         return null;
@@ -3924,7 +3463,7 @@ export default function Admin() {
         <Sidebar
           section={section}
           setSection={setSection}
-          currentAdmin={currentAdmin}
+          currentAdmin={authenticatedAdmin}
           mobileOpen={mobileSidebar}
           onClose={() => setMobileSidebar(false)}
           onLogout={logout}
@@ -3933,9 +3472,7 @@ export default function Admin() {
         <main className="tg-main">
           <Topbar
             title={
-              section === "dashboard"
-                ? "COMMAND CENTER"
-                : section.replace("-", " ").toUpperCase()
+              section === "dashboard" ? "COMMAND CENTER" : section.replace("-", " ").toUpperCase()
             }
             subtitle="TOTAL GAMING HUB / ADMIN"
             onMenu={() => setMobileSidebar(true)}
