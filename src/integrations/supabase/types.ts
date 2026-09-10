@@ -14,7 +14,329 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      match_results: {
+        Row: {
+          created_at: string
+          id: string
+          kills: number
+          match_id: string
+          points: number
+          position: number
+          team_id: string | null
+          team_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kills?: number
+          match_id: string
+          points?: number
+          position?: number
+          team_id?: string | null
+          team_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kills?: number
+          match_id?: string
+          points?: number
+          position?: number
+          team_id?: string | null
+          team_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_results_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_results_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      matches: {
+        Row: {
+          created_at: string
+          id: string
+          map: string
+          match_date: string | null
+          match_number: number
+          match_time: string | null
+          notes: string | null
+          room_id: string | null
+          room_password: string | null
+          status: string
+          stream_url: string | null
+          teams: number
+          total_kills: number
+          tournament_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          map: string
+          match_date?: string | null
+          match_number: number
+          match_time?: string | null
+          notes?: string | null
+          room_id?: string | null
+          room_password?: string | null
+          status?: string
+          stream_url?: string | null
+          teams?: number
+          total_kills?: number
+          tournament_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          map?: string
+          match_date?: string | null
+          match_number?: number
+          match_time?: string | null
+          notes?: string | null
+          room_id?: string | null
+          room_password?: string | null
+          status?: string
+          stream_url?: string | null
+          teams?: number
+          total_kills?: number
+          tournament_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matches_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      player_match_stats: {
+        Row: {
+          assists: number
+          created_at: string
+          damage: number
+          id: string
+          kills: number
+          match_id: string
+          placement: number | null
+          player_id: string
+          points: number
+          team_id: string | null
+        }
+        Insert: {
+          assists?: number
+          created_at?: string
+          damage?: number
+          id?: string
+          kills?: number
+          match_id: string
+          placement?: number | null
+          player_id: string
+          points?: number
+          team_id?: string | null
+        }
+        Update: {
+          assists?: number
+          created_at?: string
+          damage?: number
+          id?: string
+          kills?: number
+          match_id?: string
+          placement?: number | null
+          player_id?: string
+          points?: number
+          team_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_match_stats_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_match_stats_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_match_stats_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      players: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          id: string
+          kills: number
+          matches: number
+          name: string
+          role: string
+          status: string
+          team_id: string | null
+          team_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          id?: string
+          kills?: number
+          matches?: number
+          name: string
+          role?: string
+          status?: string
+          team_id?: string | null
+          team_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          id?: string
+          kills?: number
+          matches?: number
+          name?: string
+          role?: string
+          status?: string
+          team_id?: string | null
+          team_name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "players_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          logo_url: string | null
+          manager: string | null
+          name: string
+          players: number
+          region: string | null
+          short_name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          logo_url?: string | null
+          manager?: string | null
+          name: string
+          players?: number
+          region?: string | null
+          short_name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          logo_url?: string | null
+          manager?: string | null
+          name?: string
+          players?: number
+          region?: string | null
+          short_name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tournaments: {
+        Row: {
+          banner_url: string | null
+          created_at: string
+          description: string
+          display_order: number
+          end_date: string | null
+          id: string
+          is_current: boolean
+          logo_url: string | null
+          matches: number
+          name: string
+          stage: string
+          start_date: string | null
+          status: string
+          teams: number
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          banner_url?: string | null
+          created_at?: string
+          description?: string
+          display_order?: number
+          end_date?: string | null
+          id?: string
+          is_current?: boolean
+          logo_url?: string | null
+          matches?: number
+          name: string
+          stage?: string
+          start_date?: string | null
+          status?: string
+          teams?: number
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          banner_url?: string | null
+          created_at?: string
+          description?: string
+          display_order?: number
+          end_date?: string | null
+          id?: string
+          is_current?: boolean
+          logo_url?: string | null
+          matches?: number
+          name?: string
+          stage?: string
+          start_date?: string | null
+          status?: string
+          teams?: number
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
