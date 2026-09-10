@@ -3803,6 +3803,8 @@ export default function Admin() {
     );
   }
 
+  const authenticatedAdmin = currentAdmin;
+
   /* =======================================================
      PAGE
      ======================================================= */
@@ -3894,7 +3896,7 @@ export default function Admin() {
             setAdmins={setAdmins}
             invites={invites}
             setInvites={setInvites}
-            currentAdmin={currentAdmin}
+            currentAdmin={authenticatedAdmin}
             log={log}
           />
         );

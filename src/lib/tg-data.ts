@@ -115,20 +115,20 @@ function mapTournament(
   row: Record<string, unknown>,
 ): Tournament {
   return {
-    id: text(row.id),
-    name: text(row.name),
-    status: text(row.status).toUpperCase(),
-    phase: text(row.stage),
-    matches: num(row.matches),
-    teams: num(row.teams),
-    type: text(row.type),
-    startDate: nullableText(row.start_date),
-    endDate: nullableText(row.end_date),
-    description: text(row.description),
-    bannerUrl: nullableText(row.banner_url),
-    logoUrl: nullableText(row.logo_url),
-    isCurrent: Boolean(row.is_current),
-    displayOrder: num(row.display_order),
+    id: text(row["id"]),
+    name: text(row["name"]),
+    status: text(row["status"]).toUpperCase(),
+    phase: text(row["stage"]),
+    matches: num(row["matches"]),
+    teams: num(row["teams"]),
+    type: text(row["type"]),
+    startDate: nullableText(row["start_date"]),
+    endDate: nullableText(row["end_date"]),
+    description: text(row["description"]),
+    bannerUrl: nullableText(row["banner_url"]),
+    logoUrl: nullableText(row["logo_url"]),
+    isCurrent: Boolean(row["is_current"]),
+    displayOrder: num(row["display_order"]),
   };
 }
 
@@ -136,21 +136,21 @@ function mapMatch(
   row: Record<string, unknown>,
 ): Match {
   return {
-    id: text(row.id),
-    tournamentId: text(row.tournament_id),
-    number: num(row.match_number),
-    map: text(row.map),
-    status: text(row.status).toUpperCase(),
-    matchDate: nullableText(row.match_date),
-    matchTime: nullableText(row.match_time),
-    teams: num(row.teams),
-    totalKills: num(row.total_kills),
-    streamUrl: nullableText(row.stream_url),
-    roomId: nullableText(row.room_id),
+    id: text(row["id"]),
+    tournamentId: text(row["tournament_id"]),
+    number: num(row["match_number"]),
+    map: text(row["map"]),
+    status: text(row["status"]).toUpperCase(),
+    matchDate: nullableText(row["match_date"]),
+    matchTime: nullableText(row["match_time"]),
+    teams: num(row["teams"]),
+    totalKills: num(row["total_kills"]),
+    streamUrl: nullableText(row["stream_url"]),
+    roomId: nullableText(row["room_id"]),
     roomPassword: nullableText(
-      row.room_password,
+      row["room_password"],
     ),
-    notes: nullableText(row.notes),
+    notes: nullableText(row["notes"]),
   };
 }
 
@@ -158,15 +158,15 @@ function mapTeam(
   row: Record<string, unknown>,
 ): Team {
   return {
-    id: text(row.id),
-    name: text(row.name),
-    shortName: text(row.short_name),
-    logoUrl: nullableText(row.logo_url),
-    manager: nullableText(row.manager),
-    players: num(row.players),
-    status: text(row.status).toUpperCase(),
-    region: nullableText(row.region),
-    description: nullableText(row.description),
+    id: text(row["id"]),
+    name: text(row["name"]),
+    shortName: text(row["short_name"]),
+    logoUrl: nullableText(row["logo_url"]),
+    manager: nullableText(row["manager"]),
+    players: num(row["players"]),
+    status: text(row["status"]).toUpperCase(),
+    region: nullableText(row["region"]),
+    description: nullableText(row["description"]),
   };
 }
 
@@ -174,16 +174,16 @@ function mapPlayer(
   row: Record<string, unknown>,
 ): Player {
   return {
-    id: text(row.id),
-    name: text(row.name),
-    teamId: nullableText(row.team_id),
-    teamName: nullableText(row.team_name),
-    role: text(row.role),
-    kills: num(row.kills),
-    matches: num(row.matches),
-    status: text(row.status).toUpperCase(),
-    avatarUrl: nullableText(row.avatar_url),
-    bio: nullableText(row.bio),
+    id: text(row["id"]),
+    name: text(row["name"]),
+    teamId: nullableText(row["team_id"]),
+    teamName: nullableText(row["team_name"]),
+    role: text(row["role"]),
+    kills: num(row["kills"]),
+    matches: num(row["matches"]),
+    status: text(row["status"]).toUpperCase(),
+    avatarUrl: nullableText(row["avatar_url"]),
+    bio: nullableText(row["bio"]),
   };
 }
 
@@ -191,13 +191,13 @@ function mapMatchResult(
   row: Record<string, unknown>,
 ): MatchResult {
   return {
-    id: text(row.id),
-    matchId: text(row.match_id),
-    teamId: nullableText(row.team_id),
-    teamName: nullableText(row.team_name),
-    position: num(row.position),
-    kills: num(row.kills),
-    points: num(row.points),
+    id: text(row["id"]),
+    matchId: text(row["match_id"]),
+    teamId: nullableText(row["team_id"]),
+    teamName: nullableText(row["team_name"]),
+    position: num(row["position"]),
+    kills: num(row["kills"]),
+    points: num(row["points"]),
   };
 }
 
@@ -205,18 +205,18 @@ function mapPlayerMatchStat(
   row: Record<string, unknown>,
 ): PlayerMatchStat {
   return {
-    id: text(row.id),
-    matchId: text(row.match_id),
-    playerId: text(row.player_id),
-    teamId: nullableText(row.team_id),
-    kills: num(row.kills),
-    damage: num(row.damage),
-    assists: num(row.assists),
+    id: text(row["id"]),
+    matchId: text(row["match_id"]),
+    playerId: text(row["player_id"]),
+    teamId: nullableText(row["team_id"]),
+    kills: num(row["kills"]),
+    damage: num(row["damage"]),
+    assists: num(row["assists"]),
     placement:
-      row.placement == null
+      row["placement"] == null
         ? null
-        : num(row.placement),
-    points: num(row.points),
+        : num(row["placement"]),
+    points: num(row["points"]),
   };
 }
 
