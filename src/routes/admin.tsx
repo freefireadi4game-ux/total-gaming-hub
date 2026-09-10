@@ -3926,7 +3926,7 @@ export default function Admin() {
         <Sidebar
           section={section}
           setSection={setSection}
-          currentAdmin={currentAdmin}
+            currentAdmin={authenticatedAdmin}
           mobileOpen={mobileSidebar}
           onClose={() => setMobileSidebar(false)}
           onLogout={logout}
