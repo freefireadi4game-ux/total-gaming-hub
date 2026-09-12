@@ -1,1288 +1,468 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { LucideIcon } from "lucide-react";
 import {
+  ArrowUpRight,
   CalendarDays,
+  Check,
+  ChevronDown,
   ChevronRight,
+  CircleAlert,
   Crosshair,
-  Flame,
   Gamepad2,
-  Menu,
+  Layers3,
+  Medal,
   Shield,
-  Star,
+  Sparkles,
   Trophy,
   Users,
   X,
 } from "lucide-react";
 
-import mvpImage from "@/assets/total-gaming-mvp.jpg";
+import {
+  getPlayers,
+  getTeams,
+  getTournamentData,
+  getTournaments,
+  type CircuitMode,
+  type Match,
+  type MatchResult,
+  type Player,
+  type PlayerMatchStat,
+  type Team,
+  type Tournament,
+} from "@/lib/tg-data";
 
-type Mode = "official" | "scrims";
-
-type Tournament = {
-  id: string;
-  name: string;
-  status: "LIVE" | "UPCOMING" | "ARCHIVED";
-  phase: string;
-  matches: number;
-  teams: number | string;
+type TournamentData = {
+  matches: Match[];
+  matchResults: MatchResult[];
+  playerMatchStats: PlayerMatchStat[];
 };
 
-type Match = {
-  id: string;
-  number: number;
-  map: string;
-  position: number;
-  kills: number;
-  mvp: string;
+const emptyTournamentData: TournamentData = {
+  matches: [],
+  matchResults: [],
+  playerMatchStats: [],
 };
-
-const placementPoints: Record<number, number> = {
-  1: 12,
-  2: 9,
-  3: 8,
-  4: 7,
-  5: 6,
-  6: 5,
-  7: 4,
-  8: 3,
-  9: 2,
-  10: 1,
-};
-
-const matches: Match[] = [
-  {
-    id: "match-1",
-    number: 1,
-    map: "Bermuda",
-    position: 1,
-    kills: 10,
-    mvp: "Player 1",
-  },
-  {
-    id: "match-2",
-    number: 2,
-    map: "Purgatory",
-    position: 3,
-    kills: 8,
-    mvp: "Player 1",
-  },
-  {
-    id: "match-3",
-    number: 3,
-    map: "Alpine",
-    position: 5,
-    kills: 6,
-    mvp: "Player 2",
-  },
-];
-
-const officialTournaments: Tournament[] = [
-  {
-    id: "official-1",
-    name: "TEZ FFMIC 2026 FALL",
-    status: "LIVE",
-    phase: "PLAY-INS",
-    matches: 6,
-    teams: 18,
-  },
-  {
-    id: "official-2",
-    name: "TEZ FFMIC 2026 FALL",
-    status: "UPCOMING",
-    phase: "GS - WEEK 1",
-    matches: 6,
-    teams: 18,
-  },
-  {
-    id: "official-3",
-    name: "TEZ FFMIC 2026 FALL",
-    status: "UPCOMING",
-    phase: "GS - WEEK 2",
-    matches: 6,
-    teams: 18,
-  },
-  {
-    id: "official-4",
-    name: "TEZ FFMIC 2026 FALL",
-    status: "UPCOMING",
-    phase: "KO - WEEK 1",
-    matches: 12,
-    teams: 18,
-  },
-  {
-    id: "official-5",
-    name: "TEZ FFMIC 2026 FALL",
-    status: "UPCOMING",
-    phase: "KO - WEEK 2 - DAY 1",
-    matches: 6,
-    teams: 18,
-  },
-  {
-    id: "official-6",
-    name: "TEZ FFMIC 2026 SPRING",
-    status: "ARCHIVED",
-    phase: "GRAND FINALS",
-    matches: 12,
-    teams: 18,
-  },
-];
-
-const scrimTournaments: Tournament[] = [
-  {
-    id: "scrim-1",
-    name: "TG WEEKLY SCRIMS",
-    status: "LIVE",
-    phase: "WEEK 2",
-    matches: 6,
-    teams: 12,
-  },
-  {
-    id: "scrim-2",
-    name: "TG WEEKLY SCRIMS",
-    status: "UPCOMING",
-    phase: "WEEK 3",
-    matches: 6,
-    teams: 12,
-  },
-  {
-    id: "scrim-3",
-    name: "TG CUSTOM SCRIMS",
-    status: "UPCOMING",
-    phase: "WEEK 4",
-    matches: 6,
-    teams: "ANY",
-  },
-  {
-    id: "scrim-4",
-    name: "COMMUNITY SCRIMS",
-    status: "ARCHIVED",
-    phase: "WEEK 1",
-    matches: 6,
-    teams: "ANY",
-  },
-];
-
-const officialFolders = [
-  {
-    id: "play-ins",
-    label: "PLAY-INS",
-    tournamentId: "official-1",
-  },
-  {
-    id: "gs-week-1",
-    label: "GS — WEEK 1",
-    tournamentId: "official-2",
-  },
-  {
-    id: "gs-week-2",
-    label: "GS — WEEK 2",
-    tournamentId: "official-3",
-  },
-  {
-    id: "ko-week-1",
-    label: "KO — WEEK 1",
-    tournamentId: "official-4",
-  },
-  {
-    id: "ko-week-2",
-    label: "KO — WEEK 2 · DAY 1",
-    tournamentId: "official-5",
-  },
-];
-
-const scrimFolders = [
-  {
-    id: "week-1",
-    label: "WEEK 1",
-    tournamentId: "scrim-4",
-  },
-  {
-    id: "week-2",
-    label: "WEEK 2",
-    tournamentId: "scrim-1",
-  },
-  {
-    id: "week-3",
-    label: "WEEK 3",
-    tournamentId: "scrim-2",
-  },
-  {
-    id: "week-4",
-    label: "WEEK 4",
-    tournamentId: "scrim-3",
-  },
-];
-
-function getMatchPoints(match: Match) {
-  return match.kills + (placementPoints[match.position] ?? 0);
-}
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      {
-        title: "Total Gaming Hub",
-      },
+      { title: "Total Gaming Match Center" },
       {
         name: "description",
         content:
-          "Total Gaming Free Fire tournament, match and MVP dashboard.",
+          "Follow Total Gaming official tournaments and scrims with live standings, match history, and player statistics.",
       },
+      { property: "og:title", content: "Total Gaming Match Center" },
+      {
+        property: "og:description",
+        content:
+          "Live Total Gaming tournament standings, match history, and player statistics.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-
   component: Dashboard,
 });
 
 function Dashboard() {
-  const [mode, setMode] = useState<Mode>("official");
-  const [mobileMenu, setMobileMenu] = useState(false);
-  const [selectedFolder, setSelectedFolder] = useState("play-ins");
+  const [mode, setMode] = useState<CircuitMode>("official");
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
+  const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
+  const [tournamentData, setTournamentData] = useState<TournamentData>(emptyTournamentData);
+  const [loadingEvents, setLoadingEvents] = useState(true);
+  const [loadingData, setLoadingData] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
 
-  const tournaments =
-    mode === "official"
-      ? officialTournaments
-      : scrimTournaments;
+  useEffect(() => {
+    let cancelled = false;
 
-  const folders =
-    mode === "official"
-      ? officialFolders
-      : scrimFolders;
+    setLoadingEvents(true);
+    setError(null);
 
-  const liveTournament =
-    tournaments.find(
-      (tournament) => tournament.status === "LIVE",
-    ) ?? tournaments[0];
+    getTournaments(mode)
+      .then((items) => {
+        if (cancelled) return;
+        setTournaments(items);
+        const live = items.find((item) => item.isCurrent || item.status === "LIVE") ?? items[0];
+        setSelectedEvent(live?.name ?? null);
+        setSelectedTournamentId(live?.id ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setError("Tournament data could not be loaded right now.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingEvents(false);
+      });
 
-  const selectedTournament = useMemo(() => {
-    const folder =
-      folders.find(
-        (item) => item.id === selectedFolder,
-      ) ?? folders[0];
+    return () => {
+      cancelled = true;
+    };
+  }, [mode]);
 
-    return (
-      tournaments.find(
-        (item) => item.id === folder?.tournamentId,
-      ) ?? liveTournament
-    );
-  }, [
-    folders,
-    selectedFolder,
-    tournaments,
-    liveTournament,
-  ]);
+  useEffect(() => {
+    let cancelled = false;
 
-  const stats = useMemo(() => {
-    const kills = matches.reduce(
-      (sum, match) => sum + match.kills,
-      0,
-    );
+    Promise.all([getTeams(), getPlayers()])
+      .then(([teamItems, playerItems]) => {
+        if (cancelled) return;
+        setTeams(teamItems);
+        setPlayers(playerItems);
+      })
+      .catch(() => {
+        if (!cancelled) setError("Player data could not be loaded right now.");
+      });
 
-    const placement = matches.reduce(
-      (sum, match) =>
-        sum + (placementPoints[match.position] ?? 0),
-      0,
-    );
-
-    return {
-      kills,
-      placement,
-      total: kills + placement,
+    return () => {
+      cancelled = true;
     };
   }, []);
 
-  const averagePoints =
-    matches.length > 0
-      ? Math.round(
-          (stats.total / matches.length) * 10,
-        ) / 10
-      : 0;
+  const eventNames = useMemo(
+    () => Array.from(new Set(tournaments.map((tournament) => tournament.name))),
+    [tournaments],
+  );
 
-  function changeMode(nextMode: Mode) {
-    setMode(nextMode);
+  const activeEventName = selectedEvent && eventNames.includes(selectedEvent)
+    ? selectedEvent
+    : eventNames[0] ?? null;
 
-    setSelectedFolder(
-      nextMode === "official"
-        ? "play-ins"
-        : "week-2",
+  const eventTournaments = useMemo(
+    () => tournaments.filter((tournament) => tournament.name === activeEventName),
+    [activeEventName, tournaments],
+  );
+
+  const selectedTournament = useMemo(() => {
+    return (
+      eventTournaments.find((tournament) => tournament.id === selectedTournamentId) ??
+      eventTournaments.find((tournament) => tournament.isCurrent || tournament.status === "LIVE") ??
+      eventTournaments[0] ??
+      null
     );
+  }, [eventTournaments, selectedTournamentId]);
+
+  useEffect(() => {
+    if (!selectedTournament) {
+      setTournamentData(emptyTournamentData);
+      return;
+    }
+
+    let cancelled = false;
+    setLoadingData(true);
+    setError(null);
+    setSelectedMatchId(null);
+
+    getTournamentData(selectedTournament.id)
+      .then((data) => {
+        if (!cancelled) setTournamentData(data);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setTournamentData(emptyTournamentData);
+          setError("Match data could not be loaded right now.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingData(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedTournament]);
+
+  const resultTeam = useMemo(() => {
+    const knownTeam = teams.find((team) => team.name.toLowerCase().includes("total gaming"));
+    if (knownTeam) return { id: knownTeam.id, name: knownTeam.name };
+
+    const result = tournamentData.matchResults.find((item) =>
+      item.teamName?.toLowerCase().includes("total gaming"),
+    );
+    return result?.teamName ? { id: result.teamId, name: result.teamName } : null;
+  }, [teams, tournamentData.matchResults]);
+
+  const teamResults = useMemo(
+    () => tournamentData.matchResults.filter((result) => {
+      if (!resultTeam) return false;
+      return resultTeam.id
+        ? result.teamId === resultTeam.id
+        : result.teamName === resultTeam.name;
+    }),
+    [resultTeam, tournamentData.matchResults],
+  );
+
+  const standings = useMemo(() => {
+    const rows = new Map<string, { id: string | null; name: string; points: number; kills: number }>();
+
+    for (const result of tournamentData.matchResults) {
+      const key = result.teamId ?? result.teamName ?? result.id;
+      const current = rows.get(key) ?? {
+        id: result.teamId,
+        name: result.teamName ?? "Unnamed team",
+        points: 0,
+        kills: 0,
+      };
+      current.points += result.points;
+      current.kills += result.kills;
+      rows.set(key, current);
+    }
+
+    return Array.from(rows.values()).sort((a, b) => b.points - a.points || b.kills - a.kills);
+  }, [tournamentData.matchResults]);
+
+  const rank = resultTeam
+    ? standings.findIndex((standing) =>
+        resultTeam.id ? standing.id === resultTeam.id : standing.name === resultTeam.name,
+      ) + 1
+    : 0;
+
+  const totalKills = teamResults.reduce((sum, result) => sum + result.kills, 0);
+  const totalPoints = teamResults.reduce((sum, result) => sum + result.points, 0);
+  const placementPoints = Math.max(0, totalPoints - totalKills);
+  const averagePoints = teamResults.length ? (totalPoints / teamResults.length).toFixed(1) : "—";
+
+  const topFraggers = useMemo(() => {
+    const stats = new Map<string, { player: Player; kills: number; damage: number; assists: number; points: number; matches: number }>();
+    const playerMap = new Map(players.map((player) => [player.id, player]));
+
+    for (const stat of tournamentData.playerMatchStats) {
+      const player = playerMap.get(stat.playerId);
+      if (!player) continue;
+      const current = stats.get(stat.playerId) ?? {
+        player,
+        kills: 0,
+        damage: 0,
+        assists: 0,
+        points: 0,
+        matches: 0,
+      };
+      current.kills += stat.kills;
+      current.damage += stat.damage;
+      current.assists += stat.assists;
+      current.points += stat.points;
+      current.matches += 1;
+      stats.set(stat.playerId, current);
+    }
+
+    return Array.from(stats.values()).sort((a, b) => b.kills - a.kills || b.points - a.points);
+  }, [players, tournamentData.playerMatchStats]);
+
+  const selectedMatch = tournamentData.matches.find((match) => match.id === selectedMatchId) ?? null;
+
+  function changeMode(nextMode: CircuitMode) {
+    if (nextMode === mode) return;
+    setMode(nextMode);
+    setSelectedEvent(null);
+    setSelectedTournamentId(null);
+  }
+
+  function selectEvent(name: string) {
+    const next = tournaments.filter((tournament) => tournament.name === name);
+    const first = next.find((tournament) => tournament.isCurrent || tournament.status === "LIVE") ?? next[0];
+    setSelectedEvent(name);
+    setSelectedTournamentId(first?.id ?? null);
   }
 
   return (
-    <div className="tg-dashboard">
-
-      {/* =====================================================
-          BACKGROUND LOGO
-          CENTERED + BRIGHT + BEHIND ALL CONTENT
-      ===================================================== */}
-
-      <div
-        className="tg-background-logo"
-        aria-hidden="true"
-        style={{
-          position: "fixed",
-          inset: "0",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          pointerEvents: "none",
-          zIndex: 0,
-          overflow: "hidden",
-        }}
-      >
-        <img
-          src="/iqoo-tg-logo.png"
-          alt=""
-          style={{
-            width: "min(72vw, 760px)",
-            height: "auto",
-            opacity: 0.24,
-            filter:
-              "brightness(2.1) saturate(1.35) contrast(1.15) drop-shadow(0 0 35px rgba(120,70,255,.55)) drop-shadow(0 0 80px rgba(40,100,255,.28))",
-            transform: "translateY(3vh)",
-          }}
-        />
+    <div className="tg-dashboard-v2">
+      <div className="tg-watermark" aria-hidden="true">
+        <img src="/iqoo-tg-logo.png" alt="" />
       </div>
 
-      <div
-        className="tg-background-grid"
-        aria-hidden="true"
-        style={{
-          position: "fixed",
-          inset: 0,
-          zIndex: 0,
-          pointerEvents: "none",
-        }}
-      />
-
-      {/* =====================================================
-          GLOBAL STYLE OVERRIDES
-      ===================================================== */}
-
-      <style>{`
-        .tg-dashboard {
-          position: relative;
-          isolation: isolate;
-        }
-
-        .tg-dashboard > *:not(.tg-background-logo):not(.tg-background-grid) {
-          position: relative;
-          z-index: 2;
-        }
-
-        .tg-header,
-        .tg-container,
-        .tg-section,
-        .tg-performance,
-        .tg-circuit-section,
-        .tg-stage-section,
-        .tg-mvp-section,
-        .tg-footer {
-          background-color: rgba(7, 8, 14, 0.58) !important;
-          backdrop-filter: blur(5px);
-          -webkit-backdrop-filter: blur(5px);
-        }
-
-        .tg-stat-grid {
-          display: grid !important;
-          grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-          gap: 18px !important;
-        }
-
-        .tg-stat {
-          background: rgba(12, 13, 21, 0.64) !important;
-          backdrop-filter: blur(7px);
-          -webkit-backdrop-filter: blur(7px);
-        }
-
-        .tg-stat.accent {
-          background:
-            linear-gradient(
-              135deg,
-              rgba(55, 18, 95, 0.68),
-              rgba(12, 13, 21, 0.62)
-            ) !important;
-        }
-
-        .tg-circuit-switch {
-          display: flex !important;
-          align-items: center;
-          width: fit-content !important;
-          min-width: 0 !important;
-          height: 52px !important;
-          padding: 4px !important;
-          border-radius: 16px !important;
-          background: rgba(18, 18, 27, 0.64) !important;
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
-        }
-
-        .tg-circuit-switch button {
-          height: 42px !important;
-          min-height: 42px !important;
-          padding: 0 22px !important;
-          border-radius: 12px !important;
-        }
-
-        .tg-stage-section {
-          display: none !important;
-        }
-
-        .tg-tournament-grid {
-          display: flex !important;
-          overflow-x: auto !important;
-          overflow-y: hidden !important;
-          gap: 18px !important;
-          padding: 8px 4px 20px !important;
-          scroll-snap-type: x mandatory;
-          scrollbar-width: none;
-        }
-
-        .tg-tournament-grid::-webkit-scrollbar {
-          display: none;
-        }
-
-        .tg-tournament-card {
-          flex: 0 0 min(340px, 82vw) !important;
-          scroll-snap-align: start;
-          transition:
-            transform .35s ease,
-            opacity .35s ease,
-            border-color .35s ease,
-            box-shadow .35s ease;
-          background: rgba(13, 13, 22, 0.64) !important;
-          backdrop-filter: blur(8px);
-          -webkit-backdrop-filter: blur(8px);
-        }
-
-        .tg-tournament-card:hover {
-          transform: translateY(-7px);
-        }
-
-        .tg-tournament-card.selected {
-          box-shadow:
-            0 0 0 1px rgba(150, 80, 255, .55),
-            0 18px 50px rgba(70, 20, 130, .22);
-        }
-
-        @media (max-width: 700px) {
-          .tg-stat-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-            gap: 12px !important;
-          }
-
-          .tg-stat {
-            min-height: 145px !important;
-          }
-
-          .tg-circuit-switch {
-            width: 100% !important;
-            justify-content: center;
-          }
-
-          .tg-circuit-switch button {
-            flex: 1 !important;
-            padding: 0 12px !important;
-          }
-
-          .tg-tournament-card {
-            flex-basis: 82vw !important;
-          }
-
-          .tg-background-logo img {
-            width: 105vw !important;
-            opacity: .19 !important;
-          }
-        }
-
-        @media (min-width: 701px) {
-          .tg-tournament-grid {
-            display: grid !important;
-            grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-            overflow: visible !important;
-          }
-
-          .tg-tournament-card {
-            flex-basis: auto !important;
-            width: 100% !important;
-          }
-        }
-      `}</style>
-
-      {/* =====================================================
-          HEADER
-      ===================================================== */}
-
-      <header className="tg-header">
-        <div className="tg-header-inner">
-
-          <button
-            className="tg-mobile-menu"
-            onClick={() =>
-              setMobileMenu(!mobileMenu)
-            }
-            aria-label="Menu"
-          >
-            {mobileMenu ? (
-              <X size={25} />
-            ) : (
-              <Menu size={25} />
-            )}
-          </button>
-
-          <a
-            href="#top"
-            className="tg-brand"
-          >
-            <div className="tg-brand-logo">
-              <img
-                src="/iqoo-tg-logo.png"
-                alt="Total Gaming"
-                style={{
-                  filter:
-                    "brightness(1.45) saturate(1.25) drop-shadow(0 0 12px rgba(110,70,255,.45))",
-                }}
-              />
-            </div>
-
-            <div>
-              <div className="tg-brand-name">
-                TOTAL GAMING{" "}
-                <span>HUB</span>
-              </div>
-
-              <div className="tg-brand-sub">
-                PLAY · COMPETE · BELONG
-              </div>
-            </div>
-          </a>
-
-          <nav className="tg-navigation">
-            <a href="#top">
-              Dashboard
-            </a>
-
-            <a href="#tournaments">
-              Events
-            </a>
-
-            <a href="#matches">
-              Matches
-            </a>
-
-            <a href="#mvp">
-              MVP
-            </a>
-          </nav>
-
-          <div className="tg-header-actions">
-
-            <button
-              className="tg-icon-button"
-              aria-label="Highlights"
-            >
-              <Flame size={18} />
-            </button>
-
-            <div className="tg-avatar">
-              A
-            </div>
-
-          </div>
-        </div>
-
-        {mobileMenu && (
-          <div className="tg-mobile-navigation">
-
-            <a
-              href="#top"
-              onClick={() =>
-                setMobileMenu(false)
-              }
-            >
-              Dashboard
-            </a>
-
-            <a
-              href="#tournaments"
-              onClick={() =>
-                setMobileMenu(false)
-              }
-            >
-              Events
-            </a>
-
-            <a
-              href="#matches"
-              onClick={() =>
-                setMobileMenu(false)
-              }
-            >
-              Matches
-            </a>
-
-            <a
-              href="#mvp"
-              onClick={() =>
-                setMobileMenu(false)
-              }
-            >
-              MVP
-            </a>
-
-          </div>
-        )}
+      <header className="tg-topbar">
+        <a className="tg-logo-lockup" href="#top" aria-label="Total Gaming Match Center home">
+          <span className="tg-logo-mark"><img src="/iqoo-tg-logo.png" alt="" /></span>
+          <span>
+            <strong>TOTAL GAMING <em>HUB</em></strong>
+            <small>FAN MATCH CENTER</small>
+          </span>
+        </a>
+        <nav className="tg-main-nav" aria-label="Main navigation">
+          <a href="#events">Events</a>
+          <a href="#history">Match history</a>
+          <a href="#fraggers">Top fraggers</a>
+        </nav>
+        <div className="tg-live-chip"><span /> LIVE DATA</div>
       </header>
 
       <main id="top">
-
-        {/* =====================================================
-            HERO
-        ===================================================== */}
-
-        <section
-          className="tg-hero tg-container"
-          style={{
-            backgroundColor:
-              "rgba(7, 8, 14, 0.42)",
-            backdropFilter: "blur(3px)",
-            WebkitBackdropFilter:
-              "blur(3px)",
-          }}
-        >
-
-          <div className="tg-hero-copy">
-
-            <div className="tg-eyebrow">
-              <span className="tg-live-marker" />
-              LIVE COMPETITION FEED
-            </div>
-
-            <div className="tg-title-kicker">
-              {mode === "official"
-                ? "OFFICIAL CIRCUIT"
-                : "COMMUNITY CIRCUIT"}
-            </div>
-
-            <h1>
-              {liveTournament.name}
-            </h1>
-
-            <p className="tg-hero-description">
-              Real-time tournament intelligence,
-              match results and competitive
-              performance tracking.
+        <section className="tg-current-hero tg-page-width">
+          <div className="tg-hero-content">
+            <p className="tg-overline"><span className="tg-pulse" /> CURRENT TOURNAMENT</p>
+            <p className="tg-circuit-label">{mode === "official" ? "OFFICIAL CIRCUIT" : "SCRIMS CIRCUIT"}</p>
+            <h1>{loadingEvents ? "Loading tournament" : selectedTournament?.name ?? "No active tournament"}</h1>
+            <p className="tg-hero-note">
+              {selectedTournament
+                ? `${selectedTournament.status === "LIVE" || selectedTournament.isCurrent ? "Live now" : "Selected event"} · ${selectedTournament.phase || "Stage details pending"}`
+                : "Live tournament information will appear here when it is published."}
             </p>
-
-            <div className="tg-hero-meta">
-
-              <div>
-                <span>STAGE</span>
-                <strong>
-                  {liveTournament.phase}
-                </strong>
-              </div>
-
-              <div>
-                <span>MATCHES</span>
-                <strong>
-                  {liveTournament.matches}
-                </strong>
-              </div>
-
-              <div>
-                <span>TEAMS</span>
-                <strong>
-                  {liveTournament.teams}
-                </strong>
-              </div>
-
+            <div className="tg-hero-facts">
+              <Fact label="STAGE" value={selectedTournament?.phase || "—"} />
+              <Fact label="MATCHES" value={selectedTournament ? String(selectedTournament.matches) : "—"} />
+              <Fact label="TEAMS" value={selectedTournament ? String(selectedTournament.teams) : "—"} />
             </div>
-
           </div>
-
+          <div className="tg-hero-badge" aria-hidden="true">
+            <Trophy size={34} />
+            <span>{mode === "official" ? "OFFICIAL" : "SCRIMS"}</span>
+            <strong>{selectedTournament?.status ?? "WAITING"}</strong>
+          </div>
         </section>
 
-        {/* =====================================================
-            CURRENT TOURNAMENT / 4 STAT CARDS
-        ===================================================== */}
-
-        <section
-          className="tg-container tg-performance"
-          style={{
-            backgroundColor:
-              "rgba(8, 9, 15, 0.56)",
-            backdropFilter: "blur(5px)",
-            WebkitBackdropFilter:
-              "blur(5px)",
-          }}
-        >
-
-          <div className="tg-performance-head">
-
+        <section className="tg-control-band tg-page-width" id="events">
+          <div className="tg-control-heading">
             <div>
-
-              <span className="tg-section-label">
-                <span />
-                CURRENT TOURNAMENT
-              </span>
-
-              <h2>
-                {selectedTournament.name}
-              </h2>
-
-              <p className="tg-performance-subtitle">
-                {selectedTournament.phase}
-                {" · "}
-                {selectedTournament.matches}
-                {" MATCHES · "}
-                {selectedTournament.teams}
-                {" TEAMS"}
-              </p>
-
+              <p className="tg-overline"><span /> CIRCUIT SELECTOR</p>
+              <h2>Choose your view</h2>
             </div>
-
-            <div className="tg-selected-tag">
-              <span className="tg-live-marker" />
-              {selectedTournament.status}
-            </div>
-
+            <span className="tg-record-count">{eventNames.length} {eventNames.length === 1 ? "EVENT" : "EVENTS"}</span>
           </div>
-
-          <div className="tg-stat-grid">
-
-            <Stat
-              icon={<Star />}
-              title="TOTAL SCORE"
-              value={stats.total}
-              accent
-            />
-
-            <Stat
-              icon={<Trophy />}
-              title="CURRENT RANK"
-              value="#1"
-            />
-
-            <Stat
-              icon={<Crosshair />}
-              title="ELIMINATIONS"
-              value={stats.kills}
-            />
-
-            <Stat
-              icon={<Shield />}
-              title="PLACEMENT PTS"
-              value={stats.placement}
-            />
-
-          </div>
-
-          <div className="tg-performance-footer">
-
-            <div>
-              <span>AVERAGE / MATCH</span>
-              <strong>
-                {averagePoints}
-              </strong>
-            </div>
-
-            <div>
-              <span>PLAYED</span>
-              <strong>
-                {matches.length}/{selectedTournament.matches}
-              </strong>
-            </div>
-
-            <div>
-              <span>STATUS</span>
-              <strong>
-                {selectedTournament.status}
-              </strong>
-            </div>
-
-          </div>
-
-        </section>
-
-        {/* =====================================================
-            OFFICIAL / SCRIMS THIN TOGGLE
-        ===================================================== */}
-
-        <section
-          className="tg-container tg-circuit-section"
-          style={{
-            backgroundColor:
-              "rgba(8, 9, 15, 0.50)",
-            backdropFilter: "blur(5px)",
-            WebkitBackdropFilter:
-              "blur(5px)",
-          }}
-        >
-
-          <div className="tg-circuit-heading">
-
-            <div>
-
-              <span className="tg-section-label">
-                <span />
-                COMPETITION MODE
-              </span>
-
-              <h2>
-                SELECT CIRCUIT
-              </h2>
-
-            </div>
-
-            <div className="tg-circuit-count">
-              {tournaments.length} EVENTS
-            </div>
-
-          </div>
-
-          <div className="tg-circuit-switch">
-
-            <button
-              className={
-                mode === "official"
-                  ? "active"
-                  : ""
-              }
-              onClick={() =>
-                changeMode("official")
-              }
-            >
-              <Trophy size={18} />
-              <span>OFFICIAL</span>
+          <div className="tg-mode-switch" role="tablist" aria-label="Competition mode">
+            <button type="button" role="tab" aria-selected={mode === "official"} className={mode === "official" ? "is-active" : ""} onClick={() => changeMode("official")}>
+              <Trophy size={17} /> Official
             </button>
-
-            <button
-              className={
-                mode === "scrims"
-                  ? "active"
-                  : ""
-              }
-              onClick={() =>
-                changeMode("scrims")
-              }
-            >
-              <Gamepad2 size={18} />
-              <span>SCRIMS</span>
+            <button type="button" role="tab" aria-selected={mode === "scrims"} className={mode === "scrims" ? "is-active" : ""} onClick={() => changeMode("scrims")}>
+              <Gamepad2 size={17} /> Scrims
             </button>
-
           </div>
-
-        </section>
-
-        {/* =====================================================
-            TOURNAMENTS
-            HORIZONTAL SCROLL + ANIMATION
-        ===================================================== */}
-
-        <section
-          id="tournaments"
-          className="tg-container tg-section"
-          style={{
-            backgroundColor:
-              "rgba(7, 8, 14, 0.46)",
-            backdropFilter: "blur(4px)",
-            WebkitBackdropFilter:
-              "blur(4px)",
-          }}
-        >
-
-          <div className="tg-section-heading">
-
-            <div>
-
-              <span className="tg-section-label">
-                <span />
-                COMPETITIVE CALENDAR
-              </span>
-
-              <h2>
-                {mode === "official"
-                  ? "OFFICIAL EVENTS"
-                  : "SCRIM EVENTS"}
-              </h2>
-
-            </div>
-
-            <div className="tg-heading-icon">
-              <CalendarDays size={24} />
-            </div>
-
+          {error && (
+            <div className="tg-inline-error" role="alert"><CircleAlert size={17} /> {error}</div>
+          )}
+          <div className="tg-event-list">
+            {loadingEvents ? <LoadingLine label="Loading published events" /> : eventNames.length === 0 ? <EmptyState label={`No ${mode} events have been published yet.`} /> : eventNames.map((name) => {
+              const eventStages = tournaments.filter((tournament) => tournament.name === name);
+              const live = eventStages.some((tournament) => tournament.isCurrent || tournament.status === "LIVE");
+              return (
+                <button type="button" className={`tg-event-button ${activeEventName === name ? "is-active" : ""}`} key={name} onClick={() => selectEvent(name)}>
+                  <span className="tg-event-icon"><Layers3 size={18} /></span>
+                  <span className="tg-event-copy"><strong>{name}</strong><small>{eventStages.length} {eventStages.length === 1 ? "stage" : "stages"}</small></span>
+                  {live && <span className="tg-mini-live">LIVE</span>}
+                  <ChevronRight size={17} />
+                </button>
+              );
+            })}
           </div>
-
-          <div className="tg-tournament-grid">
-
-            {tournaments.map(
-              (tournament, index) => (
-
-                <TournamentCard
-                  key={tournament.id}
-                  tournament={tournament}
-                  index={index}
-                  selected={
-                    tournament.id ===
-                    selectedTournament.id
-                  }
-                  onClick={() => {
-
-                    const folder =
-                      folders.find(
-                        (item) =>
-                          item.tournamentId ===
-                          tournament.id,
-                      );
-
-                    if (folder) {
-                      setSelectedFolder(
-                        folder.id,
-                      );
-                    }
-
-                  }}
-                />
-
-              ),
-            )}
-
-          </div>
-
-        </section>
-
-        {/* =====================================================
-            MATCH HISTORY
-        ===================================================== */}
-
-        <section
-          id="matches"
-          className="tg-container tg-section"
-          style={{
-            backgroundColor:
-              "rgba(7, 8, 14, 0.48)",
-            backdropFilter: "blur(4px)",
-            WebkitBackdropFilter:
-              "blur(4px)",
-          }}
-        >
-
-          <div className="tg-section-heading">
-
-            <div>
-
-              <span className="tg-section-label">
-                <span />
-                PERFORMANCE LOG
-              </span>
-
-              <h2>
-                MATCH HISTORY
-              </h2>
-
-            </div>
-
-            <div className="tg-match-count">
-              {matches.length} MATCHES
-            </div>
-
-          </div>
-
-          <div className="tg-match-table">
-
-            <div className="tg-match-header">
-              <span>MATCH</span>
-              <span>KILLS</span>
-              <span>POSITION</span>
-              <span>POINTS</span>
-            </div>
-
-            {[...matches]
-              .reverse()
-              .map((match) => (
-
-                <div
-                  className="tg-match-row"
-                  key={match.id}
-                >
-
-                  <div>
-
-                    <strong>
-                      MATCH {match.number}
-                    </strong>
-
-                    <span>
-                      {match.map}
-                    </span>
-
-                  </div>
-
-                  <strong>
-                    {match.kills}
-                  </strong>
-
-                  <strong>
-                    #{match.position}
-                  </strong>
-
-                  <strong className="tg-match-points">
-                    {getMatchPoints(match)}
-                  </strong>
-
-                </div>
-
-              ))}
-
-          </div>
-
-        </section>
-
-        {/* =====================================================
-            MVP
-        ===================================================== */}
-
-        <section
-          id="mvp"
-          className="tg-container tg-mvp-section"
-          style={{
-            backgroundColor:
-              "rgba(7, 8, 14, 0.48)",
-            backdropFilter: "blur(4px)",
-            WebkitBackdropFilter:
-              "blur(4px)",
-          }}
-        >
-
-          <div className="tg-section-heading">
-
-            <div>
-
-              <span className="tg-section-label">
-                <span />
-                PLAYER PERFORMANCE
-              </span>
-
-              <h2>
-                DAILY MVP
-              </h2>
-
-            </div>
-
-            <span className="tg-mvp-day">
-              DAY 01
-            </span>
-
-          </div>
-
-          <div className="tg-mvp-card">
-
-            <div className="tg-mvp-image">
-              <img
-                src={mvpImage}
-                alt="Daily MVP"
-              />
-            </div>
-
-            <div className="tg-mvp-info">
-
-              <span className="tg-mvp-role">
-                RUSHER · TOP PERFORMER
-              </span>
-
-              <h3>
-                PLAYER 1
-              </h3>
-
-              <p>
-                Leading the current
-                tournament performance.
-              </p>
-
-            </div>
-
-            <div className="tg-mvp-stats">
-
-              <div>
-                <span>KILLS</span>
-                <strong>9</strong>
+          {eventTournaments.length > 0 && (
+            <div className="tg-stage-strip">
+              <div className="tg-stage-strip-label"><CalendarDays size={16} /> STAGES / DAYS</div>
+              <div className="tg-stage-options">
+                {eventTournaments.map((tournament) => (
+                  <button type="button" key={tournament.id} className={`tg-stage-button ${selectedTournament?.id === tournament.id ? "is-active" : ""}`} onClick={() => setSelectedTournamentId(tournament.id)}>
+                    <span>{tournament.phase || "Stage"}</span>
+                    {tournament.status === "LIVE" || tournament.isCurrent ? <i>LIVE</i> : null}
+                  </button>
+                ))}
               </div>
-
-              <div>
-                <span>MATCHES</span>
-                <strong>3</strong>
-              </div>
-
-              <div>
-                <span>K/D</span>
-                <strong>3.0</strong>
-              </div>
-
             </div>
-
-          </div>
-
+          )}
         </section>
 
-        {/* =====================================================
-            FOOTER
-        ===================================================== */}
-
-        <footer
-          className="tg-footer tg-container"
-          style={{
-            backgroundColor:
-              "rgba(7, 8, 14, 0.52)",
-            backdropFilter: "blur(4px)",
-            WebkitBackdropFilter:
-              "blur(4px)",
-          }}
-        >
-
-          <div className="tg-footer-brand">
-            TOTAL GAMING HUB
+        <section className="tg-stage-summary tg-page-width" aria-labelledby="summary-title">
+          <div className="tg-section-topline">
+            <div>
+              <p className="tg-overline"><span /> SELECTED STAGE</p>
+              <h2 id="summary-title">{selectedTournament?.phase || "Stage summary"}</h2>
+            </div>
+            <span className="tg-status-pill">{selectedTournament?.status ?? "NO DATA"}</span>
           </div>
 
-          <div className="tg-footer-line" />
+          {loadingData ? <LoadingLine label="Loading stage performance" /> : (
+            <div className="tg-summary-grid">
+              <MetricCard icon={Trophy} label="TOTAL POINTS" value={totalPoints ? totalPoints.toString() : "—"} accent detail={teamResults.length ? `${teamResults.length} matches scored` : "No team results published"} />
+              <MetricCard icon={Medal} label="CURRENT RANK" value={rank ? `#${rank}` : "—"} detail={rank ? (selectedTournament?.description || "Live standings") : "Ranking appears after results"} />
+              <MetricCard icon={Crosshair} label="KILLS" value={teamResults.length ? totalKills.toString() : "—"} detail={teamResults.length ? `${averagePoints} points / match` : "No team results published"} />
+              <MetricCard icon={Shield} label="PLACEMENT POINTS" value={teamResults.length ? placementPoints.toString() : "—"} detail={teamResults.length ? "Calculated from team score" : "No team results published"} />
+            </div>
+          )}
+        </section>
 
-          <div className="tg-footer-meta">
-            PLAY · COMPETE · BELONG
+        <section className="tg-history tg-page-width" id="history" aria-labelledby="history-title">
+          <div className="tg-section-topline">
+            <div>
+              <p className="tg-overline"><span /> PERFORMANCE LOG</p>
+              <h2 id="history-title">Match history</h2>
+            </div>
+            <span className="tg-record-count">{tournamentData.matches.length} MATCHES</span>
           </div>
+          {loadingData ? <LoadingLine label="Loading matches" /> : tournamentData.matches.length === 0 ? <EmptyState label="No matches have been published for this stage yet." /> : (
+            <div className="tg-match-list">
+              <div className="tg-match-list-head"><span>MATCH</span><span>MAP</span><span>KILLS</span><span>POSITION</span><span>POINTS</span><span /></div>
+              {tournamentData.matches.map((match) => {
+                const result = teamResults.find((item) => item.matchId === match.id);
+                return <MatchRow key={match.id} match={match} result={result} onStats={() => setSelectedMatchId(match.id)} />;
+              })}
+            </div>
+          )}
+        </section>
 
-        </footer>
+        <section className="tg-fraggers tg-page-width" id="fraggers" aria-labelledby="fraggers-title">
+          <div className="tg-section-topline">
+            <div>
+              <p className="tg-overline"><span /> PLAYER PERFORMANCE</p>
+              <h2 id="fraggers-title">Top fraggers</h2>
+            </div>
+            <Sparkles size={21} className="tg-section-mark" />
+          </div>
+          {loadingData ? <LoadingLine label="Loading player performance" /> : topFraggers.length === 0 ? <EmptyState label="Player statistics have not been published for this stage yet." /> : (
+            <div className="tg-fragger-list">
+              {topFraggers.map((entry, index) => <FraggerRow key={entry.player.id} entry={entry} index={index} />)}
+            </div>
+          )}
+        </section>
 
+        <footer className="tg-footer-v2 tg-page-width"><span>TOTAL GAMING HUB</span><small>Official results · Scrims · Player stats</small></footer>
       </main>
 
+      {selectedMatch && <StatsModal match={selectedMatch} stats={tournamentData.playerMatchStats.filter((stat) => stat.matchId === selectedMatch.id)} players={players} onClose={() => setSelectedMatchId(null)} />}
     </div>
   );
 }
 
-/* =========================================================
-   STAT COMPONENT
-========================================================= */
-
-function Stat({
-  icon,
-  title,
-  value,
-  accent = false,
-}: {
-  icon: ReactNode;
-  title: string;
-  value: string | number;
-  accent?: boolean;
-}) {
-  return (
-    <div
-      className={
-        accent
-          ? "tg-stat accent"
-          : "tg-stat"
-      }
-      style={{
-        backgroundColor:
-          "rgba(12, 13, 21, 0.62)",
-        backdropFilter: "blur(8px)",
-        WebkitBackdropFilter:
-          "blur(8px)",
-      }}
-    >
-
-      <div className="tg-stat-icon">
-        {icon}
-      </div>
-
-      <span className="tg-stat-title">
-        {title}
-      </span>
-
-      <strong className="tg-stat-value">
-        {value}
-      </strong>
-
-    </div>
-  );
+function Fact({ label, value }: { label: string; value: string }) {
+  return <div className="tg-fact"><span>{label}</span><strong>{value}</strong></div>;
 }
 
-/* =========================================================
-   TOURNAMENT CARD
-========================================================= */
+function MetricCard({ icon: Icon, label, value, detail, accent = false }: { icon: LucideIcon; label: string; value: string; detail: string; accent?: boolean }) {
+  return <article className={`tg-metric-card ${accent ? "is-accent" : ""}`}><span className="tg-metric-icon"><Icon size={18} /></span><span className="tg-metric-label">{label}</span><strong>{value}</strong><small>{detail}</small></article>;
+}
 
-function TournamentCard({
-  tournament,
-  index,
-  selected,
-  onClick,
-}: {
-  tournament: Tournament;
-  index: number;
-  selected: boolean;
-  onClick: () => void;
-}) {
-  const statusClass =
-    tournament.status.toLowerCase();
+function MatchRow({ match, result, onStats }: { match: Match; result?: MatchResult; onStats: () => void }) {
+  return <div className="tg-match-row"><div className="tg-match-number"><span>#{String(match.number).padStart(2, "0")}</span><strong>{match.status}</strong></div><span className="tg-map-name">{match.map || "Map pending"}</span><strong>{result ? result.kills : "—"}</strong><strong>{result?.position ? `#${result.position}` : "—"}</strong><strong className="tg-points-value">{result ? result.points : "—"}</strong><button type="button" className="tg-stats-button" onClick={onStats}>Full stats <ArrowUpRight size={15} /></button></div>;
+}
 
-  return (
-    <button
-      className={
-        selected
-          ? "tg-tournament-card selected"
-          : "tg-tournament-card"
-      }
-      onClick={onClick}
-      style={{
-        background:
-          "rgba(13, 13, 22, 0.62)",
-        backdropFilter: "blur(9px)",
-        WebkitBackdropFilter:
-          "blur(9px)",
-      }}
-    >
+function FraggerRow({ entry, index }: { entry: { player: Player; kills: number; damage: number; assists: number; points: number; matches: number }; index: number }) {
+  return <div className="tg-fragger-row"><span className="tg-rank-number">{String(index + 1).padStart(2, "0")}</span><Avatar player={entry.player} /><div className="tg-fragger-name"><strong>{entry.player.name}</strong><small>{entry.player.role} · {entry.matches} matches</small></div><div className="tg-fragger-stat"><span>KILLS</span><strong>{entry.kills}</strong></div><div className="tg-fragger-stat tg-fragger-damage"><span>DAMAGE</span><strong>{entry.damage}</strong></div><div className="tg-fragger-stat"><span>POINTS</span><strong>{entry.points}</strong></div></div>;
+}
 
-      <div className="tg-card-top">
+function Avatar({ player }: { player: Player }) {
+  const initials = player.name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase();
+  return <span className="tg-player-avatar">{player.avatarUrl ? <img src={player.avatarUrl} alt={`${player.name} portrait`} /> : initials}</span>;
+}
 
-        <span
-          className={`tg-tournament-status ${statusClass}`}
-        >
-          {tournament.status}
-        </span>
+function StatsModal({ match, stats, players, onClose }: { match: Match; stats: PlayerMatchStat[]; players: Player[]; onClose: () => void }) {
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
 
-        <span className="tg-card-index">
-          {String(index + 1).padStart(2, "0")}
-        </span>
+  const playerMap = new Map(players.map((player) => [player.id, player]));
 
-      </div>
+  return <div className="tg-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><section className="tg-stats-modal" role="dialog" aria-modal="true" aria-labelledby="stats-modal-title"><div className="tg-modal-head"><div><p className="tg-overline"><span /> MATCH #{String(match.number).padStart(2, "0")}</p><h2 id="stats-modal-title">{match.map || "Match stats"}</h2></div><button type="button" className="tg-close-button" aria-label="Close full stats" onClick={onClose}><X size={19} /></button></div><div className="tg-player-stat-list">{stats.length === 0 ? <EmptyState label="Individual player stats have not been published for this match." /> : stats.map((stat) => { const player = playerMap.get(stat.playerId); if (!player) return null; return <div className="tg-player-stat" key={stat.id}><Avatar player={player} /><div className="tg-player-stat-name"><strong>{player.name}</strong><small>{player.role}</small></div><span><b>{stat.kills}</b><small>KILLS</small></span><span><b>{stat.damage}</b><small>DAMAGE</small></span><span><b>{stat.assists}</b><small>ASSISTS</small></span><span><b>{stat.points}</b><small>POINTS</small></span></div>; })}</div></section></div>;
+}
 
-      <div className="tg-card-content">
+function LoadingLine({ label }: { label: string }) {
+  return <div className="tg-loading"><span /> {label}</div>;
+}
 
-        <span className="tg-card-phase">
-          {tournament.phase}
-        </span>
-
-        <h3>
-          {tournament.name}
-        </h3>
-
-      </div>
-
-      <div className="tg-card-footer">
-
-        <span>
-          <CalendarDays size={15} />
-          {tournament.matches} MATCHES
-        </span>
-
-        <span>
-          <Users size={15} />
-          {tournament.teams} TEAMS
-        </span>
-
-        <ChevronRight size={18} />
-
-      </div>
-
-    </button>
-  );
+function EmptyState({ label }: { label: string }) {
+  return <div className="tg-empty-state"><Users size={18} /> {label}</div>;
 }
