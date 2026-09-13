@@ -1,4 +1,4 @@
-- [ ] Fix direct Vercel deployment fallback.
-- [ ] Rebuild tournament/stage dashboard flow.
-- [ ] Add match full-stats modal and Top Fraggers leaderboard.
-- [ ] Validate desktop/mobile preview and checks.
+- [x] Fix direct Vercel deployment fallback. (user fixed externally)
+- [x] Rebuild tournament/stage dashboard flow.
+- [x] Add match full-stats modal and Top Fraggers leaderboard.
+- [x] Validate desktop/mobile preview and checks.
