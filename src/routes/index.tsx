@@ -432,7 +432,7 @@ function MetricCard({ icon: Icon, label, value, detail, accent = false }: { icon
   return <article className={`tg-metric-card ${accent ? "is-accent" : ""}`}><span className="tg-metric-icon"><Icon size={18} /></span><span className="tg-metric-label">{label}</span><strong>{value}</strong><small>{detail}</small></article>;
 }
 
-function MatchRow({ match, result, onStats }: { match: Match; result?: MatchResult; onStats: () => void }) {
+function MatchRow({ match, result, onStats }: { match: Match; result?: MatchResult | undefined; onStats: () => void }) {
   return <div className="tg-match-row"><div className="tg-match-number"><span>#{String(match.number).padStart(2, "0")}</span><strong>{match.status}</strong></div><span className="tg-map-name">{match.map || "Map pending"}</span><strong>{result ? result.kills : "—"}</strong><strong>{result?.position ? `#${result.position}` : "—"}</strong><strong className="tg-points-value">{result ? result.points : "—"}</strong><button type="button" className="tg-stats-button" onClick={onStats}>Full stats <ArrowUpRight size={15} /></button></div>;
 }
 

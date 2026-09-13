@@ -1,26 +1,12 @@
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 
-type UntypedSupabaseClient = {
-  from: (table: string) => QueryBuilder;
+// Loosely-typed adapter: the generated Database types are empty, so we expose
+// a permissive query builder while keeping the real client at runtime.
+/* eslint-disable @typescript-eslint/no-explicit-any */
+type LooseSupabaseClient = {
+  from: (table: string) => any;
+  auth: (typeof cloudSupabase)["auth"];
+  storage: (typeof cloudSupabase)["storage"];
 };
 
-type SupabaseResponse = {
-  data: Record<string, unknown>[] | null;
-  error: unknown;
-};
-
-type QueryBuilder = PromiseLike<SupabaseResponse> & {
-  insert: (values: Record<string, unknown>) => QueryBuilder;
-  update: (values: Record<string, unknown>) => QueryBuilder;
-  delete: () => QueryBuilder;
-  select: (columns?: string) => QueryBuilder;
-  eq: (column: string, value: unknown) => QueryBuilder;
-  in: (column: string, values: string[]) => QueryBuilder;
-  order: (column: string, options?: { ascending?: boolean }) => QueryBuilder;
-  single: () => Promise<{
-    data: Record<string, unknown> | null;
-    error: unknown;
-  }>;
-};
-
-export const supabase = cloudSupabase as unknown as UntypedSupabaseClient;
+export const supabase = cloudSupabase as unknown as LooseSupabaseClient;
