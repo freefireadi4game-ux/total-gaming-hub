@@ -37,7 +37,7 @@ import {
   Zap,
 } from "lucide-react";
 
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/admin")({
   component: AdminRoute,
@@ -49,11 +49,7 @@ export const Route = createFileRoute("/admin")({
 
 type Role = "owner" | "admin" | "editor" | "scorekeeper";
 type CompetitionType = "OFFICIAL" | "SCRIM";
-type TournamentStatus =
-  | "LIVE"
-  | "UPCOMING"
-  | "COMPLETED"
-  | "ARCHIVED";
+type TournamentStatus = "LIVE" | "UPCOMING" | "COMPLETED" | "ARCHIVED";
 
 type Section =
   | "dashboard"
@@ -217,11 +213,7 @@ function Badge({
   children: React.ReactNode;
   kind?: "default" | "live" | "success" | "warning" | "danger" | "blue";
 }) {
-  return (
-    <span className={`tg-badge tg-badge-${kind}`}>
-      {children}
-    </span>
-  );
+  return <span className={`tg-badge tg-badge-${kind}`}>{children}</span>;
 }
 
 function Button({
@@ -257,12 +249,7 @@ function IconButton({
   onClick?: () => void;
 }) {
   return (
-    <button
-      type="button"
-      title={title}
-      onClick={onClick}
-      className="tg-icon-btn"
-    >
+    <button type="button" title={title} onClick={onClick} className="tg-icon-btn">
       {children}
     </button>
   );
@@ -281,10 +268,7 @@ function Modal({
 }) {
   return (
     <div className="tg-modal-backdrop" onMouseDown={onClose}>
-      <div
-        className="tg-modal"
-        onMouseDown={(e) => e.stopPropagation()}
-      >
+      <div className="tg-modal" onMouseDown={(e) => e.stopPropagation()}>
         <div className="tg-modal-head">
           <div>
             <small>ADMIN CONTROL</small>
@@ -298,9 +282,7 @@ function Modal({
 
         <div className="tg-modal-body">{children}</div>
 
-        {footer && (
-          <div className="tg-modal-foot">{footer}</div>
-        )}
+        {footer && <div className="tg-modal-foot">{footer}</div>}
       </div>
     </div>
   );
@@ -348,23 +330,14 @@ function SelectField({
     <label className="tg-field">
       <span>{label}</span>
 
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      >
+      <select value={value} onChange={(e) => onChange(e.target.value)}>
         {children}
       </select>
     </label>
   );
 }
 
-function Empty({
-  title,
-  description,
-}: {
-  title: string;
-  description: string;
-}) {
+function Empty({ title, description }: { title: string; description: string }) {
   return (
     <div className="tg-empty">
       <Database size={34} />
@@ -378,11 +351,7 @@ function Empty({
    LOGIN
 ========================================================= */
 
-function Login({
-  onSuccess,
-}: {
-  onSuccess: (email: string) => void;
-}) {
+function Login({ onSuccess }: { onSuccess: (email: string) => void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -398,11 +367,10 @@ function Login({
 
     setBusy(true);
 
-    const { data, error } =
-      await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
 
     setBusy(false);
 
@@ -437,10 +405,7 @@ function Login({
         <div className="tg-login-title">
           <small>SECURE CONTROL PANEL</small>
           <h1>ADMIN LOGIN</h1>
-          <p>
-            Manage tournaments, stages, matches, teams,
-            players and live results.
-          </p>
+          <p>Manage tournaments, stages, matches, teams, players and live results.</p>
         </div>
 
         <div className="tg-login-form">
@@ -459,11 +424,7 @@ function Login({
             placeholder="••••••••"
           />
 
-          {error && (
-            <div className="tg-error">
-              {error}
-            </div>
-          )}
+          {error && <div className="tg-error">{error}</div>}
 
           <Button onClick={submit} disabled={busy}>
             <LogIn size={17} />
@@ -554,9 +515,7 @@ function Sidebar({
     },
   ];
 
-  const visible = items.filter((item) =>
-    item.roles.includes(role),
-  );
+  const visible = items.filter((item) => item.roles.includes(role));
 
   return (
     <aside className={`tg-sidebar ${mobile ? "tg-sidebar-open" : ""}`}>
@@ -575,20 +534,14 @@ function Sidebar({
         )}
       </div>
 
-      <div className="tg-sidebar-label">
-        CONTROL
-      </div>
+      <div className="tg-sidebar-label">CONTROL</div>
 
       <nav className="tg-sidebar-nav">
         {visible.map((item) => (
           <button
             type="button"
             key={item.id}
-            className={
-              section === item.id
-                ? "tg-nav-active"
-                : ""
-            }
+            className={section === item.id ? "tg-nav-active" : ""}
             onClick={() => {
               setSection(item.id);
               close();
@@ -596,9 +549,7 @@ function Sidebar({
           >
             {item.icon}
             <span>{item.label}</span>
-            {section === item.id && (
-              <ChevronRight size={15} />
-            )}
+            {section === item.id && <ChevronRight size={15} />}
           </button>
         ))}
       </nav>
@@ -635,11 +586,7 @@ function Header({
 }) {
   return (
     <header className="tg-header">
-      <button
-        type="button"
-        className="tg-mobile-menu"
-        onClick={onMenu}
-      >
+      <button type="button" className="tg-mobile-menu" onClick={onMenu}>
         <Menu size={20} />
       </button>
 
@@ -649,24 +596,13 @@ function Header({
       </div>
 
       <div className="tg-header-actions">
-        <button
-          type="button"
-          className="tg-refresh"
-          onClick={onRefresh}
-        >
-          <RefreshCw
-            size={17}
-            className={
-              refreshing ? "tg-spin" : ""
-            }
-          />
+        <button type="button" className="tg-refresh" onClick={onRefresh}>
+          <RefreshCw size={17} className={refreshing ? "tg-spin" : ""} />
           <span>SYNC</span>
         </button>
 
         <div className="tg-admin-user">
-          <div className="tg-admin-avatar">
-            {email.charAt(0).toUpperCase()}
-          </div>
+          <div className="tg-admin-avatar">{email.charAt(0).toUpperCase()}</div>
 
           <div>
             <strong>{email}</strong>
@@ -701,17 +637,11 @@ function Dashboard({
   players: Player[];
   onNavigate: (section: Section) => void;
 }) {
-  const live = tournaments.filter(
-    (x) => x.status === "LIVE",
-  ).length;
+  const live = tournaments.filter((x) => x.status === "LIVE").length;
 
-  const official = tournaments.filter(
-    (x) => x.type === "OFFICIAL",
-  ).length;
+  const official = tournaments.filter((x) => x.type === "OFFICIAL").length;
 
-  const scrims = tournaments.filter(
-    (x) => x.type === "SCRIM",
-  ).length;
+  const scrims = tournaments.filter((x) => x.type === "SCRIM").length;
 
   return (
     <div className="tg-page">
@@ -719,68 +649,31 @@ function Dashboard({
         <div>
           <small>MASTER CONTROL</small>
           <h1>COMMAND CENTER</h1>
-          <p>
-            Complete Total Gaming Hub competition
-            management from one place.
-          </p>
+          <p>Complete Total Gaming Hub competition management from one place.</p>
         </div>
       </div>
 
       <div className="tg-stat-grid">
-        <Stat
-          label="TOURNAMENTS"
-          value={tournaments.length}
-          icon={<Trophy size={20} />}
-        />
+        <Stat label="TOURNAMENTS" value={tournaments.length} icon={<Trophy size={20} />} />
 
-        <Stat
-          label="LIVE EVENTS"
-          value={live}
-          icon={<Zap size={20} />}
-          live
-        />
+        <Stat label="LIVE EVENTS" value={live} icon={<Zap size={20} />} live />
 
-        <Stat
-          label="STAGES"
-          value={stages.length}
-          icon={<BarChart3 size={20} />}
-        />
+        <Stat label="STAGES" value={stages.length} icon={<BarChart3 size={20} />} />
 
-        <Stat
-          label="MATCHES"
-          value={matches.length}
-          icon={<Gamepad2 size={20} />}
-        />
+        <Stat label="MATCHES" value={matches.length} icon={<Gamepad2 size={20} />} />
 
-        <Stat
-          label="TEAMS"
-          value={teams.length}
-          icon={<Users size={20} />}
-        />
+        <Stat label="TEAMS" value={teams.length} icon={<Users size={20} />} />
 
-        <Stat
-          label="PLAYERS"
-          value={players.length}
-          icon={<Shield size={20} />}
-        />
+        <Stat label="PLAYERS" value={players.length} icon={<Shield size={20} />} />
       </div>
 
       <div className="tg-two-column">
-        <Panel
-          title="CURRENT EVENTS"
-          icon={<Trophy size={17} />}
-        >
+        <Panel title="CURRENT EVENTS" icon={<Trophy size={17} />}>
           {tournaments
             .filter((x) => x.is_current || x.status === "LIVE")
             .slice(0, 5)
             .map((t) => (
-              <button
-                key={t.id}
-                className="tg-event-row"
-                onClick={() =>
-                  onNavigate("tournaments")
-                }
-              >
+              <button key={t.id} className="tg-event-row" onClick={() => onNavigate("tournaments")}>
                 <div className="tg-event-logo">
                   <img src={LOGO} alt="" />
                 </div>
@@ -792,23 +685,11 @@ function Dashboard({
                   </span>
                 </div>
 
-                <Badge
-                  kind={
-                    t.status === "LIVE"
-                      ? "live"
-                      : "default"
-                  }
-                >
-                  {t.status}
-                </Badge>
+                <Badge kind={t.status === "LIVE" ? "live" : "default"}>{t.status}</Badge>
               </button>
             ))}
 
-          {tournaments.filter(
-            (x) =>
-              x.is_current ||
-              x.status === "LIVE",
-          ).length === 0 && (
+          {tournaments.filter((x) => x.is_current || x.status === "LIVE").length === 0 && (
             <Empty
               title="No current tournament"
               description="Set a tournament as current from tournament control."
@@ -816,10 +697,7 @@ function Dashboard({
           )}
         </Panel>
 
-        <Panel
-          title="COMPETITION SPLIT"
-          icon={<BarChart3 size={17} />}
-        >
+        <Panel title="COMPETITION SPLIT" icon={<BarChart3 size={17} />}>
           <div className="tg-split-card">
             <div>
               <span>OFFICIAL</span>
@@ -833,29 +711,17 @@ function Dashboard({
           </div>
 
           <div className="tg-dashboard-actions">
-            <button
-              onClick={() =>
-                onNavigate("tournaments")
-              }
-            >
+            <button onClick={() => onNavigate("tournaments")}>
               <Trophy size={18} />
               Manage Tournaments
             </button>
 
-            <button
-              onClick={() =>
-                onNavigate("stages")
-              }
-            >
+            <button onClick={() => onNavigate("stages")}>
               <BarChart3 size={18} />
               Manage Stages
             </button>
 
-            <button
-              onClick={() =>
-                onNavigate("matches")
-              }
-            >
+            <button onClick={() => onNavigate("matches")}>
               <Gamepad2 size={18} />
               Enter Scores
             </button>
@@ -903,33 +769,25 @@ function Tournaments({
   log,
 }: {
   tournaments: Tournament[];
-  setTournaments: React.Dispatch<
-    React.SetStateAction<Tournament[]>
-  >;
+  setTournaments: React.Dispatch<React.SetStateAction<Tournament[]>>;
   stages: Stage[];
   onOpenStages: (t: Tournament) => void;
   log: (a: string, d: string) => void;
 }) {
   const [search, setSearch] = useState("");
   const [modal, setModal] = useState(false);
-  const [editing, setEditing] =
-    useState<Tournament | null>(null);
+  const [editing, setEditing] = useState<Tournament | null>(null);
 
   const [name, setName] = useState("");
-  const [type, setType] =
-    useState<CompetitionType>("OFFICIAL");
-  const [status, setStatus] =
-    useState<TournamentStatus>("UPCOMING");
-  const [description, setDescription] =
-    useState("");
+  const [type, setType] = useState<CompetitionType>("OFFICIAL");
+  const [status, setStatus] = useState<TournamentStatus>("UPCOMING");
+  const [description, setDescription] = useState("");
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
   const [current, setCurrent] = useState(false);
 
   const filtered = tournaments.filter((t) =>
-    `${t.name} ${t.type} ${t.stage}`
-      .toLowerCase()
-      .includes(search.toLowerCase()),
+    `${t.name} ${t.type} ${t.stage}`.toLowerCase().includes(search.toLowerCase()),
   );
 
   function reset() {
@@ -965,27 +823,23 @@ function Tournaments({
 
     if (editing) {
       if (current) {
-        await supabase
-          .from("tournaments")
-          .update({ is_current: false })
-          .neq("id", editing.id);
+        await supabase.from("tournaments").update({ is_current: false }).neq("id", editing.id);
       }
 
-      const { data, error } =
-        await supabase
-          .from("tournaments")
-          .update({
-            name: name.trim(),
-            type,
-            status,
-            description,
-            start_date: start || null,
-            end_date: end || null,
-            is_current: current,
-          })
-          .eq("id", editing.id)
-          .select()
-          .single();
+      const { data, error } = await supabase
+        .from("tournaments")
+        .update({
+          name: name.trim(),
+          type,
+          status,
+          description,
+          start_date: start || null,
+          end_date: end || null,
+          is_current: current,
+        })
+        .eq("id", editing.id)
+        .select()
+        .single();
 
       if (error) {
         alert(error.message);
@@ -993,17 +847,10 @@ function Tournaments({
       }
 
       if (data) {
-        setTournaments((old) =>
-          old.map((x) =>
-            x.id === editing.id ? data : x,
-          ),
-        );
+        setTournaments((old) => old.map((x) => (x.id === editing.id ? data : x)));
       }
 
-      log(
-        "Tournament updated",
-        `${name} was updated.`,
-      );
+      log("Tournament updated", `${name} was updated.`);
     } else {
       if (current) {
         await supabase
@@ -1012,24 +859,23 @@ function Tournaments({
           .neq("id", "00000000-0000-0000-0000-000000000000");
       }
 
-      const { data, error } =
-        await supabase
-          .from("tournaments")
-          .insert({
-            id: id(),
-            name: name.trim(),
-            type,
-            status,
-            stage: "",
-            teams: 0,
-            matches: 0,
-            start_date: start || null,
-            end_date: end || null,
-            description,
-            is_current: current,
-          })
-          .select()
-          .single();
+      const { data, error } = await supabase
+        .from("tournaments")
+        .insert({
+          id: id(),
+          name: name.trim(),
+          type,
+          status,
+          stage: "",
+          teams: 0,
+          matches: 0,
+          start_date: start || null,
+          end_date: end || null,
+          description,
+          is_current: current,
+        })
+        .select()
+        .single();
 
       if (error) {
         alert(error.message);
@@ -1037,16 +883,10 @@ function Tournaments({
       }
 
       if (data) {
-        setTournaments((old) => [
-          data,
-          ...old,
-        ]);
+        setTournaments((old) => [data, ...old]);
       }
 
-      log(
-        "Tournament created",
-        `${name} was created.`,
-      );
+      log("Tournament created", `${name} was created.`);
     }
 
     setModal(false);
@@ -1056,48 +896,35 @@ function Tournaments({
   async function remove(t: Tournament) {
     if (!confirm(`Delete ${t.name}?`)) return;
 
-    const { error } = await supabase
-      .from("tournaments")
-      .delete()
-      .eq("id", t.id);
+    const { error } = await supabase.from("tournaments").delete().eq("id", t.id);
 
     if (error) {
       alert(error.message);
       return;
     }
 
-    setTournaments((old) =>
-      old.filter((x) => x.id !== t.id),
-    );
+    setTournaments((old) => old.filter((x) => x.id !== t.id));
 
-    log(
-      "Tournament deleted",
-      `${t.name} was deleted.`,
-    );
+    log("Tournament deleted", `${t.name} was deleted.`);
   }
 
   async function makeCurrent(t: Tournament) {
-    const { error: clearError } =
-      await supabase
-        .from("tournaments")
-        .update({ is_current: false })
-        .neq(
-          "id",
-          "00000000-0000-0000-0000-000000000000",
-        );
+    const { error: clearError } = await supabase
+      .from("tournaments")
+      .update({ is_current: false })
+      .neq("id", "00000000-0000-0000-0000-000000000000");
 
     if (clearError) {
       alert(clearError.message);
       return;
     }
 
-    const { data, error } =
-      await supabase
-        .from("tournaments")
-        .update({ is_current: true })
-        .eq("id", t.id)
-        .select()
-        .single();
+    const { data, error } = await supabase
+      .from("tournaments")
+      .update({ is_current: true })
+      .eq("id", t.id)
+      .select()
+      .single();
 
     if (error) {
       alert(error.message);
@@ -1105,13 +932,7 @@ function Tournaments({
     }
 
     if (data) {
-      setTournaments((old) =>
-        old.map((x) =>
-          x.id === t.id
-            ? data
-            : { ...x, is_current: false },
-        ),
-      );
+      setTournaments((old) => old.map((x) => (x.id === t.id ? data : { ...x, is_current: false })));
     }
   }
 
@@ -1134,9 +955,7 @@ function Tournaments({
           <Search size={17} />
           <input
             value={search}
-            onChange={(e) =>
-              setSearch(e.target.value)
-            }
+            onChange={(e) => setSearch(e.target.value)}
             placeholder="Search tournaments..."
           />
         </div>
@@ -1146,35 +965,16 @@ function Tournaments({
 
       <div className="tg-card-grid">
         {filtered.map((t) => {
-          const stageCount = stages.filter(
-            (s) =>
-              s.tournament_id === t.id,
-          ).length;
+          const stageCount = stages.filter((s) => s.tournament_id === t.id).length;
 
           return (
-            <div
-              key={t.id}
-              className="tg-tournament-card"
-            >
+            <div key={t.id} className="tg-tournament-card">
               <div className="tg-card-top">
-                <Badge
-                  kind={
-                    t.type === "OFFICIAL"
-                      ? "warning"
-                      : "blue"
-                  }
-                >
-                  {t.type}
-                </Badge>
+                <Badge kind={t.type === "OFFICIAL" ? "warning" : "blue"}>{t.type}</Badge>
 
                 <Badge
                   kind={
-                    t.status === "LIVE"
-                      ? "live"
-                      : t.status ===
-                          "COMPLETED"
-                        ? "success"
-                        : "default"
+                    t.status === "LIVE" ? "live" : t.status === "COMPLETED" ? "success" : "default"
                   }
                 >
                   {t.status}
@@ -1187,10 +987,7 @@ function Tournaments({
 
               <h3>{t.name}</h3>
 
-              <p>
-                {t.description ||
-                  "No tournament description."}
-              </p>
+              <p>{t.description || "No tournament description."}</p>
 
               <div className="tg-card-stats">
                 <span>
@@ -1210,49 +1007,26 @@ function Tournaments({
               </div>
 
               <div className="tg-card-actions">
-                <Button
-                  variant="secondary"
-                  onClick={() =>
-                    onOpenStages(t)
-                  }
-                >
+                <Button variant="secondary" onClick={() => onOpenStages(t)}>
                   <ChevronRight size={16} />
                   STAGES
                 </Button>
 
-                <IconButton
-                  title="Edit"
-                  onClick={() =>
-                    openEdit(t)
-                  }
-                >
+                <IconButton title="Edit" onClick={() => openEdit(t)}>
                   <Edit3 size={16} />
                 </IconButton>
 
-                <IconButton
-                  title="Delete"
-                  onClick={() =>
-                    remove(t)
-                  }
-                >
+                <IconButton title="Delete" onClick={() => remove(t)}>
                   <Trash2 size={16} />
                 </IconButton>
               </div>
 
               <button
-                className={`tg-current-toggle ${
-                  t.is_current
-                    ? "tg-current-active"
-                    : ""
-                }`}
-                onClick={() =>
-                  makeCurrent(t)
-                }
+                className={`tg-current-toggle ${t.is_current ? "tg-current-active" : ""}`}
+                onClick={() => makeCurrent(t)}
               >
                 <span />
-                {t.is_current
-                  ? "CURRENT TOURNAMENT"
-                  : "MAKE CURRENT"}
+                {t.is_current ? "CURRENT TOURNAMENT" : "MAKE CURRENT"}
               </button>
             </div>
           );
@@ -1260,19 +1034,12 @@ function Tournaments({
       </div>
 
       {filtered.length === 0 && (
-        <Empty
-          title="No tournaments"
-          description="Create your first tournament."
-        />
+        <Empty title="No tournaments" description="Create your first tournament." />
       )}
 
       {modal && (
         <Modal
-          title={
-            editing
-              ? "EDIT TOURNAMENT"
-              : "CREATE TOURNAMENT"
-          }
+          title={editing ? "EDIT TOURNAMENT" : "CREATE TOURNAMENT"}
           onClose={() => {
             setModal(false);
             reset();
@@ -1304,78 +1071,36 @@ function Tournaments({
               placeholder="FFMIC FALL 2026"
             />
 
-            <SelectField
-              label="TYPE"
-              value={type}
-              onChange={(v) =>
-                setType(
-                  v as CompetitionType,
-                )
-              }
-            >
-              <option value="OFFICIAL">
-                OFFICIAL
-              </option>
-              <option value="SCRIM">
-                SCRIM
-              </option>
+            <SelectField label="TYPE" value={type} onChange={(v) => setType(v as CompetitionType)}>
+              <option value="OFFICIAL">OFFICIAL</option>
+              <option value="SCRIM">SCRIM</option>
             </SelectField>
 
             <SelectField
               label="STATUS"
               value={status}
-              onChange={(v) =>
-                setStatus(
-                  v as TournamentStatus,
-                )
-              }
+              onChange={(v) => setStatus(v as TournamentStatus)}
             >
-              <option value="UPCOMING">
-                UPCOMING
-              </option>
-              <option value="LIVE">
-                LIVE
-              </option>
-              <option value="COMPLETED">
-                COMPLETED
-              </option>
-              <option value="ARCHIVED">
-                ARCHIVED
-              </option>
+              <option value="UPCOMING">UPCOMING</option>
+              <option value="LIVE">LIVE</option>
+              <option value="COMPLETED">COMPLETED</option>
+              <option value="ARCHIVED">ARCHIVED</option>
             </SelectField>
 
-            <Field
-              label="START DATE"
-              type="date"
-              value={start}
-              onChange={setStart}
-            />
+            <Field label="START DATE" type="date" value={start} onChange={setStart} />
 
-            <Field
-              label="END DATE"
-              type="date"
-              value={end}
-              onChange={setEnd}
-            />
+            <Field label="END DATE" type="date" value={end} onChange={setEnd} />
 
             <label className="tg-field">
               <span>CURRENT TOURNAMENT</span>
 
               <button
                 type="button"
-                className={`tg-switch ${
-                  current
-                    ? "tg-switch-on"
-                    : ""
-                }`}
-                onClick={() =>
-                  setCurrent(!current)
-                }
+                className={`tg-switch ${current ? "tg-switch-on" : ""}`}
+                onClick={() => setCurrent(!current)}
               >
                 <span />
-                {current
-                  ? "VISIBLE AS CURRENT"
-                  : "NOT CURRENT"}
+                {current ? "VISIBLE AS CURRENT" : "NOT CURRENT"}
               </button>
             </label>
 
@@ -1384,11 +1109,7 @@ function Tournaments({
 
               <textarea
                 value={description}
-                onChange={(e) =>
-                  setDescription(
-                    e.target.value,
-                  )
-                }
+                onChange={(e) => setDescription(e.target.value)}
                 placeholder="Tournament description..."
               />
             </label>
@@ -1414,9 +1135,7 @@ function Stages({
 }: {
   tournament: Tournament;
   stages: Stage[];
-  setStages: React.Dispatch<
-    React.SetStateAction<Stage[]>
-  >;
+  setStages: React.Dispatch<React.SetStateAction<Stage[]>>;
   matches: Match[];
   onBack: () => void;
   onOpenMatch: (stage: Stage) => void;
@@ -1424,20 +1143,11 @@ function Stages({
 }) {
   const [name, setName] = useState("");
   const [modal, setModal] = useState(false);
-  const [editing, setEditing] =
-    useState<Stage | null>(null);
+  const [editing, setEditing] = useState<Stage | null>(null);
 
   const tournamentStages = stages
-    .filter(
-      (s) =>
-        s.tournament_id ===
-        tournament.id,
-    )
-    .sort(
-      (a, b) =>
-        a.display_order -
-        b.display_order,
-    );
+    .filter((s) => s.tournament_id === tournament.id)
+    .sort((a, b) => a.display_order - b.display_order);
 
   function openCreate() {
     setEditing(null);
@@ -1455,15 +1165,14 @@ function Stages({
     if (!name.trim()) return;
 
     if (editing) {
-      const { data, error } =
-        await supabase
-          .from("tournament_stages")
-          .update({
-            name: name.trim(),
-          })
-          .eq("id", editing.id)
-          .select()
-          .single();
+      const { data, error } = await supabase
+        .from("tournament_stages")
+        .update({
+          name: name.trim(),
+        })
+        .eq("id", editing.id)
+        .select()
+        .single();
 
       if (error) {
         alert(error.message);
@@ -1471,37 +1180,24 @@ function Stages({
       }
 
       if (data) {
-        setStages((old) =>
-          old.map((x) =>
-            x.id === editing.id
-              ? data
-              : x,
-          ),
-        );
+        setStages((old) => old.map((x) => (x.id === editing.id ? data : x)));
       }
 
-      log(
-        "Stage updated",
-        `${name} updated in ${tournament.name}.`,
-      );
+      log("Stage updated", `${name} updated in ${tournament.name}.`);
     } else {
-      const nextOrder =
-        tournamentStages.length + 1;
+      const nextOrder = tournamentStages.length + 1;
 
-      const { data, error } =
-        await supabase
-          .from("tournament_stages")
-          .insert({
-            id: id(),
-            tournament_id:
-              tournament.id,
-            name: name.trim(),
-            display_order:
-              nextOrder,
-            status: "UPCOMING",
-          })
-          .select()
-          .single();
+      const { data, error } = await supabase
+        .from("tournament_stages")
+        .insert({
+          id: id(),
+          tournament_id: tournament.id,
+          name: name.trim(),
+          display_order: nextOrder,
+          status: "UPCOMING",
+        })
+        .select()
+        .single();
 
       if (error) {
         alert(error.message);
@@ -1509,16 +1205,10 @@ function Stages({
       }
 
       if (data) {
-        setStages((old) => [
-          ...old,
-          data,
-        ]);
+        setStages((old) => [...old, data]);
       }
 
-      log(
-        "Stage created",
-        `${name} created in ${tournament.name}.`,
-      );
+      log("Stage created", `${name} created in ${tournament.name}.`);
     }
 
     setModal(false);
@@ -1527,42 +1217,23 @@ function Stages({
   }
 
   async function deleteStage(stage: Stage) {
-    if (
-      !confirm(
-        `Delete ${stage.name}? All matches inside it will be deleted.`,
-      )
-    )
-      return;
+    if (!confirm(`Delete ${stage.name}? All matches inside it will be deleted.`)) return;
 
-    const { error } =
-      await supabase
-        .from("tournament_stages")
-        .delete()
-        .eq("id", stage.id);
+    const { error } = await supabase.from("tournament_stages").delete().eq("id", stage.id);
 
     if (error) {
       alert(error.message);
       return;
     }
 
-    setStages((old) =>
-      old.filter(
-        (x) => x.id !== stage.id,
-      ),
-    );
+    setStages((old) => old.filter((x) => x.id !== stage.id));
 
-    log(
-      "Stage deleted",
-      `${stage.name} deleted.`,
-    );
+    log("Stage deleted", `${stage.name} deleted.`);
   }
 
   return (
     <div className="tg-page">
-      <button
-        className="tg-back"
-        onClick={onBack}
-      >
+      <button className="tg-back" onClick={onBack}>
         <ArrowLeft size={17} />
         BACK TO TOURNAMENTS
       </button>
@@ -1580,76 +1251,40 @@ function Stages({
       />
 
       <div className="tg-stage-list">
-        {tournamentStages.map(
-          (stage, index) => {
-            const count =
-              matches.filter(
-                (m) =>
-                  m.stage_id ===
-                  stage.id,
-              ).length;
+        {tournamentStages.map((stage, index) => {
+          const count = matches.filter((m) => m.stage_id === stage.id).length;
 
-            return (
-              <div
-                key={stage.id}
-                className="tg-stage-card"
-              >
-                <div className="tg-stage-number">
-                  {String(index + 1).padStart(
-                    2,
-                    "0",
-                  )}
+          return (
+            <div key={stage.id} className="tg-stage-card">
+              <div className="tg-stage-number">{String(index + 1).padStart(2, "0")}</div>
+
+              <div className="tg-stage-main">
+                <div>
+                  <Badge>{stage.status}</Badge>
                 </div>
 
-                <div className="tg-stage-main">
-                  <div>
-                    <Badge>
-                      {stage.status}
-                    </Badge>
-                  </div>
+                <h3>{stage.name}</h3>
 
-                  <h3>{stage.name}</h3>
-
-                  <span>
-                    {count} MATCHES
-                  </span>
-                </div>
-
-                <div className="tg-stage-actions">
-                  <Button
-                    variant="secondary"
-                    onClick={() =>
-                      onOpenMatch(stage)
-                    }
-                  >
-                    MANAGE MATCHES
-                    <ChevronRight
-                      size={16}
-                    />
-                  </Button>
-
-                  <IconButton
-                    title="Edit stage"
-                    onClick={() =>
-                      openEdit(stage)
-                    }
-                  >
-                    <Edit3 size={16} />
-                  </IconButton>
-
-                  <IconButton
-                    title="Delete stage"
-                    onClick={() =>
-                      deleteStage(stage)
-                    }
-                  >
-                    <Trash2 size={16} />
-                  </IconButton>
-                </div>
+                <span>{count} MATCHES</span>
               </div>
-            );
-          },
-        )}
+
+              <div className="tg-stage-actions">
+                <Button variant="secondary" onClick={() => onOpenMatch(stage)}>
+                  MANAGE MATCHES
+                  <ChevronRight size={16} />
+                </Button>
+
+                <IconButton title="Edit stage" onClick={() => openEdit(stage)}>
+                  <Edit3 size={16} />
+                </IconButton>
+
+                <IconButton title="Delete stage" onClick={() => deleteStage(stage)}>
+                  <Trash2 size={16} />
+                </IconButton>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {tournamentStages.length === 0 && (
@@ -1661,28 +1296,15 @@ function Stages({
 
       {modal && (
         <Modal
-          title={
-            editing
-              ? "EDIT STAGE"
-              : "CREATE STAGE"
-          }
-          onClose={() =>
-            setModal(false)
-          }
+          title={editing ? "EDIT STAGE" : "CREATE STAGE"}
+          onClose={() => setModal(false)}
           footer={
             <>
-              <Button
-                variant="secondary"
-                onClick={() =>
-                  setModal(false)
-                }
-              >
+              <Button variant="secondary" onClick={() => setModal(false)}>
                 CANCEL
               </Button>
 
-              <Button
-                onClick={saveStage}
-              >
+              <Button onClick={saveStage}>
                 <Save size={16} />
                 SAVE STAGE
               </Button>
@@ -1718,58 +1340,39 @@ function Matches({
   tournament: Tournament;
   stage: Stage;
   matches: Match[];
-  setMatches: React.Dispatch<
-    React.SetStateAction<Match[]>
-  >;
+  setMatches: React.Dispatch<React.SetStateAction<Match[]>>;
   teams: Team[];
   players: Player[];
   onBack: () => void;
   log: (a: string, d: string) => void;
 }) {
   const stageMatches = matches
-    .filter(
-      (m) => m.stage_id === stage.id,
-    )
-    .sort(
-      (a, b) =>
-        a.match_number -
-        b.match_number,
-    );
+    .filter((m) => m.stage_id === stage.id)
+    .sort((a, b) => a.match_number - b.match_number);
 
-  const [showCreate, setShowCreate] =
-    useState(false);
+  const [showCreate, setShowCreate] = useState(false);
 
-  const [matchNumber, setMatchNumber] =
-    useState(
-      String(
-        stageMatches.length + 1,
-      ),
-    );
+  const [matchNumber, setMatchNumber] = useState(String(stageMatches.length + 1));
 
-  const [map, setMap] =
-    useState("Bermuda");
+  const [map, setMap] = useState("Bermuda");
 
-  const [selectedMatch, setSelectedMatch] =
-    useState<Match | null>(null);
+  const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
 
   async function createMatch() {
-    const number =
-      Number(matchNumber) || 1;
+    const number = Number(matchNumber) || 1;
 
-    const { data, error } =
-      await supabase
-        .from("matches")
-        .insert({
-          id: id(),
-          tournament_id:
-            tournament.id,
-          stage_id: stage.id,
-          match_number: number,
-          map,
-          status: "UPCOMING",
-        })
-        .select()
-        .single();
+    const { data, error } = await supabase
+      .from("matches")
+      .insert({
+        id: id(),
+        tournament_id: tournament.id,
+        stage_id: stage.id,
+        match_number: number,
+        map,
+        status: "UPCOMING",
+      })
+      .select()
+      .single();
 
     if (error) {
       alert(error.message);
@@ -1777,51 +1380,27 @@ function Matches({
     }
 
     if (data) {
-      setMatches((old) => [
-        ...old,
-        data,
-      ]);
+      setMatches((old) => [...old, data]);
     }
 
     setShowCreate(false);
 
-    log(
-      "Match created",
-      `Match ${number} created in ${stage.name}.`,
-    );
+    log("Match created", `Match ${number} created in ${stage.name}.`);
   }
 
-  async function deleteMatch(
-    match: Match,
-  ) {
-    if (
-      !confirm(
-        `Delete Match #${match.match_number}?`,
-      )
-    )
-      return;
+  async function deleteMatch(match: Match) {
+    if (!confirm(`Delete Match #${match.match_number}?`)) return;
 
-    const { error } =
-      await supabase
-        .from("matches")
-        .delete()
-        .eq("id", match.id);
+    const { error } = await supabase.from("matches").delete().eq("id", match.id);
 
     if (error) {
       alert(error.message);
       return;
     }
 
-    setMatches((old) =>
-      old.filter(
-        (x) => x.id !== match.id,
-      ),
-    );
+    setMatches((old) => old.filter((x) => x.id !== match.id));
 
-    log(
-      "Match deleted",
-      `Match ${match.match_number} deleted.`,
-    );
+    log("Match deleted", `Match ${match.match_number} deleted.`);
   }
 
   if (selectedMatch) {
@@ -1832,9 +1411,7 @@ function Matches({
         match={selectedMatch}
         teams={teams}
         players={players}
-        onBack={() =>
-          setSelectedMatch(null)
-        }
+        onBack={() => setSelectedMatch(null)}
         log={log}
       />
     );
@@ -1842,10 +1419,7 @@ function Matches({
 
   return (
     <div className="tg-page">
-      <button
-        className="tg-back"
-        onClick={onBack}
-      >
+      <button className="tg-back" onClick={onBack}>
         <ArrowLeft size={17} />
         BACK TO STAGES
       </button>
@@ -1855,11 +1429,7 @@ function Matches({
         title="MATCH CONTROL"
         description="Create matches and enter team positions, kills and individual player kills."
         action={
-          <Button
-            onClick={() =>
-              setShowCreate(true)
-            }
-          >
+          <Button onClick={() => setShowCreate(true)}>
             <Plus size={17} />
             ADD MATCH
           </Button>
@@ -1867,81 +1437,45 @@ function Matches({
       />
 
       <div className="tg-match-list">
-        {stageMatches.map(
-          (match) => (
-            <div
-              className="tg-match-card"
-              key={match.id}
-            >
-              <div className="tg-match-number">
-                #{match.match_number}
-              </div>
+        {stageMatches.map((match) => (
+          <div className="tg-match-card" key={match.id}>
+            <div className="tg-match-number">#{match.match_number}</div>
 
-              <div className="tg-match-info">
-                <small>MATCH</small>
-                <h3>
-                  {match.map}
-                </h3>
-                <span>
-                  {match.status}
-                </span>
-              </div>
-
-              <div className="tg-match-actions">
-                <Button
-                  onClick={() =>
-                    setSelectedMatch(
-                      match,
-                    )
-                  }
-                >
-                  <Edit3 size={16} />
-                  ENTER RESULT
-                </Button>
-
-                <IconButton
-                  title="Delete"
-                  onClick={() =>
-                    deleteMatch(
-                      match,
-                    )
-                  }
-                >
-                  <Trash2 size={16} />
-                </IconButton>
-              </div>
+            <div className="tg-match-info">
+              <small>MATCH</small>
+              <h3>{match.map}</h3>
+              <span>{match.status}</span>
             </div>
-          ),
-        )}
+
+            <div className="tg-match-actions">
+              <Button onClick={() => setSelectedMatch(match)}>
+                <Edit3 size={16} />
+                ENTER RESULT
+              </Button>
+
+              <IconButton title="Delete" onClick={() => deleteMatch(match)}>
+                <Trash2 size={16} />
+              </IconButton>
+            </div>
+          </div>
+        ))}
       </div>
 
       {stageMatches.length === 0 && (
-        <Empty
-          title="No matches"
-          description="Add the first match for this stage."
-        />
+        <Empty title="No matches" description="Add the first match for this stage." />
       )}
 
       {showCreate && (
         <Modal
           title="ADD MATCH"
-          onClose={() =>
-            setShowCreate(false)
-          }
+          onClose={() => setShowCreate(false)}
           footer={
             <>
-              <Button
-                variant="secondary"
-                onClick={() =>
-                  setShowCreate(false)
-                }
-              >
+              <Button variant="secondary" onClick={() => setShowCreate(false)}>
                 CANCEL
               </Button>
 
-              <Button
-                onClick={createMatch}
-              >
+              <Button onClick={createMatch}>
                 <Plus size={16} />
                 CREATE MATCH
               </Button>
@@ -1953,34 +1487,16 @@ function Matches({
               label="MATCH NUMBER"
               type="number"
               value={matchNumber}
-              onChange={
-                setMatchNumber
-              }
+              onChange={setMatchNumber}
             />
 
-            <SelectField
-              label="MAP"
-              value={map}
-              onChange={setMap}
-            >
-              <option>
-                Bermuda
-              </option>
-              <option>
-                Purgatory
-              </option>
-              <option>
-                Alpine
-              </option>
-              <option>
-                Kalahari
-              </option>
-              <option>
-                NexTerra
-              </option>
-              <option>
-                Solara
-              </option>
+            <SelectField label="MAP" value={map} onChange={setMap}>
+              <option>Bermuda</option>
+              <option>Purgatory</option>
+              <option>Alpine</option>
+              <option>Kalahari</option>
+              <option>NexTerra</option>
+              <option>Solara</option>
             </SelectField>
           </div>
         </Modal>
@@ -2010,27 +1526,21 @@ function ScoreEditor({
   onBack: () => void;
   log: (a: string, d: string) => void;
 }) {
-  const [results, setResults] =
-    useState<
-      Record<
-        string,
-        {
-          position: number;
-          kills: number;
-        }
-      >
-    >({});
+  const [results, setResults] = useState<
+    Record<
+      string,
+      {
+        position: number;
+        kills: number;
+      }
+    >
+  >({});
 
-  const [kills, setKills] =
-    useState<Record<string, number>>(
-      {},
-    );
+  const [kills, setKills] = useState<Record<string, number>>({});
 
-  const [loading, setLoading] =
-    useState(true);
+  const [loading, setLoading] = useState(true);
 
-  const [saving, setSaving] =
-    useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     loadResults();
@@ -2039,19 +1549,10 @@ function ScoreEditor({
   async function loadResults() {
     setLoading(true);
 
-    const [
-      teamRes,
-      playerRes,
-    ] = await Promise.all([
-      supabase
-        .from("match_results")
-        .select("*")
-        .eq("match_id", match.id),
+    const [teamRes, playerRes] = await Promise.all([
+      supabase.from("match_results").select("*").eq("match_id", match.id),
 
-      supabase
-        .from("player_match_stats")
-        .select("*")
-        .eq("match_id", match.id),
+      supabase.from("player_match_stats").select("*").eq("match_id", match.id),
     ]);
 
     const teamMap: Record<
@@ -2062,25 +1563,17 @@ function ScoreEditor({
       }
     > = {};
 
-    for (const row of
-      (teamRes.data ?? []) as TeamResult[]) {
+    for (const row of (teamRes.data ?? []) as TeamResult[]) {
       teamMap[row.team_id] = {
-        position:
-          row.position ?? 0,
-        kills:
-          row.kills ?? 0,
+        position: row.position ?? 0,
+        kills: row.kills ?? 0,
       };
     }
 
-    const playerMap: Record<
-      string,
-      number
-    > = {};
+    const playerMap: Record<string, number> = {};
 
-    for (const row of
-      (playerRes.data ?? []) as PlayerStat[]) {
-      playerMap[row.player_id] =
-        row.kills ?? 0;
+    for (const row of (playerRes.data ?? []) as PlayerStat[]) {
+      playerMap[row.player_id] = row.kills ?? 0;
     }
 
     setResults(teamMap);
@@ -2091,11 +1584,7 @@ function ScoreEditor({
   const sortedTeams = useMemo(
     () =>
       [...teams].sort(
-        (a, b) =>
-          (results[a.id]?.position ||
-            999) -
-          (results[b.id]?.position ||
-            999),
+        (a, b) => (results[a.id]?.position || 999) - (results[b.id]?.position || 999),
       ),
     [teams, results],
   );
@@ -2103,81 +1592,35 @@ function ScoreEditor({
   async function save() {
     setSaving(true);
 
-    const teamRows =
-      Object.entries(results)
-        .filter(
-          ([, value]) =>
-            value.position > 0 ||
-            value.kills > 0,
-        )
-        .map(
-          ([teamId, value]) => ({
-            match_id: match.id,
-            team_id: teamId,
-            team_name:
-              teams.find(
-                (t) =>
-                  t.id === teamId,
-              )?.name ?? "",
-            position:
-              Number(
-                value.position,
-              ) || 0,
-            kills:
-              Number(
-                value.kills,
-              ) || 0,
-            points: points(
-              Number(
-                value.position,
-              ) || 0,
-              Number(
-                value.kills,
-              ) || 0,
-            ),
-          }),
-        );
+    const teamRows = Object.entries(results)
+      .filter(([, value]) => value.position > 0 || value.kills > 0)
+      .map(([teamId, value]) => ({
+        match_id: match.id,
+        team_id: teamId,
+        team_name: teams.find((t) => t.id === teamId)?.name ?? "",
+        position: Number(value.position) || 0,
+        kills: Number(value.kills) || 0,
+        points: points(Number(value.position) || 0, Number(value.kills) || 0),
+      }));
 
-    const playerRows =
-      Object.entries(kills)
-        .filter(
-          ([, value]) =>
-            Number(value) > 0,
-        )
-        .map(
-          ([playerId, value]) => {
-            const player =
-              players.find(
-                (p) =>
-                  p.id ===
-                  playerId,
-              );
+    const playerRows = Object.entries(kills)
+      .filter(([, value]) => Number(value) > 0)
+      .map(([playerId, value]) => {
+        const player = players.find((p) => p.id === playerId);
 
-            return {
-              match_id: match.id,
-              player_id: playerId,
-              team_id:
-                player?.team_id ??
-                null,
-              kills:
-                Number(value) || 0,
-              points:
-                Number(value) || 0,
-            };
-          },
-        );
+        return {
+          match_id: match.id,
+          player_id: playerId,
+          team_id: player?.team_id ?? null,
+          kills: Number(value) || 0,
+          points: Number(value) || 0,
+        };
+      });
 
     if (teamRows.length) {
-      const { error } =
-        await supabase
-          .from("match_results")
-          .upsert(
-            teamRows,
-            {
-              onConflict:
-                "match_id,team_id",
-            },
-          );
+      const { error } = await supabase.from("match_results").upsert(teamRows, {
+        onConflict: "match_id,team_id",
+      });
 
       if (error) {
         setSaving(false);
@@ -2187,18 +1630,9 @@ function ScoreEditor({
     }
 
     if (playerRows.length) {
-      const { error } =
-        await supabase
-          .from(
-            "player_match_stats",
-          )
-          .upsert(
-            playerRows,
-            {
-              onConflict:
-                "match_id,player_id",
-            },
-          );
+      const { error } = await supabase.from("player_match_stats").upsert(playerRows, {
+        onConflict: "match_id,player_id",
+      });
 
       if (error) {
         setSaving(false);
@@ -2207,13 +1641,12 @@ function ScoreEditor({
       }
     }
 
-    const { error: matchError } =
-      await supabase
-        .from("matches")
-        .update({
-          status: "COMPLETED",
-        })
-        .eq("id", match.id);
+    const { error: matchError } = await supabase
+      .from("matches")
+      .update({
+        status: "COMPLETED",
+      })
+      .eq("id", match.id);
 
     if (matchError) {
       setSaving(false);
@@ -2223,28 +1656,17 @@ function ScoreEditor({
 
     setSaving(false);
 
-    log(
-      "Match result saved",
-      `Match #${match.match_number} in ${stage.name} was saved.`,
-    );
+    log("Match result saved", `Match #${match.match_number} in ${stage.name} was saved.`);
 
     alert("MATCH RESULT SAVED");
   }
 
-  function updateTeam(
-    teamId: string,
-    field: "position" | "kills",
-    value: number,
-  ) {
+  function updateTeam(teamId: string, field: "position" | "kills", value: number) {
     setResults((old) => ({
       ...old,
       [teamId]: {
-        position:
-          old[teamId]?.position ??
-          0,
-        kills:
-          old[teamId]?.kills ??
-          0,
+        position: old[teamId]?.position ?? 0,
+        kills: old[teamId]?.kills ?? 0,
         [field]: value,
       },
     }));
@@ -2261,10 +1683,7 @@ function ScoreEditor({
 
   return (
     <div className="tg-page">
-      <button
-        className="tg-back"
-        onClick={onBack}
-      >
+      <button className="tg-back" onClick={onBack}>
         <ArrowLeft size={17} />
         BACK TO MATCHES
       </button>
@@ -2274,22 +1693,14 @@ function ScoreEditor({
         title={`MATCH #${match.match_number}`}
         description={`${match.map} · Enter the complete team and player result.`}
         action={
-          <Button
-            onClick={save}
-            disabled={saving}
-          >
+          <Button onClick={save} disabled={saving}>
             <Save size={17} />
-            {saving
-              ? "SAVING..."
-              : "SAVE MATCH"}
+            {saving ? "SAVING..." : "SAVE MATCH"}
           </Button>
         }
       />
 
-      <Panel
-        title="TEAM RESULTS"
-        icon={<Trophy size={17} />}
-      >
+      <Panel title="TEAM RESULTS" icon={<Trophy size={17} />}>
         <div className="tg-score-head">
           <span>TEAM</span>
           <span>POSITION</span>
@@ -2298,156 +1709,80 @@ function ScoreEditor({
         </div>
 
         <div className="tg-score-list">
-          {sortedTeams.map(
-            (team) => {
-              const result =
-                results[
-                  team.id
-                ] ?? {
-                  position: 0,
-                  kills: 0,
-                };
+          {sortedTeams.map((team) => {
+            const result = results[team.id] ?? {
+              position: 0,
+              kills: 0,
+            };
 
-              const total =
-                points(
-                  result.position,
-                  result.kills,
-                );
+            const total = points(result.position, result.kills);
 
-              return (
-                <div
-                  key={team.id}
-                  className="tg-score-row"
-                >
-                  <div className="tg-score-team">
-                    <img
-                      src={
-                        team.logo_url ||
-                        LOGO
-                      }
-                      alt=""
-                    />
+            return (
+              <div key={team.id} className="tg-score-row">
+                <div className="tg-score-team">
+                  <img src={team.logo_url || LOGO} alt="" />
 
-                    <div>
-                      <strong>
-                        {team.name}
-                      </strong>
+                  <div>
+                    <strong>{team.name}</strong>
 
-                      <span>
-                        {team.short_name ||
-                          ""}
-                      </span>
-                    </div>
+                    <span>{team.short_name || ""}</span>
                   </div>
-
-                  <input
-                    type="number"
-                    min="1"
-                    max="99"
-                    value={
-                      result.position ||
-                      ""
-                    }
-                    placeholder="#"
-                    onChange={(e) =>
-                      updateTeam(
-                        team.id,
-                        "position",
-                        Number(
-                          e.target.value,
-                        ),
-                      )
-                    }
-                  />
-
-                  <input
-                    type="number"
-                    min="0"
-                    value={
-                      result.kills ||
-                      ""
-                    }
-                    placeholder="0"
-                    onChange={(e) =>
-                      updateTeam(
-                        team.id,
-                        "kills",
-                        Number(
-                          e.target.value,
-                        ),
-                      )
-                    }
-                  />
-
-                  <strong className="tg-total-points">
-                    {total}
-                  </strong>
-                </div>
-              );
-            },
-          )}
-        </div>
-      </Panel>
-
-      <Panel
-        title="INDIVIDUAL PLAYER KILLS"
-        icon={<Users size={17} />}
-      >
-        <p className="tg-help">
-          Enter kills for every player who
-          participated in this match.
-        </p>
-
-        <div className="tg-player-grid">
-          {players.map(
-            (player) => (
-              <div
-                className="tg-player-score"
-                key={player.id}
-              >
-                <img
-                  src={
-                    player.avatar_url ||
-                    LOGO
-                  }
-                  alt=""
-                />
-
-                <div>
-                  <strong>
-                    {player.name}
-                  </strong>
-
-                  <span>
-                    {player.role ||
-                      "PLAYER"}
-                  </span>
                 </div>
 
                 <input
                   type="number"
-                  min="0"
-                  value={
-                    kills[
-                      player.id
-                    ] ?? ""
-                  }
-                  placeholder="0"
-                  onChange={(e) =>
-                    setKills({
-                      ...kills,
-                      [player.id]:
-                        Number(
-                          e.target.value,
-                        ),
-                    })
-                  }
+                  min="1"
+                  max="99"
+                  value={result.position || ""}
+                  placeholder="#"
+                  onChange={(e) => updateTeam(team.id, "position", Number(e.target.value))}
                 />
 
-                <small>KILLS</small>
+                <input
+                  type="number"
+                  min="0"
+                  value={result.kills || ""}
+                  placeholder="0"
+                  onChange={(e) => updateTeam(team.id, "kills", Number(e.target.value))}
+                />
+
+                <strong className="tg-total-points">{total}</strong>
               </div>
-            ),
-          )}
+            );
+          })}
+        </div>
+      </Panel>
+
+      <Panel title="INDIVIDUAL PLAYER KILLS" icon={<Users size={17} />}>
+        <p className="tg-help">Enter kills for every player who participated in this match.</p>
+
+        <div className="tg-player-grid">
+          {players.map((player) => (
+            <div className="tg-player-score" key={player.id}>
+              <img src={player.avatar_url || LOGO} alt="" />
+
+              <div>
+                <strong>{player.name}</strong>
+
+                <span>{player.role || "PLAYER"}</span>
+              </div>
+
+              <input
+                type="number"
+                min="0"
+                value={kills[player.id] ?? ""}
+                placeholder="0"
+                onChange={(e) =>
+                  setKills({
+                    ...kills,
+                    [player.id]: Number(e.target.value),
+                  })
+                }
+              />
+
+              <small>KILLS</small>
+            </div>
+          ))}
         </div>
       </Panel>
     </div>
@@ -2467,13 +1802,9 @@ function StageRanking({
   teams: Team[];
   log: (a: string, d: string) => void;
 }) {
-  const [ranking, setRanking] =
-    useState<Record<string, number>>(
-      {},
-    );
+  const [ranking, setRanking] = useState<Record<string, number>>({});
 
-  const [loading, setLoading] =
-    useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     load();
@@ -2482,22 +1813,13 @@ function StageRanking({
   async function load() {
     setLoading(true);
 
-    const { data } =
-      await supabase
-        .from("stage_teams")
-        .select("*")
-        .eq("stage_id", stage.id);
+    const { data } = await supabase.from("stage_teams").select("*").eq("stage_id", stage.id);
 
-    const map: Record<
-      string,
-      number
-    > = {};
+    const map: Record<string, number> = {};
 
-    for (const row of
-      (data ?? []) as StageTeam[]) {
+    for (const row of (data ?? []) as StageTeam[]) {
       if (row.final_rank) {
-        map[row.team_id] =
-          row.final_rank;
+        map[row.team_id] = row.final_rank;
       }
     }
 
@@ -2506,50 +1828,31 @@ function StageRanking({
   }
 
   async function save() {
-    const rows = Object.entries(
-      ranking,
-    )
-      .filter(
-        ([, rank]) => Number(rank) > 0,
-      )
-      .map(
-        ([teamId, rank]) => ({
-          stage_id: stage.id,
-          team_id: teamId,
-          final_rank:
-            Number(rank),
-        }),
-      );
+    const rows = Object.entries(ranking)
+      .filter(([, rank]) => Number(rank) > 0)
+      .map(([teamId, rank]) => ({
+        stage_id: stage.id,
+        team_id: teamId,
+        final_rank: Number(rank),
+      }));
 
     if (!rows.length) return;
 
-    const { error } =
-      await supabase
-        .from("stage_teams")
-        .upsert(rows, {
-          onConflict:
-            "stage_id,team_id",
-        });
+    const { error } = await supabase.from("stage_teams").upsert(rows, {
+      onConflict: "stage_id,team_id",
+    });
 
     if (error) {
       alert(error.message);
       return;
     }
 
-    log(
-      "Stage ranking saved",
-      `Final ranking saved for ${stage.name}.`,
-    );
+    log("Stage ranking saved", `Final ranking saved for ${stage.name}.`);
 
     alert("STAGE RANKING SAVED");
   }
 
-  if (loading)
-    return (
-      <div className="tg-loading">
-        Loading ranking...
-      </div>
-    );
+  if (loading) return <div className="tg-loading">Loading ranking...</div>;
 
   return (
     <Panel
@@ -2563,46 +1866,26 @@ function StageRanking({
       }
     >
       <div className="tg-ranking-list">
-        {teams.map(
-          (team) => (
-            <div
-              className="tg-ranking-row"
-              key={team.id}
-            >
-              <img
-                src={
-                  team.logo_url ||
-                  LOGO
-                }
-                alt=""
-              />
+        {teams.map((team) => (
+          <div className="tg-ranking-row" key={team.id}>
+            <img src={team.logo_url || LOGO} alt="" />
 
-              <strong>
-                {team.name}
-              </strong>
+            <strong>{team.name}</strong>
 
-              <input
-                type="number"
-                min="1"
-                placeholder="Rank"
-                value={
-                  ranking[
-                    team.id
-                  ] ?? ""
-                }
-                onChange={(e) =>
-                  setRanking({
-                    ...ranking,
-                    [team.id]:
-                      Number(
-                        e.target.value,
-                      ),
-                  })
-                }
-              />
-            </div>
-          ),
-        )}
+            <input
+              type="number"
+              min="1"
+              placeholder="Rank"
+              value={ranking[team.id] ?? ""}
+              onChange={(e) =>
+                setRanking({
+                  ...ranking,
+                  [team.id]: Number(e.target.value),
+                })
+              }
+            />
+          </div>
+        ))}
       </div>
     </Panel>
   );
@@ -2612,13 +1895,7 @@ function StageRanking({
    TEAMS
 ========================================================= */
 
-function Teams({
-  teams,
-  players,
-}: {
-  teams: Team[];
-  players: Player[];
-}) {
+function Teams({ teams, players }: { teams: Team[]; players: Player[] }) {
   return (
     <div className="tg-page">
       <Heading
@@ -2629,48 +1906,24 @@ function Teams({
 
       <div className="tg-card-grid">
         {teams.map((team) => {
-          const count =
-            players.filter(
-              (p) =>
-                p.team_id ===
-                team.id,
-            ).length;
+          const count = players.filter((p) => p.team_id === team.id).length;
 
           return (
-            <div
-              className="tg-team-card"
-              key={team.id}
-            >
-              <img
-                src={
-                  team.logo_url ||
-                  LOGO
-                }
-                alt=""
-              />
+            <div className="tg-team-card" key={team.id}>
+              <img src={team.logo_url || LOGO} alt="" />
 
               <div>
                 <h3>{team.name}</h3>
-                <span>
-                  {team.short_name ||
-                    "TEAM"}
-                </span>
+                <span>{team.short_name || "TEAM"}</span>
               </div>
 
-              <strong>
-                {count} PLAYERS
-              </strong>
+              <strong>{count} PLAYERS</strong>
             </div>
           );
         })}
       </div>
 
-      {teams.length === 0 && (
-        <Empty
-          title="No teams"
-          description="No teams are available."
-        />
-      )}
+      {teams.length === 0 && <Empty title="No teams" description="No teams are available." />}
     </div>
   );
 }
@@ -2679,19 +1932,9 @@ function Teams({
    PLAYERS
 ========================================================= */
 
-function Players({
-  players,
-  teams,
-}: {
-  players: Player[];
-  teams: Team[];
-}) {
+function Players({ players, teams }: { players: Player[]; teams: Team[] }) {
   function teamName(idValue?: string | null) {
-    return (
-      teams.find(
-        (t) => t.id === idValue,
-      )?.name || "UNASSIGNED"
-    );
+    return teams.find((t) => t.id === idValue)?.name || "UNASSIGNED";
   }
 
   return (
@@ -2714,53 +1957,28 @@ function Players({
           </thead>
 
           <tbody>
-            {players.map(
-              (player) => (
-                <tr key={player.id}>
-                  <td>
-                    <div className="tg-person">
-                      <img
-                        src={
-                          player.avatar_url ||
-                          LOGO
-                        }
-                        alt=""
-                      />
+            {players.map((player) => (
+              <tr key={player.id}>
+                <td>
+                  <div className="tg-person">
+                    <img src={player.avatar_url || LOGO} alt="" />
 
-                      <strong>
-                        {player.name}
-                      </strong>
-                    </div>
-                  </td>
+                    <strong>{player.name}</strong>
+                  </div>
+                </td>
 
-                  <td>
-                    {teamName(
-                      player.team_id,
-                    )}
-                  </td>
+                <td>{teamName(player.team_id)}</td>
 
-                  <td>
-                    {player.role ||
-                      "PLAYER"}
-                  </td>
+                <td>{player.role || "PLAYER"}</td>
 
-                  <td>
-                    {player.id.slice(
-                      0,
-                      8,
-                    )}
-                  </td>
-                </tr>
-              ),
-            )}
+                <td>{player.id.slice(0, 8)}</td>
+              </tr>
+            ))}
           </tbody>
         </table>
 
         {players.length === 0 && (
-          <Empty
-            title="No players"
-            description="No players are available."
-          />
+          <Empty title="No players" description="No players are available." />
         )}
       </div>
     </div>
@@ -2772,23 +1990,17 @@ function Players({
 ========================================================= */
 
 function AdminManagement() {
-  const [admins, setAdmins] =
-    useState<AdminUser[]>([]);
+  const [admins, setAdmins] = useState<AdminUser[]>([]);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [loading, setLoading] = useState(true);
 
-  const [email, setEmail] =
-    useState("");
+  const [email, setEmail] = useState("");
 
-  const [name, setName] =
-    useState("");
+  const [name, setName] = useState("");
 
-  const [role, setRole] =
-    useState<Role>("admin");
+  const [role, setRole] = useState<Role>("admin");
 
-  const [busy, setBusy] =
-    useState(false);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     load();
@@ -2797,13 +2009,9 @@ function AdminManagement() {
   async function load() {
     setLoading(true);
 
-    const { data, error } =
-      await supabase
-        .from("admin_users")
-        .select("*")
-        .order("created_at", {
-          ascending: false,
-        });
+    const { data, error } = await supabase.from("admin_users").select("*").order("created_at", {
+      ascending: false,
+    });
 
     if (!error && data) {
       setAdmins(data as AdminUser[]);
@@ -2824,20 +2032,17 @@ function AdminManagement() {
       or secure Edge Function.
     */
 
-    const { data, error } =
-      await supabase
-        .from("admin_users")
-        .insert({
-          id: id(),
-          email:
-            email.trim().toLowerCase(),
-          name:
-            name.trim() || null,
-          role,
-          active: true,
-        })
-        .select()
-        .single();
+    const { data, error } = await supabase
+      .from("admin_users")
+      .insert({
+        id: id(),
+        email: email.trim().toLowerCase(),
+        name: name.trim() || null,
+        role,
+        active: true,
+      })
+      .select()
+      .single();
 
     setBusy(false);
 
@@ -2847,32 +2052,24 @@ function AdminManagement() {
     }
 
     if (data) {
-      setAdmins((old) => [
-        data as AdminUser,
-        ...old,
-      ]);
+      setAdmins((old) => [data as AdminUser, ...old]);
     }
 
     setEmail("");
     setName("");
 
-    alert(
-      "Admin record created. The user must have a Supabase Auth account with this email.",
-    );
+    alert("Admin record created. The user must have a Supabase Auth account with this email.");
   }
 
-  async function toggle(
-    admin: AdminUser,
-  ) {
-    const { data, error } =
-      await supabase
-        .from("admin_users")
-        .update({
-          active: !admin.active,
-        })
-        .eq("id", admin.id)
-        .select()
-        .single();
+  async function toggle(admin: AdminUser) {
+    const { data, error } = await supabase
+      .from("admin_users")
+      .update({
+        active: !admin.active,
+      })
+      .eq("id", admin.id)
+      .select()
+      .single();
 
     if (error) {
       alert(error.message);
@@ -2880,50 +2077,24 @@ function AdminManagement() {
     }
 
     if (data) {
-      setAdmins((old) =>
-        old.map((x) =>
-          x.id === admin.id
-            ? (data as AdminUser)
-            : x,
-        ),
-      );
+      setAdmins((old) => old.map((x) => (x.id === admin.id ? (data as AdminUser) : x)));
     }
   }
 
-  async function remove(
-    admin: AdminUser,
-  ) {
-    if (
-      !confirm(
-        `Remove ${admin.email}?`,
-      )
-    )
-      return;
+  async function remove(admin: AdminUser) {
+    if (!confirm(`Remove ${admin.email}?`)) return;
 
-    const { error } =
-      await supabase
-        .from("admin_users")
-        .delete()
-        .eq("id", admin.id);
+    const { error } = await supabase.from("admin_users").delete().eq("id", admin.id);
 
     if (error) {
       alert(error.message);
       return;
     }
 
-    setAdmins((old) =>
-      old.filter(
-        (x) => x.id !== admin.id,
-      ),
-    );
+    setAdmins((old) => old.filter((x) => x.id !== admin.id));
   }
 
-  if (loading)
-    return (
-      <div className="tg-loading">
-        Loading admins...
-      </div>
-    );
+  if (loading) return <div className="tg-loading">Loading admins...</div>;
 
   return (
     <div className="tg-page">
@@ -2933,50 +2104,22 @@ function AdminManagement() {
         description="Control who can access the Total Gaming Hub administration panel."
       />
 
-      <Panel
-        title="ADD ADMIN"
-        icon={<UserPlus size={17} />}
-      >
+      <Panel title="ADD ADMIN" icon={<UserPlus size={17} />}>
         <div className="tg-form-grid">
-          <Field
-            label="NAME"
-            value={name}
-            onChange={setName}
-            placeholder="Admin name"
-          />
+          <Field label="NAME" value={name} onChange={setName} placeholder="Admin name" />
 
-          <Field
-            label="EMAIL"
-            value={email}
-            onChange={setEmail}
-            placeholder="admin@example.com"
-          />
+          <Field label="EMAIL" value={email} onChange={setEmail} placeholder="admin@example.com" />
 
-          <SelectField
-            label="ROLE"
-            value={role}
-            onChange={(v) =>
-              setRole(v as Role)
-            }
-          >
-            <option value="admin">
-              ADMIN
-            </option>
-            <option value="editor">
-              EDITOR
-            </option>
-            <option value="scorekeeper">
-              SCOREKEEPER
-            </option>
+          <SelectField label="ROLE" value={role} onChange={(v) => setRole(v as Role)}>
+            <option value="admin">ADMIN</option>
+            <option value="editor">EDITOR</option>
+            <option value="scorekeeper">SCOREKEEPER</option>
           </SelectField>
 
           <div className="tg-field tg-field-button">
             <span>&nbsp;</span>
 
-            <Button
-              onClick={createAdmin}
-              disabled={busy}
-            >
+            <Button onClick={createAdmin} disabled={busy}>
               <UserPlus size={16} />
               CREATE ADMIN
             </Button>
@@ -2984,91 +2127,39 @@ function AdminManagement() {
         </div>
       </Panel>
 
-      <Panel
-        title="ADMIN USERS"
-        icon={<ShieldCheck size={17} />}
-      >
+      <Panel title="ADMIN USERS" icon={<ShieldCheck size={17} />}>
         <div className="tg-admin-list">
-          {admins.map(
-            (admin) => (
-              <div
-                className="tg-admin-row"
-                key={admin.id}
-              >
-                <div className="tg-admin-avatar">
-                  {(
-                    admin.name ||
-                    admin.email
-                  )
-                    .charAt(0)
-                    .toUpperCase()}
-                </div>
-
-                <div>
-                  <strong>
-                    {admin.name ||
-                      "Unnamed Admin"}
-                  </strong>
-
-                  <span>
-                    {admin.email}
-                  </span>
-                </div>
-
-                <Badge
-                  kind={
-                    admin.role ===
-                    "owner"
-                      ? "warning"
-                      : "blue"
-                  }
-                >
-                  {roleLabel(
-                    admin.role,
-                  )}
-                </Badge>
-
-                <Badge
-                  kind={
-                    admin.active
-                      ? "success"
-                      : "danger"
-                  }
-                >
-                  {admin.active
-                    ? "ACTIVE"
-                    : "DISABLED"}
-                </Badge>
-
-                <Button
-                  variant="secondary"
-                  onClick={() =>
-                    toggle(admin)
-                  }
-                >
-                  {admin.active
-                    ? "DISABLE"
-                    : "ENABLE"}
-                </Button>
-
-                {admin.role !==
-                  "owner" && (
-                  <IconButton
-                    title="Delete admin"
-                    onClick={() =>
-                      remove(
-                        admin,
-                      )
-                    }
-                  >
-                    <Trash2
-                      size={16}
-                    />
-                  </IconButton>
-                )}
+          {admins.map((admin) => (
+            <div className="tg-admin-row" key={admin.id}>
+              <div className="tg-admin-avatar">
+                {(admin.name || admin.email).charAt(0).toUpperCase()}
               </div>
-            ),
-          )}
+
+              <div>
+                <strong>{admin.name || "Unnamed Admin"}</strong>
+
+                <span>{admin.email}</span>
+              </div>
+
+              <Badge kind={admin.role === "owner" ? "warning" : "blue"}>
+                {roleLabel(admin.role)}
+              </Badge>
+
+              <Badge kind={admin.active ? "success" : "danger"}>
+                {admin.active ? "ACTIVE" : "DISABLED"}
+              </Badge>
+
+              <Button variant="secondary" onClick={() => toggle(admin)}>
+                {admin.active ? "DISABLE" : "ENABLE"}
+              </Button>
+
+              {admin.role !== "owner" && (
+                <IconButton title="Delete admin" onClick={() => remove(admin)}>
+                  <Trash2 size={16} />
+                </IconButton>
+              )}
+            </div>
+          ))}
         </div>
 
         {admins.length === 0 && (
@@ -3086,58 +2177,32 @@ function AdminManagement() {
    ACTIVITY
 ========================================================= */
 
-function ActivityPage({
-  activities,
-}: {
-  activities: ActivityItem[];
-}) {
+function ActivityPage({ activities }: { activities: ActivityItem[] }) {
   return (
     <div className="tg-page">
-      <Heading
-        eyebrow="AUDIT LOG"
-        title="ACTIVITY"
-        description="Recent administrator actions."
-      />
+      <Heading eyebrow="AUDIT LOG" title="ACTIVITY" description="Recent administrator actions." />
 
-      <Panel
-        title="ACTIVITY LOG"
-        icon={<Activity size={17} />}
-      >
+      <Panel title="ACTIVITY LOG" icon={<Activity size={17} />}>
         <div className="tg-activity-list">
-          {activities.map(
-            (item) => (
-              <div
-                className="tg-activity"
-                key={item.id}
-              >
-                <div className="tg-activity-dot" />
+          {activities.map((item) => (
+            <div className="tg-activity" key={item.id}>
+              <div className="tg-activity-dot" />
 
-                <div>
-                  <strong>
-                    {item.action}
-                  </strong>
+              <div>
+                <strong>{item.action}</strong>
 
-                  <span>
-                    {item.description}
-                  </span>
+                <span>{item.description}</span>
 
-                  <small>
-                    {item.admin} ·{" "}
-                    {dateText(
-                      item.created_at,
-                    )}
-                  </small>
-                </div>
+                <small>
+                  {item.admin} · {dateText(item.created_at)}
+                </small>
               </div>
-            ),
-          )}
+            </div>
+          ))}
         </div>
 
         {activities.length === 0 && (
-          <Empty
-            title="No activity"
-            description="Admin actions will appear here."
-          />
+          <Empty title="No activity" description="Admin actions will appear here." />
         )}
       </Panel>
     </div>
@@ -3149,17 +2214,13 @@ function ActivityPage({
 ========================================================= */
 
 function SettingsPage() {
-  const [publicResults, setPublicResults] =
-    useState(true);
+  const [publicResults, setPublicResults] = useState(true);
 
-  const [publicStandings, setPublicStandings] =
-    useState(true);
+  const [publicStandings, setPublicStandings] = useState(true);
 
-  const [liveFeed, setLiveFeed] =
-    useState(true);
+  const [liveFeed, setLiveFeed] = useState(true);
 
-  const [maintenance, setMaintenance] =
-    useState(false);
+  const [maintenance, setMaintenance] = useState(false);
 
   return (
     <div className="tg-page">
@@ -3169,10 +2230,7 @@ function SettingsPage() {
         description="Control public visibility and system behaviour."
       />
 
-      <Panel
-        title="PUBLIC WEBSITE"
-        icon={<Eye size={17} />}
-      >
+      <Panel title="PUBLIC WEBSITE" icon={<Eye size={17} />}>
         <SettingRow
           title="PUBLIC RESULTS"
           description="Show saved match results on the public website."
@@ -3225,14 +2283,8 @@ function SettingRow({
 
       <button
         type="button"
-        className={`tg-switch ${
-          value
-            ? "tg-switch-on"
-            : ""
-        }`}
-        onClick={() =>
-          onChange(!value)
-        }
+        className={`tg-switch ${value ? "tg-switch-on" : ""}`}
+        onClick={() => onChange(!value)}
       >
         <span />
       </button>
@@ -3290,9 +2342,7 @@ function Panel({
         {action}
       </div>
 
-      <div className="tg-panel-body">
-        {children}
-      </div>
+      <div className="tg-panel-body">{children}</div>
     </section>
   );
 }
@@ -3302,67 +2352,46 @@ function Panel({
 ========================================================= */
 
 function AdminRoute() {
-  const [session, setSession] =
-    useState<any>(null);
+  const [session, setSession] = useState<unknown>(null);
 
-  const [email, setEmail] =
-    useState("");
+  const [email, setEmail] = useState("");
 
-  const [section, setSection] =
-    useState<Section>("dashboard");
+  const [section, setSection] = useState<Section>("dashboard");
 
-  const [mobileSidebar, setMobileSidebar] =
-    useState(false);
+  const [mobileSidebar, setMobileSidebar] = useState(false);
 
-  const [refreshing, setRefreshing] =
-    useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [loading, setLoading] = useState(true);
 
-  const [tournaments, setTournaments] =
-    useState<Tournament[]>([]);
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
 
-  const [stages, setStages] =
-    useState<Stage[]>([]);
+  const [stages, setStages] = useState<Stage[]>([]);
 
-  const [matches, setMatches] =
-    useState<Match[]>([]);
+  const [matches, setMatches] = useState<Match[]>([]);
 
-  const [teams, setTeams] =
-    useState<Team[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
 
-  const [players, setPlayers] =
-    useState<Player[]>([]);
+  const [players, setPlayers] = useState<Player[]>([]);
 
-  const [activities, setActivities] =
-    useState<ActivityItem[]>([]);
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
 
-  const [selectedTournament, setSelectedTournament] =
-    useState<Tournament | null>(null);
+  const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
 
-  const [selectedStage, setSelectedStage] =
-    useState<Stage | null>(null);
+  const [selectedStage, setSelectedStage] = useState<Stage | null>(null);
 
-  const [role, setRole] =
-    useState<Role>("owner");
+  const [role, setRole] = useState<Role>("owner");
 
   useEffect(() => {
     checkAuth();
 
-    const {
-      data: listener,
-    } = supabase.auth.onAuthStateChange(
-      (_event, currentSession) => {
-        setSession(currentSession);
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, currentSession) => {
+      setSession(currentSession);
 
-        if (currentSession?.user?.email) {
-          setEmail(
-            currentSession.user.email,
-          );
-        }
-      },
-    );
+      if (currentSession?.user?.email) {
+        setEmail(currentSession.user.email);
+      }
+    });
 
     return () => {
       listener.subscription.unsubscribe();
@@ -3381,9 +2410,7 @@ function AdminRoute() {
     setSession(current);
 
     if (current?.user?.email) {
-      setEmail(
-        current.user.email,
-      );
+      setEmail(current.user.email);
     }
 
     setLoading(false);
@@ -3392,100 +2419,54 @@ function AdminRoute() {
   async function loadData() {
     setRefreshing(true);
 
-    const [
-      tournamentRes,
-      stageRes,
-      matchRes,
-      teamRes,
-      playerRes,
-      activityRes,
-    ] = await Promise.all([
-      supabase
-        .from("tournaments")
-        .select("*")
-        .order(
-          "created_at",
-          {
-            ascending: false,
-          },
-        ),
+    const [tournamentRes, stageRes, matchRes, teamRes, playerRes, activityRes] = await Promise.all([
+      supabase.from("tournaments").select("*").order("created_at", {
+        ascending: false,
+      }),
 
-      supabase
-        .from("tournament_stages")
-        .select("*")
-        .order(
-          "display_order",
-          {
-            ascending: true,
-          },
-        ),
+      supabase.from("tournament_stages").select("*").order("display_order", {
+        ascending: true,
+      }),
 
-      supabase
-        .from("matches")
-        .select("*")
-        .order(
-          "match_number",
-          {
-            ascending: true,
-          },
-        ),
+      supabase.from("matches").select("*").order("match_number", {
+        ascending: true,
+      }),
 
-      supabase
-        .from("teams")
-        .select("*")
-        .order("name"),
+      supabase.from("teams").select("*").order("name"),
 
-      supabase
-        .from("players")
-        .select("*")
-        .order("name"),
+      supabase.from("players").select("*").order("name"),
 
       supabase
         .from("activity_logs")
         .select("*")
-        .order(
-          "created_at",
-          {
-            ascending: false,
-          },
-        )
+        .order("created_at", {
+          ascending: false,
+        })
         .limit(100),
     ]);
 
     if (tournamentRes.data) {
-      setTournaments(
-        tournamentRes.data as Tournament[],
-      );
+      setTournaments(tournamentRes.data as Tournament[]);
     }
 
     if (stageRes.data) {
-      setStages(
-        stageRes.data as Stage[],
-      );
+      setStages(stageRes.data as Stage[]);
     }
 
     if (matchRes.data) {
-      setMatches(
-        matchRes.data as Match[],
-      );
+      setMatches(matchRes.data as Match[]);
     }
 
     if (teamRes.data) {
-      setTeams(
-        teamRes.data as Team[],
-      );
+      setTeams(teamRes.data as Team[]);
     }
 
     if (playerRes.data) {
-      setPlayers(
-        playerRes.data as Player[],
-      );
+      setPlayers(playerRes.data as Player[]);
     }
 
     if (activityRes.data) {
-      setActivities(
-        activityRes.data as ActivityItem[],
-      );
+      setActivities(activityRes.data as ActivityItem[]);
     }
 
     setRefreshing(false);
@@ -3498,35 +2479,22 @@ function AdminRoute() {
     setEmail("");
   }
 
-  async function log(
-    action: string,
-    description: string,
-  ) {
+  async function log(action: string, description: string) {
     const item = {
       id: id(),
       action,
       description,
       admin: email || "ADMIN",
-      created_at:
-        new Date().toISOString(),
+      created_at: new Date().toISOString(),
     };
 
-    setActivities((old) => [
-      item,
-      ...old,
-    ]);
+    setActivities((old) => [item, ...old]);
 
-    await supabase
-      .from("activity_logs")
-      .insert(item);
+    await supabase.from("activity_logs").insert(item);
   }
 
-  function openStages(
-    tournament: Tournament,
-  ) {
-    setSelectedTournament(
-      tournament,
-    );
+  function openStages(tournament: Tournament) {
+    setSelectedTournament(tournament);
     setSection("stages");
   }
 
@@ -3563,38 +2531,26 @@ function AdminRoute() {
         setSection={setSection}
         role={role}
         mobile={mobileSidebar}
-        close={() =>
-          setMobileSidebar(false)
-        }
+        close={() => setMobileSidebar(false)}
       />
 
       {mobileSidebar && (
-        <div
-          className="tg-mobile-overlay"
-          onClick={() =>
-            setMobileSidebar(false)
-          }
-        />
+        <div className="tg-mobile-overlay" onClick={() => setMobileSidebar(false)} />
       )}
 
       <div className="tg-main">
         <Header
           email={email}
-          onMenu={() =>
-            setMobileSidebar(true)
-          }
+          onMenu={() => setMobileSidebar(true)}
           onLogout={logout}
           onRefresh={loadData}
           refreshing={refreshing}
         />
 
         <main>
-          {section ===
-            "dashboard" && (
+          {section === "dashboard" && (
             <Dashboard
-              tournaments={
-                tournaments
-              }
+              tournaments={tournaments}
               stages={stages}
               matches={matches}
               teams={teams}
@@ -3603,97 +2559,53 @@ function AdminRoute() {
             />
           )}
 
-          {section ===
-            "tournaments" && (
+          {section === "tournaments" && (
             <Tournaments
-              tournaments={
-                tournaments
-              }
-              setTournaments={
-                setTournaments
-              }
+              tournaments={tournaments}
+              setTournaments={setTournaments}
               stages={stages}
-              onOpenStages={
-                openStages
-              }
+              onOpenStages={openStages}
               log={log}
             />
           )}
 
-          {section === "stages" &&
-            selectedTournament && (
-              <Stages
-                tournament={
-                  selectedTournament
-                }
-                stages={stages}
-                setStages={setStages}
-                matches={matches}
-                onBack={() => {
-                  setSelectedTournament(
-                    null,
-                  );
-                  setSection(
-                    "tournaments",
-                  );
-                }}
-                onOpenMatch={
-                  openMatches
-                }
-                log={log}
-              />
-            )}
+          {section === "stages" && selectedTournament && (
+            <Stages
+              tournament={selectedTournament}
+              stages={stages}
+              setStages={setStages}
+              matches={matches}
+              onBack={() => {
+                setSelectedTournament(null);
+                setSection("tournaments");
+              }}
+              onOpenMatch={openMatches}
+              log={log}
+            />
+          )}
 
-          {section === "matches" &&
-            selectedTournament &&
-            selectedStage && (
-              <Matches
-                tournament={
-                  selectedTournament
-                }
-                stage={selectedStage}
-                matches={matches}
-                setMatches={setMatches}
-                teams={teams}
-                players={players}
-                onBack={() =>
-                  setSection(
-                    "stages",
-                  )
-                }
-                log={log}
-              />
-            )}
-
-          {section === "teams" && (
-            <Teams
+          {section === "matches" && selectedTournament && selectedStage && (
+            <Matches
+              tournament={selectedTournament}
+              stage={selectedStage}
+              matches={matches}
+              setMatches={setMatches}
               teams={teams}
               players={players}
+              onBack={() => setSection("stages")}
+              log={log}
             />
           )}
 
-          {section === "players" && (
-            <Players
-              players={players}
-              teams={teams}
-            />
-          )}
+          {section === "teams" && <Teams teams={teams} players={players} />}
 
-          {section === "admins" && (
-            <AdminManagement />
-          )}
+          {section === "players" && <Players players={players} teams={teams} />}
 
-          {section === "activity" && (
-            <ActivityPage
-              activities={
-                activities
-              }
-            />
-          )}
+          {section === "admins" && <AdminManagement />}
 
-          {section === "settings" && (
-            <SettingsPage />
-          )}
+          {section === "activity" && <ActivityPage activities={activities} />}
+
+          {section === "settings" && <SettingsPage />}
         </main>
       </div>
     </div>
