@@ -37,7 +37,7 @@ import {
   Zap,
 } from "lucide-react";
 
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/admin")({
   component: AdminRoute,
