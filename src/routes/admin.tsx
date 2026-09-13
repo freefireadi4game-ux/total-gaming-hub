@@ -2352,7 +2352,7 @@ function Panel({
 ========================================================= */
 
 function AdminRoute() {
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<unknown>(null);
 
   const [email, setEmail] = useState("");
 
