@@ -2755,7 +2755,7 @@ main .group.relative.overflow-hidden.rounded-2xl.border.border-purple-500\/30 {
   filter: grayscale(1);
 }
 
-.tg-dashboard-v2 > *:not(.tg-watermark) { position: relative; z-index: 1; }
+.tg-dashboard-v2 > *:not(.tg-watermark):not(.tg-modal-backdrop) { position: relative; z-index: 1; }
 
 .tg-page-width { width: min(1120px, calc(100% - 40px)); margin-inline: auto; }
 
