@@ -273,6 +273,10 @@ function Dashboard() {
     setMode(nextMode);
     setSelectedEvent(null);
     setSelectedTournamentId(null);
+    setTournaments([]);
+    setTournamentData(emptyTournamentData);
+    setLoadingData(false);
+    setError(null);
   }
 
   function selectEvent(name: string) {
